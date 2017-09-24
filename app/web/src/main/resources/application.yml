@@ -1,0 +1,5 @@
+---
+spring:
+  jackson:
+    deserialization.UNWRAP_ROOT_VALUE: true
+    serialization.WRAP_ROOT_VALUE: true
