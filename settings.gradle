@@ -1,1 +1,2 @@
+include 'app:web'
 rootProject.name = 'realworld-spring5'
