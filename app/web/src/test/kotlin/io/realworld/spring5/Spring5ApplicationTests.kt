@@ -15,6 +15,7 @@ import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.test.context.junit.jupiter.SpringExtension
 
 
+data class RegistrationRequest(var user: Registration)
 data class LoginRequest(var user: Login)
 data class UserResponse(var user: User)
 
@@ -27,6 +28,19 @@ class Spring5ApplicationTests {
 
   @LocalServerPort
   lateinit var port: Integer
+
+  @Test
+  fun `register user`() {
+    val req = RegistrationRequest(Registration(username = "foo", email = "foo@bar.com", password = "baz"))
+    val expected = User(username = "foo", email = "foo@bar.com", token = "token")
+
+    val actual = post("/api/users", req)
+        .then()
+        .statusCode(200)
+        .extract().`as`(UserResponse::class.java)
+
+    assertThat(actual.user).isEqualTo(expected)
+  }
 
   @Test
   fun `serialization to user works`() {

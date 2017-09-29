@@ -8,8 +8,15 @@ import org.springframework.web.bind.annotation.RestController
 
 @JsonRootName("user")
 data class Login (
-  val email: String,
-  val password: String
+    val email: String,
+    val password: String
+)
+
+@JsonRootName("user")
+data class Registration (
+    val username: String,
+    val email: String,
+    val password: String
 )
 
 @JsonRootName("user")
@@ -25,12 +32,21 @@ data class User(
 @RequestMapping("/api/users")
 class UserController {
 
+  @PostMapping
+  fun register(@RequestBody registration: Registration) : User {
+    return User(
+        username = registration.username,
+        email = registration.email,
+        token = "token"
+    )
+  }
+
   @PostMapping("/login")
   fun login(@RequestBody login: Login) : User {
     return User(
+        username = login.email,
         email = login.email,
-        token = "token",
-        username = login.email
+        token = "token"
     )
   }
 }
