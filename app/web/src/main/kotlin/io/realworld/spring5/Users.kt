@@ -3,6 +3,7 @@ package io.realworld.spring5
 import com.fasterxml.jackson.annotation.JsonRootName
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @JsonRootName("user")
@@ -21,9 +22,10 @@ data class User(
 )
 
 @RestController
+@RequestMapping("/api/users")
 class UserController {
 
-  @PostMapping("/api/users/login")
+  @PostMapping("/login")
   fun login(@RequestBody login: Login) : User {
     return User(
         email = login.email,

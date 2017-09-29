@@ -1,16 +1,58 @@
 package io.realworld.spring5
 
-import org.junit.Test
-import org.junit.runner.RunWith
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.restassured.RestAssured.given
+import io.restassured.http.ContentType
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.junit4.SpringRunner
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.boot.web.server.LocalServerPort
+import org.springframework.test.context.junit.jupiter.SpringExtension
 
-@RunWith(SpringRunner::class)
-@SpringBootTest
+
+data class LoginRequest(var user: Login)
+data class UserResponse(var user: User)
+
+@TestInstance(PER_CLASS)
+@ExtendWith(SpringExtension::class)
+@SpringBootTest(webEnvironment = RANDOM_PORT)
 class Spring5ApplicationTests {
 
+  @Autowired lateinit var objectMapper: ObjectMapper
+
+  @LocalServerPort
+  lateinit var port: Integer
+
   @Test
-  fun contextLoads() {
+  fun `serialization to user works`() {
+    val req = LoginRequest(Login(email = "foo@bar.com", password = "baz"))
+    val expected = User(email = "foo@bar.com", token = "token", username = "foo@bar.com")
+
+    val actual = post("/api/users/login", req)
+        .then()
+        .statusCode(200)
+        .extract().`as`(UserResponse::class.java)
+
+    assertThat(actual.user).isEqualTo(expected)
   }
+
+  @Test
+  fun `invalid request payload is detected`() {
+    val req = Login(email = "foo@bar.com", password = "baz")
+
+    post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
+        .then()
+        .statusCode(400)
+  }
+
+  private fun post(path: String, body: Any) =
+      given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
+
+  private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
 
 }

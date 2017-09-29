@@ -1,6 +1,7 @@
 buildscript {
   ext {
-    kotlinVersion = '1.1.50'
+    kotlinVersion = '1.1.51'
+    restAssuredVersion = '3.0.3'
     springBootVersion = '2.0.0.M4'
   }
   repositories {
@@ -40,8 +41,12 @@ configure(subprojects - project(':app')) { project ->
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:${kotlinVersion}")
     compile("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
 
-    testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile('org.springframework.boot:spring-boot-starter-test') {
+      exclude group: 'junit', module: 'junit'
+    }
     testCompile('io.projectreactor:reactor-test')
+    testCompile('org.junit.jupiter:junit-jupiter-api')
+    testCompile('org.junit.jupiter:junit-jupiter-engine')
   }
 }
 
@@ -55,6 +60,7 @@ project('app:web') {
 
     runtime('com.h2database:h2')
 
+    testCompile("io.rest-assured:rest-assured:${restAssuredVersion}")
     testCompile('org.springframework.security:spring-security-test')
   }
 }
