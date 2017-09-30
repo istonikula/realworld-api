@@ -1,4 +1,4 @@
-package io.realworld.spring5
+package io.realworld
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.restassured.RestAssured.given
@@ -32,7 +32,7 @@ class Spring5ApplicationTests {
   @Test
   fun `register user`() {
     val req = RegistrationRequest(Registration(username = "foo", email = "foo@bar.com", password = "baz"))
-    val expected = User(username = "foo", email = "foo@bar.com", token = "token")
+    val expected = User(username = "foo", email = "foo@bar.com", token = "TODO")
 
     val actual = post("/api/users", req)
         .then()
@@ -45,7 +45,7 @@ class Spring5ApplicationTests {
   @Test
   fun `serialization to user works`() {
     val req = LoginRequest(Login(email = "foo@bar.com", password = "baz"))
-    val expected = User(email = "foo@bar.com", token = "token", username = "foo@bar.com")
+    val expected = User(email = "foo@bar.com", token = "TODO", username = "foo@bar.com")
 
     val actual = post("/api/users/login", req)
         .then()
@@ -68,5 +68,6 @@ class Spring5ApplicationTests {
       given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
+
 
 }

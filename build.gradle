@@ -1,8 +1,9 @@
 buildscript {
   ext {
     kotlinVersion = '1.1.51'
+    orikaVersion = '1.5.1'
     restAssuredVersion = '3.0.3'
-    springBootVersion = '2.0.0.M4'
+    springBootVersion = '2.0.0.BUILD-SNAPSHOT'
   }
   repositories {
     mavenCentral()
@@ -16,7 +17,7 @@ buildscript {
   }
 }
 
-configure(subprojects - project(':app')) { project ->
+configure(subprojects - project(':realworld-app')) { project ->
   apply plugin: 'kotlin'
   apply plugin: 'kotlin-spring'
   apply plugin: 'io.spring.dependency-management'
@@ -50,13 +51,16 @@ configure(subprojects - project(':app')) { project ->
   }
 }
 
-project('app:web') {
+project('realworld-app:web') {
   apply plugin: 'org.springframework.boot'
 
   dependencies {
+    compile project(':realworld-domain')
+
     compile('org.flywaydb:flyway-core')
     compile('org.springframework.boot:spring-boot-starter-security')
     compile('org.springframework.boot:spring-boot-starter-webflux')
+    compile("ma.glasnost.orika:orika-core:${orikaVersion}")
 
     runtime('com.h2database:h2')
 

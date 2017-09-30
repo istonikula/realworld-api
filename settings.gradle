@@ -1,2 +1,3 @@
-include 'app:web'
-rootProject.name = 'realworld-spring5'
+include 'realworld-app:web'
+include 'realworld-domain'
+rootProject.name = 'realworld'
