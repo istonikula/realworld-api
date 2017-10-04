@@ -60,6 +60,7 @@ class Spring5ApplicationTests {
     val req = Login(email = "foo@bar.com", password = "baz")
 
     post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
+        .prettyPeek()
         .then()
         .statusCode(400)
   }
@@ -68,6 +69,5 @@ class Spring5ApplicationTests {
       given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
-
 
 }

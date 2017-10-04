@@ -2,4 +2,7 @@
 spring:
   jackson:
     deserialization.UNWRAP_ROOT_VALUE: true
-    serialization.WRAP_ROOT_VALUE: true
+    serialization:
+      WRAP_ROOT_VALUE: true
+      WRITE_DATES_AS_TIMESTAMPS: false
+
