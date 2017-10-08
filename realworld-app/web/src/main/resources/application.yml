@@ -1,4 +1,7 @@
 ---
+realworld:
+  security:
+    token-secret: secret
 spring:
   jackson:
     deserialization.UNWRAP_ROOT_VALUE: true

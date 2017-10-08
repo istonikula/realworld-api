@@ -2,8 +2,10 @@ package io.realworld.domain.api.event
 
 import io.realworld.domain.api.dto.UserDto
 
-class LoginEvent(val email: String, val password: String): CommandEvent
-class RegisterEvent(val username: String, val email: String, val password: String): CommandEvent
+class AuthenticateEvent(val token: String) : CommandEvent
+class LoginEvent(val email: String, val password: String) : CommandEvent
+class RegisterEvent(val username: String, val email: String, val password: String) : CommandEvent
 
-class LoggedInEvent(val user: UserDto): ResponseEvent
-class RegisteredEvent(val user: UserDto): ResponseEvent
+class AuthenticatedEvent(val user: UserDto) : ResponseEvent
+class LoggedInEvent(val user: UserDto) : ResponseEvent
+class RegisteredEvent(val user: UserDto) : ResponseEvent

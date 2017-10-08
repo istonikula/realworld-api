@@ -1,16 +1,24 @@
 package io.realworld
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.realworld.domain.core.Auth
+import io.realworld.domain.core.Token
+import io.realworld.domain.spi.UserModel
+import io.realworld.domain.spi.UserRepository
+import io.realworld.persistence.InMemoryUserRepository
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.test.context.junit.jupiter.SpringExtension
 
@@ -26,32 +34,41 @@ class Spring5ApplicationTests {
 
   @Autowired lateinit var objectMapper: ObjectMapper
 
+  @Autowired lateinit var auth: Auth
+
+  @Autowired lateinit var userRepo: InMemoryUserRepository
+
   @LocalServerPort
   lateinit var port: Integer
 
-  @Test
-  fun `register user`() {
-    val req = RegistrationRequest(Registration(username = "foo", email = "foo@bar.com", password = "baz"))
-    val expected = User(username = "foo", email = "foo@bar.com", token = "TODO")
+  // TODO use orikamapper and kotlin extension functions to map
+  private lateinit var testUser: UserModel
 
-    val actual = post("/api/users", req)
-        .then()
-        .statusCode(200)
-        .extract().`as`(UserResponse::class.java)
-
-    assertThat(actual.user).isEqualTo(expected)
+  @BeforeAll
+  fun initUser() {
+    testUser = UserModel(
+      email = "foo@bar.com",
+      token = auth.createToken(Token("foo@bar.com")),
+      username = "foo",
+      password = "baz"
+    )
   }
 
   @Test
-  fun `serialization to user works`() {
-    val req = LoginRequest(Login(email = "foo@bar.com", password = "baz"))
-    val expected = User(email = "foo@bar.com", token = "TODO", username = "foo@bar.com")
-
-    val actual = post("/api/users/login", req)
+  fun `register and login`() {
+    val regReq = RegistrationRequest(Registration(username = testUser.username, email = testUser.email, password = testUser.password))
+    val expected = User(username = testUser.username, email = testUser.email, token = testUser.token)
+    var actual = post("/api/users", regReq)
         .then()
         .statusCode(200)
         .extract().`as`(UserResponse::class.java)
+    assertThat(actual.user).isEqualTo(expected)
 
+    val loginReq = LoginRequest(Login(email = regReq.user.email, password = regReq.user.password))
+    actual = post("/api/users/login", loginReq)
+      .then()
+      .statusCode(200)
+      .extract().`as`(UserResponse::class.java)
     assertThat(actual.user).isEqualTo(expected)
   }
 
@@ -65,8 +82,31 @@ class Spring5ApplicationTests {
         .statusCode(400)
   }
 
+  @Test
+  fun `current user is resolved from token`() {
+
+    userRepo.save(UserModel(
+      email = testUser.email,
+      token = testUser.token,
+      username = testUser.username,
+      password = "baz"
+    ))
+
+    val actual = get("/api/users", testUser.token)
+      .then()
+      .statusCode(200)
+      .extract().`as`(UserResponse::class.java)
+
+    assertThat(actual.user.email).isEqualTo("foo@bar.com")
+  }
+
   private fun post(path: String, body: Any) =
-      given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
+    given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
+
+  private fun get(path: String, token: String) =
+    given().baseUri("http://localhost:${port}")
+      .header("Authorization", "Token ${token}")
+      .get(path)
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
 

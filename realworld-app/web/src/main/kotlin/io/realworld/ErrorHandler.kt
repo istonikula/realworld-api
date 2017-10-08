@@ -14,49 +14,49 @@ import org.springframework.web.server.ServerWebInputException
 
 @ControllerAdvice
 class ErrorHandler {
-  val log : Logger = LoggerFactory.getLogger(ErrorHandler::class.java)
+  val log: Logger = LoggerFactory.getLogger(ErrorHandler::class.java)
 
   @ExceptionHandler(ServerWebInputException::class)
-  fun serverWebInputException(ex: ServerWebInputException) : ResponseEntity<ValidationErrorResponse> {
+  fun serverWebInputException(ex: ServerWebInputException): ResponseEntity<ValidationErrorResponse> {
     val t = NestedExceptionUtils.getMostSpecificCause(ex)
-    return when(t) {
+    return when (t) {
       is MissingKotlinParameterException -> {
         handleError(HttpStatus.BAD_REQUEST, listOf(t.toValidationError()))
       }
       else -> handleError(HttpStatus.BAD_REQUEST, listOf(ValidationError(
-          type = "ValidationError",
-          path = "body",
-          message = t.message ?: ""
+        type = "ValidationError",
+        path = "body",
+        message = t.message ?: ""
       )))
     }
   }
 
   private fun handleError(
-      httpStatus: HttpStatus,
-      validationErrors: List<ValidationError> = emptyList()) : ResponseEntity<ValidationErrorResponse> {
-
+    httpStatus: HttpStatus,
+    validationErrors: List<ValidationError> = emptyList()
+  ): ResponseEntity<ValidationErrorResponse> {
     val restErrors = ValidationErrorResponse(validationErrors.associateBy { it.path })
     return ResponseEntity(restErrors, httpStatus)
   }
 }
 
 data class ValidationError(
-    val type: String,
-    val path: String,
-    val message: String,
-    val arguments: Map<String, Any>? = emptyMap()
+  val type: String,
+  val path: String,
+  val message: String,
+  val arguments: Map<String, Any>? = emptyMap()
 )
 
 fun JsonMappingException.toValidationErrorPath(): String =
-    path.joinToString(separator = ".", transform = { it ->
-      val i = if (it.index >= 0) "${it.index}" else ""
-      "${it.fieldName ?: ""}${i}"
-    })
+  path.joinToString(separator = ".", transform = { it ->
+    val i = if (it.index >= 0) "${it.index}" else ""
+    "${it.fieldName ?: ""}${i}"
+  })
 
 fun MissingKotlinParameterException.toValidationError() = ValidationError(
-    type = "TypeMismatch",
-    path = toValidationErrorPath(),
-    message = message ?: ""
+  type = "TypeMismatch",
+  path = toValidationErrorPath(),
+  message = message ?: ""
 )
 
 @JsonRootName("errors")
