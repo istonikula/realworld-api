@@ -2,10 +2,10 @@ buildscript {
   ext {
     jasyptVersion = '1.9.2'
     jjwtVersion = '0.7.0'
-    kotlinVersion = '1.1.51'
+    kotlinVersion = '1.2.21'
     orikaVersion = '1.5.1'
     restAssuredVersion = '3.0.3'
-    springBootVersion = '2.0.0.BUILD-SNAPSHOT'
+    springBootVersion = '2.0.0.RC1'
   }
   repositories {
     mavenCentral()
@@ -61,14 +61,15 @@ project('realworld-app:web') {
     compile project(':realworld-infra:persistence')
 
     compile("ma.glasnost.orika:orika-core:${orikaVersion}")
+    compile('com.fasterxml.jackson.module:jackson-module-kotlin')
     compile('org.flywaydb:flyway-core')
-    compile('org.springframework.boot:spring-boot-starter-security')
+//    compile('org.springframework.boot:spring-boot-starter-security')
     compile('org.springframework.boot:spring-boot-starter-webflux')
 
     runtime('com.h2database:h2')
 
     testCompile("io.rest-assured:rest-assured:${restAssuredVersion}")
-    testCompile('org.springframework.security:spring-security-test')
+//    testCompile('org.springframework.security:spring-security-test')
   }
 }
 
@@ -86,5 +87,5 @@ project('realworld-infra:persistence') {
 }
 
 task wrapper(type: Wrapper) {
-  gradleVersion = '4.2'
+  gradleVersion = '4.5'
 }
