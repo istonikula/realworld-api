@@ -35,6 +35,17 @@ data class Registration(
 )
 
 @JsonRootName("user")
+data class UserUpdate(
+  @field:Email
+  val email: String? = null,
+
+  val username: String? = null,
+  val password: String? = null,
+  val bio: String? = null,
+  val image: String? = null
+)
+
+@JsonRootName("user")
 data class User(
   val email: String,
   val token: String,
@@ -70,6 +81,11 @@ class UserController(private val userService: UserService) {
       password = login.password
     ))
     return ResponseEntity.ok().body(User.fromDto(e.user))
+  }
+
+  @PutMapping("/api/user")
+  fun update(@Valid @RequestBody userUpdate: UserUpdate, user: UserDto): ResponseEntity<User> {
+    return ResponseEntity.ok().body(User.fromDto(user))
   }
 }
 

@@ -4,28 +4,26 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.core.Auth
 import io.realworld.domain.core.Token
 import io.realworld.domain.spi.UserModel
-import io.realworld.domain.spi.UserRepository
 import io.realworld.persistence.InMemoryUserRepository
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
-import io.restassured.response.Response
+import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.test.context.junit.jupiter.SpringExtension
 
 
 data class RegistrationRequest(var user: Registration)
 data class LoginRequest(var user: Login)
+data class UserUpdateRequest(var user: UserUpdate)
 data class UserResponse(var user: User)
 
 @TestInstance(PER_CLASS)
@@ -108,17 +106,40 @@ class Spring5ApplicationTests {
     get("/api/user").then().statusCode(401)
   }
 
+  @Test
+  fun `update user email`() {
+    userRepo.save(UserModel(
+      email = testUser.email,
+      token = testUser.token,
+      username = testUser.username,
+      password = "baz"
+    ))
+
+    val updateReq = UserUpdateRequest(UserUpdate(email = "updated.${testUser.email}"))
+    println(asJson(updateReq))
+    val actual = put("/api/user", updateReq, testUser.token)
+      .then()
+      .statusCode(200)
+      .extract().`as`(UserResponse::class.java)
+    // TODO assert email changed
+    // - in response
+    // - in repo
+  }
+
   private fun post(path: String, body: Any) =
     given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
 
-  private fun get(path: String, token: String? = null): Response {
-    var spec = given().baseUri("http://localhost:${port}")
-    if (token != null) {
-      spec = spec.header("Authorization", "Token ${token}")
-    }
-    return spec.get(path)
-  }
+  private fun put(path: String, body: Any, token: String? = null) =
+    given().baseUri("http://localhost:${port}").token(token).contentType(ContentType.JSON).body(body).put(path)
+
+  private fun get(path: String, token: String? = null) =
+    given().baseUri("http://localhost:${port}").token(token).get(path)
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
+
+  fun RequestSpecification.token(token: String?) =
+    if (token != null) {
+      this.header("Authorization", "Token ${token}")
+    } else this
 
 }
