@@ -89,17 +89,22 @@ class UserArgumentResolver(val userService: UserService) : HandlerMethodArgument
     exchange: ServerWebExchange?
   ): Mono<Any> {
     val authorization: String? = exchange?.request?.headers?.getFirst(HttpHeaders.AUTHORIZATION)
-    // TODO make more idiomatic
     authorization?.apply {
       if (startsWith(TOKEN_PREFIX)) {
-        val user: UserDto = userService.authenticate(AuthenticateEvent(substring(TOKEN_PREFIX.length))).user
-        return Mono.just(user)
+        return try {
+          val user: UserDto = userService.authenticate(AuthenticateEvent(substring(TOKEN_PREFIX.length))).user
+          Mono.just(user)
+        } catch (t: Throwable) {
+          throw UnauthrorizedException()
+        }
       }
     }
-    TODO("throw authentication required exception")
+    throw UnauthrorizedException()
   }
 
   companion object {
     private val TOKEN_PREFIX = "Token "
   }
 }
+
+class UnauthrorizedException : Throwable()

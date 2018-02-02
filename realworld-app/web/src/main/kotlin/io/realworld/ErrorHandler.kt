@@ -31,6 +31,9 @@ class ErrorHandler {
     }
   }
 
+  @ExceptionHandler(UnauthrorizedException::class)
+  fun unauthorized() = handleError(HttpStatus.UNAUTHORIZED)
+
   private fun handleError(
     httpStatus: HttpStatus,
     validationErrors: List<ValidationError> = emptyList()

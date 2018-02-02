@@ -8,6 +8,7 @@ import io.realworld.domain.spi.UserRepository
 import io.realworld.persistence.InMemoryUserRepository
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
+import io.restassured.response.Response
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -41,7 +42,6 @@ class Spring5ApplicationTests {
   @LocalServerPort
   lateinit var port: Integer
 
-  // TODO use orikamapper and kotlin extension functions to map
   private lateinit var testUser: UserModel
 
   @BeforeAll
@@ -84,7 +84,6 @@ class Spring5ApplicationTests {
 
   @Test
   fun `current user is resolved from token`() {
-
     userRepo.save(UserModel(
       email = testUser.email,
       token = testUser.token,
@@ -96,17 +95,29 @@ class Spring5ApplicationTests {
       .then()
       .statusCode(200)
       .extract().`as`(UserResponse::class.java)
-
     assertThat(actual.user.email).isEqualTo("foo@bar.com")
+  }
+
+  @Test
+  fun `invalid token is reported as 401`() {
+    get("/api/users", "invalidToken").then().statusCode(401)
+  }
+
+  @Test
+  fun `missing auth header is reported as 401`() {
+    get("/api/users").then().statusCode(401)
   }
 
   private fun post(path: String, body: Any) =
     given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
 
-  private fun get(path: String, token: String) =
-    given().baseUri("http://localhost:${port}")
-      .header("Authorization", "Token ${token}")
-      .get(path)
+  private fun get(path: String, token: String? = null): Response {
+    var spec = given().baseUri("http://localhost:${port}")
+    if (token != null) {
+      spec = spec.header("Authorization", "Token ${token}")
+    }
+    return spec.get(path)
+  }
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
 
