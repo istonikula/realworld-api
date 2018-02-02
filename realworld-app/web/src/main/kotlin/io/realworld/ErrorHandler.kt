@@ -37,9 +37,11 @@ class ErrorHandler {
   private fun handleError(
     httpStatus: HttpStatus,
     validationErrors: List<ValidationError> = emptyList()
-  ): ResponseEntity<ValidationErrorResponse> {
-    val restErrors = ValidationErrorResponse(validationErrors.associateBy { it.path })
-    return ResponseEntity(restErrors, httpStatus)
+  ) = when (validationErrors.isEmpty()) {
+    true -> ResponseEntity(httpStatus)
+    else -> ResponseEntity(
+      ValidationErrorResponse(validationErrors.associateBy { it.path }),
+      httpStatus)
   }
 }
 

@@ -91,7 +91,7 @@ class Spring5ApplicationTests {
       password = "baz"
     ))
 
-    val actual = get("/api/users", testUser.token)
+    val actual = get("/api/user", testUser.token)
       .then()
       .statusCode(200)
       .extract().`as`(UserResponse::class.java)
@@ -100,12 +100,12 @@ class Spring5ApplicationTests {
 
   @Test
   fun `invalid token is reported as 401`() {
-    get("/api/users", "invalidToken").then().statusCode(401)
+    get("/api/user", "invalidToken").then().statusCode(401)
   }
 
   @Test
   fun `missing auth header is reported as 401`() {
-    get("/api/users").then().statusCode(401)
+    get("/api/user").then().statusCode(401)
   }
 
   private fun post(path: String, body: Any) =

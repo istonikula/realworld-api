@@ -48,13 +48,12 @@ data class User(
 }
 
 @RestController
-@RequestMapping("/api/users")
 class UserController(private val userService: UserService) {
 
-  @GetMapping
+  @GetMapping("/api/user")
   fun currentUser(user: UserDto) = ResponseEntity.ok().body(User.fromDto(user))
 
-  @PostMapping
+  @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: Registration): ResponseEntity<User> {
     val e = userService.register(RegisterEvent(
       username = registration.username,
@@ -64,7 +63,7 @@ class UserController(private val userService: UserService) {
     return ResponseEntity.ok().body(User.fromDto(e.user)) // TODO return 201 instead of 200
   }
 
-  @PostMapping("/login")
+  @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: Login): ResponseEntity<User> {
     val e = userService.login(LoginEvent(
       email = login.email,
