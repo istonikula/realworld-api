@@ -1,5 +1,7 @@
 package io.realworld.domain.core
 
+import arrow.core.Either
+import io.realworld.domain.api.UserRegisterError
 import io.realworld.domain.api.UserService
 import io.realworld.domain.api.event.*
 import io.realworld.domain.spi.UserModel
@@ -19,14 +21,20 @@ class CoreUserService(
     }
   }
 
-  override fun register(e: RegisterEvent) = RegisteredEvent(
-    userRepository.save(UserModel(
-      email = e.email,
-      username = e.username,
-      password = auth.encryptPassword(e.password),
-      token = auth.createToken(Token(e.email))
-    )).toDto()
-  )
+  override fun register(e: RegisterEvent) =
+    when {
+      userRepository.existsByEmail(e.email) -> Either.left(UserRegisterError.EmailAlreadyTaken)
+      userRepository.existsByUsername(e.username) -> Either.left(UserRegisterError.UsernameAlreadyTaken)
+      else -> Either.right(RegisteredEvent(
+        // TODO save should return Either
+        userRepository.save(UserModel(
+          email = e.email,
+          username = e.username,
+          password = auth.encryptPassword(e.password),
+          token = auth.createToken(Token(e.email))
+        )).toDto()
+      ))
+    }
 
   override fun login(e: LoginEvent): LoggedInEvent {
     val user = userRepository.findByEmail(e.email)

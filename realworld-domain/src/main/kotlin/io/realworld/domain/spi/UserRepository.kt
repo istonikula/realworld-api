@@ -16,4 +16,6 @@ data class UserModel(
 interface UserRepository {
   fun save(user: UserModel): UserModel
   fun findByEmail(email: String): UserModel?
+  fun existsByEmail(email: String): Boolean
+  fun existsByUsername(username: String): Boolean
 }

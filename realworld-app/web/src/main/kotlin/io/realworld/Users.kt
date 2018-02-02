@@ -1,10 +1,13 @@
 package io.realworld
 
+import arrow.core.Either
 import com.fasterxml.jackson.annotation.JsonRootName
+import io.realworld.domain.api.UserRegisterError
 import io.realworld.domain.api.UserService
 import io.realworld.domain.api.dto.UserDto
 import io.realworld.domain.api.event.LoginEvent
 import io.realworld.domain.api.event.RegisterEvent
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import javax.validation.Valid
@@ -71,7 +74,13 @@ class UserController(private val userService: UserService) {
       email = registration.email,
       password = registration.password
     ))
-    return ResponseEntity.ok().body(User.fromDto(e.user)) // TODO return 201 instead of 200
+    return when (e) {
+      is Either.Left -> when (e.a) {
+        is UserRegisterError.EmailAlreadyTaken -> throw FieldError("email", "already taken")
+        is UserRegisterError.UsernameAlreadyTaken -> throw FieldError("username", "already taken")
+      }
+      is Either.Right -> ResponseEntity.status(HttpStatus.CREATED).body(User.fromDto(e.b.user))
+    }
   }
 
   @PostMapping("/api/users/login")

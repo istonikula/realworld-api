@@ -9,6 +9,8 @@ import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
+import org.hamcrest.Matchers.equalTo
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -52,14 +54,19 @@ class Spring5ApplicationTests {
     )
   }
 
+  @AfterEach
+  fun deleteUser() {
+    userRepo.deleteAll()
+  }
+
   @Test
   fun `register and login`() {
     val regReq = RegistrationRequest(Registration(username = testUser.username, email = testUser.email, password = testUser.password))
     val expected = User(username = testUser.username, email = testUser.email, token = testUser.token)
     var actual = post("/api/users", regReq)
-        .then()
-        .statusCode(200)
-        .extract().`as`(UserResponse::class.java)
+      .then()
+      .statusCode(201)
+      .extract().`as`(UserResponse::class.java)
     assertThat(actual.user).isEqualTo(expected)
 
     val loginReq = LoginRequest(Login(email = regReq.user.email, password = regReq.user.password))
@@ -71,13 +78,45 @@ class Spring5ApplicationTests {
   }
 
   @Test
+  fun `cannot register already existing username`() {
+    userRepo.save(UserModel(
+      email = testUser.email,
+      token = testUser.token,
+      username = testUser.username,
+      password = "baz"
+    ))
+    val regReq = RegistrationRequest(Registration(username = testUser.username, email = "unique.${testUser.email}", password = testUser.password))
+    post("/api/users", regReq)
+      .prettyPeek()
+      .then()
+      .statusCode(422)
+      .body("errors.username.message", equalTo("already taken"))
+  }
+
+  @Test
+  fun `cannot register already existing email`() {
+    userRepo.save(UserModel(
+      email = testUser.email,
+      token = testUser.token,
+      username = testUser.username,
+      password = "baz"
+    ))
+    val regReq = RegistrationRequest(Registration(username = "unique", email = testUser.email, password = testUser.password))
+    post("/api/users", regReq)
+      .prettyPeek()
+      .then()
+      .statusCode(422)
+      .body("errors.email.message", equalTo("already taken"))
+  }
+
+  @Test
   fun `invalid request payload is detected`() {
     val req = Login(email = "foo@bar.com", password = "baz")
 
     post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
         .prettyPeek()
         .then()
-        .statusCode(400)
+        .statusCode(422)
   }
 
   @Test

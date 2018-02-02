@@ -1,5 +1,6 @@
 buildscript {
   ext {
+    arrowVersion = '0.6.1'
     jasyptVersion = '1.9.2'
     jjwtVersion = '0.7.0'
     kotlinVersion = '1.2.21'
@@ -36,6 +37,7 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
 
   repositories {
     mavenCentral()
+    jcenter()
     maven { url "https://repo.spring.io/snapshot" }
     maven { url "https://repo.spring.io/milestone" }
   }
@@ -43,6 +45,11 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:${kotlinVersion}")
     compile("org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}")
+
+    compile("io.arrow-kt:arrow-core:${arrowVersion}")
+    compile("io.arrow-kt:arrow-typeclasses:${arrowVersion}")
+    compile("io.arrow-kt:arrow-instances:${arrowVersion}")
+    compile("io.arrow-kt:arrow-syntax:${arrowVersion}")
 
     testCompile("org.springframework.boot:spring-boot-starter-test") {
       exclude group: 'junit', module: 'junit'

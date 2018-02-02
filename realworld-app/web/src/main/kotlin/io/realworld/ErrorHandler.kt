@@ -21,9 +21,9 @@ class ErrorHandler {
     val t = NestedExceptionUtils.getMostSpecificCause(ex)
     return when (t) {
       is MissingKotlinParameterException -> {
-        handleError(HttpStatus.BAD_REQUEST, listOf(t.toValidationError()))
+        handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(t.toValidationError()))
       }
-      else -> handleError(HttpStatus.BAD_REQUEST, listOf(ValidationError(
+      else -> handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(ValidationError(
         type = "ValidationError",
         path = "body",
         message = t.message ?: ""
@@ -34,15 +34,18 @@ class ErrorHandler {
   @ExceptionHandler(UnauthrorizedException::class)
   fun unauthorized() = handleError(HttpStatus.UNAUTHORIZED)
 
-  private fun handleError(
-    httpStatus: HttpStatus,
-    validationErrors: List<ValidationError> = emptyList()
-  ) = when (validationErrors.isEmpty()) {
-    true -> ResponseEntity(httpStatus)
-    else -> ResponseEntity(
-      ValidationErrorResponse(validationErrors.associateBy { it.path }),
-      httpStatus)
-  }
+  @ExceptionHandler(FieldError::class)
+  fun fieldError(ex: FieldError) = handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(ex.toValidationError()))
+}
+
+fun handleError(
+  httpStatus: HttpStatus,
+  validationErrors: List<ValidationError> = emptyList()
+) = when (validationErrors.isEmpty()) {
+  true -> ResponseEntity(httpStatus)
+  else -> ResponseEntity(
+    ValidationErrorResponse(validationErrors.associateBy { it.path }),
+    httpStatus)
 }
 
 data class ValidationError(
@@ -66,3 +69,11 @@ fun MissingKotlinParameterException.toValidationError() = ValidationError(
 
 @JsonRootName("errors")
 class ValidationErrorResponse(m: Map<String, ValidationError>) : LinkedHashMap<String, ValidationError>(m) {}
+
+class FieldError(val path: String, message: String) : Throwable(message) {
+  fun toValidationError() = ValidationError(
+    type = "FieldError",
+    path = path,
+    message = this.message ?: ""
+  )
+}
