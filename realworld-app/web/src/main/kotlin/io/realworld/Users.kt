@@ -2,8 +2,7 @@ package io.realworld
 
 import arrow.core.Either
 import com.fasterxml.jackson.annotation.JsonRootName
-import io.realworld.domain.api.UserRegisterError
-import io.realworld.domain.api.UserService
+import io.realworld.domain.api.*
 import io.realworld.domain.api.dto.UserDto
 import io.realworld.domain.api.event.LoginEvent
 import io.realworld.domain.api.event.RegisterEvent
@@ -62,22 +61,25 @@ data class User(
 }
 
 @RestController
-class UserController(private val userService: UserService) {
+class UserController(
+  private val userService: UserService,
+  private val registerUser: RegisterUser
+) {
 
   @GetMapping("/api/user")
   fun currentUser(user: UserDto) = ResponseEntity.ok().body(User.fromDto(user))
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: Registration): ResponseEntity<User> {
-    val e = userService.register(RegisterEvent(
+    val e = registerUser.register(RegisterUserCommand(UserRegistration(
       username = registration.username,
       email = registration.email,
       password = registration.password
-    ))
+    )))
     return when (e) {
       is Either.Left -> when (e.a) {
-        is UserRegisterError.EmailAlreadyTaken -> throw FieldError("email", "already taken")
-        is UserRegisterError.UsernameAlreadyTaken -> throw FieldError("username", "already taken")
+        is UserRegistrationValidationError.EmailAlreadyTaken -> throw FieldError("email", "already taken")
+        is UserRegistrationValidationError.UsernameAlreadyTaken -> throw FieldError("username", "already taken")
       }
       is Either.Right -> ResponseEntity.status(HttpStatus.CREATED).body(User.fromDto(e.b.user))
     }
