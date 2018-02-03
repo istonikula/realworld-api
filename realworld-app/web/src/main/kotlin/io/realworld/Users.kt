@@ -75,7 +75,8 @@ class UserController(
       username = registration.username,
       email = registration.email,
       password = registration.password
-    )))
+    ))).unsafeRunSync()
+
     return when (e) {
       is Either.Left -> when (e.a) {
         is UserRegistrationValidationError.EmailAlreadyTaken -> throw FieldError("email", "already taken")

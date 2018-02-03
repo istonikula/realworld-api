@@ -50,6 +50,7 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
     compile("io.arrow-kt:arrow-typeclasses:${arrowVersion}")
     compile("io.arrow-kt:arrow-instances:${arrowVersion}")
     compile("io.arrow-kt:arrow-syntax:${arrowVersion}")
+    compile("io.arrow-kt:arrow-effects:${arrowVersion}")
 
     testCompile("org.springframework.boot:spring-boot-starter-test") {
       exclude group: 'junit', module: 'junit'

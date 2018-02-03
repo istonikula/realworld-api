@@ -4,10 +4,8 @@ import io.realworld.domain.api.RegisterUser
 import io.realworld.domain.api.UserService
 import io.realworld.domain.api.dto.UserDto
 import io.realworld.domain.api.event.AuthenticateEvent
-import io.realworld.domain.core.Auth
-import io.realworld.domain.core.CoreUserService
-import io.realworld.domain.core.RegisterUserWorkflow
-import io.realworld.domain.core.ValidateUserRegistrationBean
+import io.realworld.domain.core.*
+import io.realworld.domain.spi.SaveUser
 import io.realworld.domain.spi.Settings
 import io.realworld.domain.spi.ValidateUserRegistration
 import io.realworld.persistence.InMemoryUserRepository
@@ -56,7 +54,14 @@ class Spring5Application {
   fun validateUserRegistration(): ValidateUserRegistration = ValidateUserRegistrationBean(userRepository())
 
   @Bean
-  fun registerUser(): RegisterUser = RegisterUserWorkflow(auth(), userRepository(), validateUserRegistration())
+  fun saveUser(): SaveUser = SaveUserBean(userRepository())
+
+  @Bean
+  fun registerUser(): RegisterUser = RegisterUserWorkflow(
+    auth(),
+    validateUserRegistration(),
+    saveUser()
+  )
 }
 
 fun main(args: Array<String>) {

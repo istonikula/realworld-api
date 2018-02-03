@@ -1,6 +1,7 @@
 package io.realworld.domain.api
 
 import arrow.core.Either
+import arrow.effects.IO
 import io.realworld.domain.api.dto.UserDto
 
 
@@ -13,4 +14,5 @@ sealed class UserRegistrationValidationError {
   object UsernameAlreadyTaken : UserRegistrationValidationError()
 }
 
-typealias RegisterUser = (cmd: RegisterUserCommand) -> Either<UserRegistrationValidationError, RegisterUserAcknowledgment>
+typealias RegisterUser =
+  (cmd: RegisterUserCommand) -> IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>>

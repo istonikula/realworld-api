@@ -1,39 +1,53 @@
 package io.realworld.domain.core
 
+import arrow.HK
 import arrow.core.*
+import arrow.data.*
+import arrow.effects.IO
+import arrow.effects.IOHK
+import arrow.effects.ev
 import arrow.typeclasses.binding
 import io.realworld.domain.api.*
+import io.realworld.domain.spi.SaveUser
 import io.realworld.domain.spi.UserModel
 import io.realworld.domain.spi.UserRepository
 import io.realworld.domain.spi.ValidateUserRegistration
 
 class RegisterUserWorkflow(
   val auth: Auth,
-  val userRepository: UserRepository,
-  val validateUserRegistration: ValidateUserRegistration
+  val validateUserRegistration: ValidateUserRegistration,
+  val saveUser: SaveUser
 ) : RegisterUser {
-  override fun invoke(cmd: RegisterUserCommand): Either<UserRegistrationValidationError, RegisterUserAcknowledgment> =
-    Either.monad<UserRegistrationValidationError>().binding() {
+  override fun invoke(cmd: RegisterUserCommand): IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>> =
+    EitherT.monadError<IOHK, UserRegistrationValidationError>().binding() {
       // TODO all this needs to be run inside db transaction
-      val validRegistration = validateUserRegistration(cmd.data).bind()
-      val savedUser = userRepository.save(UserModel(
+      val validRegistration = EitherT(validateUserRegistration(cmd.data)).bind()
+      val savedUser = EitherT(saveUser(UserModel(
         email = validRegistration.email,
         username = validRegistration.username,
         password = auth.encryptPassword(validRegistration.password),
         token = auth.createToken(Token(validRegistration.email))
-      ))
+      ))).bind()
       RegisterUserAcknowledgment(savedUser.toDto())
-    }.ev()
-}
+    }.value().ev()
+  }
 
-// TODO this should return IO
 class ValidateUserRegistrationBean(
   val userRepository: UserRepository
 ) : ValidateUserRegistration {
-  override fun invoke(reg: UserRegistration): Either<UserRegistrationValidationError, UserRegistration> =
-    when {
-      userRepository.existsByEmail(reg.email) -> Either.left(UserRegistrationValidationError.EmailAlreadyTaken)
-      userRepository.existsByUsername(reg.username) -> Either.left(UserRegistrationValidationError.UsernameAlreadyTaken)
-      else -> Either.right(reg)
+  override fun invoke(reg: UserRegistration): IO<Either<UserRegistrationValidationError, UserRegistration>> =
+    IO {
+      when {
+        userRepository.existsByEmail(reg.email) -> Either.left(UserRegistrationValidationError.EmailAlreadyTaken)
+        userRepository.existsByUsername(reg.username) -> Either.left(UserRegistrationValidationError.UsernameAlreadyTaken)
+        else -> Either.right(reg)
+      }
     }
+}
+
+class SaveUserBean(
+  val userRepository: UserRepository
+) : SaveUser {
+  override fun invoke(model: UserModel): IO<Either<UserRegistrationValidationError, UserModel>> =
+    IO { Either.right(userRepository.save(model)) }
 }
