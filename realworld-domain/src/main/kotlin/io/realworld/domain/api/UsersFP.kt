@@ -13,6 +13,4 @@ sealed class UserRegistrationValidationError {
   object UsernameAlreadyTaken : UserRegistrationValidationError()
 }
 
-interface  RegisterUser {
-  fun register(cmd: RegisterUserCommand): Either<UserRegistrationValidationError, RegisterUserAcknowledgment>
-}
+typealias RegisterUser = (cmd: RegisterUserCommand) -> Either<UserRegistrationValidationError, RegisterUserAcknowledgment>

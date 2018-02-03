@@ -12,7 +12,7 @@ class RegisterUserWorkflow(
   val userRepository: UserRepository,
   val validateUserRegistration: ValidateUserRegistration
 ) : RegisterUser {
-  override fun register(cmd: RegisterUserCommand): Either<UserRegistrationValidationError, RegisterUserAcknowledgment> =
+  override fun invoke(cmd: RegisterUserCommand): Either<UserRegistrationValidationError, RegisterUserAcknowledgment> =
     Either.monad<UserRegistrationValidationError>().binding() {
       // TODO all this needs to be run inside db transaction
       val validRegistration = validateUserRegistration(cmd.data).bind()

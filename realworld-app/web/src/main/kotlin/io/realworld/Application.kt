@@ -1,5 +1,6 @@
 package io.realworld
 
+import io.realworld.domain.api.RegisterUser
 import io.realworld.domain.api.UserService
 import io.realworld.domain.api.dto.UserDto
 import io.realworld.domain.api.event.AuthenticateEvent
@@ -8,6 +9,7 @@ import io.realworld.domain.core.CoreUserService
 import io.realworld.domain.core.RegisterUserWorkflow
 import io.realworld.domain.core.ValidateUserRegistrationBean
 import io.realworld.domain.spi.Settings
+import io.realworld.domain.spi.ValidateUserRegistration
 import io.realworld.persistence.InMemoryUserRepository
 import ma.glasnost.orika.Converter
 import ma.glasnost.orika.Mapper
@@ -51,10 +53,10 @@ class Spring5Application {
   fun userRepository() = InMemoryUserRepository()
 
   @Bean
-  fun validateUserRegistration() = ValidateUserRegistrationBean(userRepository())
+  fun validateUserRegistration(): ValidateUserRegistration = ValidateUserRegistrationBean(userRepository())
 
   @Bean
-  fun registerUserWorkflow() = RegisterUserWorkflow(auth(), userRepository(), validateUserRegistration())
+  fun registerUser(): RegisterUser = RegisterUserWorkflow(auth(), userRepository(), validateUserRegistration())
 }
 
 fun main(args: Array<String>) {

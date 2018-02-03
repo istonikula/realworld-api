@@ -71,7 +71,7 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: Registration): ResponseEntity<User> {
-    val e = registerUser.register(RegisterUserCommand(UserRegistration(
+    val e = registerUser(RegisterUserCommand(UserRegistration(
       username = registration.username,
       email = registration.email,
       password = registration.password
