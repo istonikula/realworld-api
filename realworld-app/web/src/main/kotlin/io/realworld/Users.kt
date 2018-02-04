@@ -75,15 +75,23 @@ class UserController(
       username = registration.username,
       email = registration.email,
       password = registration.password
-    ))).unsafeRunSync()
+    )))
+      .attempt()
+      .unsafeRunSync()
 
-    return when (e) {
-      is Either.Left -> when (e.a) {
-        is UserRegistrationValidationError.EmailAlreadyTaken -> throw FieldError("email", "already taken")
-        is UserRegistrationValidationError.UsernameAlreadyTaken -> throw FieldError("username", "already taken")
-      }
-      is Either.Right -> ResponseEntity.status(HttpStatus.CREATED).body(User.fromDto(e.b.user))
-    }
+    return e.fold({ throw it }, {
+      it.fold(
+        {
+          when (it) {
+            is UserRegistrationValidationError.EmailAlreadyTaken ->
+              throw FieldError("email", "already taken")
+            is UserRegistrationValidationError.UsernameAlreadyTaken ->
+              throw FieldError("username", "already taken")
+          }
+        },
+        { ResponseEntity.status(HttpStatus.CREATED).body(User.fromDto(it.user)) }
+      )
+    })
   }
 
   @PostMapping("/api/users/login")
