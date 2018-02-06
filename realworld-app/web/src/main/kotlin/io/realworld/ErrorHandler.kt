@@ -1,6 +1,5 @@
 package io.realworld
 
-import com.fasterxml.jackson.annotation.JsonRootName
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
 import org.slf4j.Logger

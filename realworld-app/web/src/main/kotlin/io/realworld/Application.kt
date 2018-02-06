@@ -2,14 +2,9 @@ package io.realworld
 
 import io.realworld.domain.api.LoginUser
 import io.realworld.domain.api.RegisterUser
-import io.realworld.domain.api.UserService
 import io.realworld.domain.api.dto.UserDto
-import io.realworld.domain.api.event.AuthenticateEvent
 import io.realworld.domain.core.*
-import io.realworld.domain.spi.GetUser
-import io.realworld.domain.spi.SaveUser
-import io.realworld.domain.spi.Settings
-import io.realworld.domain.spi.ValidateUserRegistration
+import io.realworld.domain.spi.*
 import io.realworld.persistence.InMemoryUserRepository
 import ma.glasnost.orika.Converter
 import ma.glasnost.orika.Mapper
@@ -41,10 +36,7 @@ class Spring5Application {
   fun orikaBeanMapper() = OrikaBeanMapper()
 
   @Bean
-  fun userArgumentResolver() = UserArgumentResolver(userService())
-
-  @Bean
-  fun userService() = CoreUserService(auth(), userRepository())
+  fun userArgumentResolver() = UserArgumentResolver(auth(), userRepository())
 
   @Bean
   fun auth() = Auth(settings().security)
@@ -105,7 +97,10 @@ class OrikaBeanMapper : ConfigurableMapper(false) {
   }
 }
 
-class UserArgumentResolver(val userService: UserService) : HandlerMethodArgumentResolver {
+class UserArgumentResolver(
+  val auth: Auth,
+  val userRepository: UserRepository
+): HandlerMethodArgumentResolver {
   override fun supportsParameter(parameter: MethodParameter?): Boolean =
     UserDto::class.java.isAssignableFrom(parameter?.parameterType)
 
@@ -118,14 +113,23 @@ class UserArgumentResolver(val userService: UserService) : HandlerMethodArgument
     authorization?.apply {
       if (startsWith(TOKEN_PREFIX)) {
         return try {
-          val user: UserDto = userService.authenticate(AuthenticateEvent(substring(TOKEN_PREFIX.length))).user
-          Mono.just(user)
+          Mono.just(authenticate(substring(TOKEN_PREFIX.length)))
         } catch (t: Throwable) {
           throw UnauthrorizedException()
         }
       }
     }
     throw UnauthrorizedException()
+  }
+
+  private fun authenticate(tokenString: String): UserDto {
+    val token = auth.parse(tokenString)
+    val user = userRepository.findByEmail(token.email)
+    return when (user?.email) {
+    // TODO check expiration
+      token.email -> user.toDto()
+      else -> throw RuntimeException("Authentication required")
+    }
   }
 
   companion object {
