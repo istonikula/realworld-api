@@ -25,6 +25,12 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   apply plugin: 'kotlin-spring'
   apply plugin: 'io.spring.dependency-management'
 
+  dependencyManagement {
+    imports {
+      mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
+  }
+
   version = '0.0.1-SNAPSHOT'
 
   sourceCompatibility = 1.8
