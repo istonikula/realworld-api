@@ -19,7 +19,7 @@ class RegisterUserWorkflow(
   val saveUser: SaveUser
 ) : RegisterUser {
   override fun invoke(cmd: RegisterUserCommand): IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>> =
-    EitherT.monadError<IOHK, UserRegistrationValidationError>().binding() {
+    EitherT.monad<IOHK, UserRegistrationValidationError>().binding() {
       // TODO all this needs to be run inside db transaction
       val validRegistration = EitherT(validateUserRegistration(cmd.data)).bind()
       val savedUser = EitherT(saveUser(UserModel(
