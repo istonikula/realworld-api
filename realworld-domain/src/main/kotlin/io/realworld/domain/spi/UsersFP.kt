@@ -7,8 +7,8 @@ import io.realworld.domain.api.UserRegistrationValidationError
 
 typealias ValidateUserRegistration =
   (reg: UserRegistration) -> IO<Either<UserRegistrationValidationError, UserRegistration>>
-typealias SaveUser = // TODO no Either here
-  (model: UserModel) -> IO<Either<UserRegistrationValidationError, UserModel>>
+typealias SaveUser =
+  (model: UserModel) -> IO<UserModel>
 
 class UserNotFound
 typealias GetUser = (email: String) -> IO<Either<UserNotFound, UserModel>>

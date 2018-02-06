@@ -26,7 +26,7 @@ class RegisterUserWorkflow(
         username = validRegistration.username,
         password = auth.encryptPassword(validRegistration.password),
         token = auth.createToken(Token(validRegistration.email))
-      ))).bind()
+      )).map { Either.right(it) }).bind()
       RegisterUserAcknowledgment(savedUser.toDto())
     }.value().ev()
   }
@@ -38,7 +38,6 @@ class LoginUserWorkflow(
   override fun invoke(cmd: LoginUserCommand): IO<Either<UserLoginError, LoginUserAcknowledgment>> =
     EitherT.monad<IOHK, UserLoginError>().binding() {
       val user = EitherT(getUser(cmd.email)).mapLeft({ UserLoginError.BadCredentials }, IO.functor()).bind()
-      auth.checkPassword(cmd.password, user.password)
       EitherT(IO.pure(
         when (auth.checkPassword(cmd.password, user.password)) {
           true -> LoginUserAcknowledgment(user.toDto()).right()
@@ -64,13 +63,13 @@ class ValidateUserRegistrationBean(
 class SaveUserBean(
   val userRepository: UserRepository
 ): SaveUser {
-  override fun invoke(model: UserModel): IO<Either<UserRegistrationValidationError, UserModel>> =
-    IO { Either.right(userRepository.save(model)) }
+  override fun invoke(model: UserModel): IO<UserModel> =
+    IO { userRepository.save(model) }
 }
 
 class GetUserBean(
   val userRepository: UserRepository
 ) : GetUser {
   override fun invoke(email: String): IO<Either<UserNotFound, UserModel>> =
-    IO {userRepository.findByEmail(email)?.let { it.right() } ?: Either.left(UserNotFound()) }
+    IO { userRepository.findByEmail(email)?.right() ?: Either.left(UserNotFound()) }
 }

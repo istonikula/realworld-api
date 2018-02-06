@@ -22,7 +22,7 @@ class RegisterUserWorkflowTests {
     val actual = RegisterUserWorkflow(
       auth,
       { IO { Either.right(it) } },
-      { IO { Either.right(it) } }
+      { IO { it } }
     ).test(userRegistration).unsafeRunSync()
 
     assertThat(actual.isRight()).isTrue()
@@ -34,7 +34,7 @@ class RegisterUserWorkflowTests {
       RegisterUserWorkflow(
         auth,
         { IO { throw RuntimeException("BOOM!") } },
-        { IO { Either.right(it) } }
+        { IO { it } }
       ).test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
@@ -58,7 +58,7 @@ class RegisterUserWorkflowTests {
         {
           IO {
             userSaved = true
-            Either.right(it)
+            it
           }
         }
       ).test(userRegistration).unsafeRunSync()
