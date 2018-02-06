@@ -16,9 +16,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Mockito.doThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.test.context.junit.jupiter.SpringExtension
 
@@ -26,7 +28,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 data class RegistrationRequest(var user: Registration)
 data class LoginRequest(var user: Login)
 data class UserUpdateRequest(var user: UserUpdate)
-data class UserResponse(var user: User)
 
 @TestInstance(PER_CLASS)
 @ExtendWith(SpringExtension::class)
@@ -37,7 +38,7 @@ class Spring5ApplicationTests {
 
   @Autowired lateinit var auth: Auth
 
-  @Autowired lateinit var userRepo: InMemoryUserRepository
+  @SpyBean lateinit var userRepo: InMemoryUserRepository
 
   @LocalServerPort
   lateinit var port: Integer
@@ -64,6 +65,7 @@ class Spring5ApplicationTests {
     val regReq = RegistrationRequest(Registration(username = testUser.username, email = testUser.email, password = testUser.password))
     val expected = User(username = testUser.username, email = testUser.email, token = testUser.token)
     var actual = post("/api/users", regReq)
+      .prettyPeek()
       .then()
       .statusCode(201)
       .extract().`as`(UserResponse::class.java)
@@ -107,6 +109,18 @@ class Spring5ApplicationTests {
       .then()
       .statusCode(422)
       .body("errors.email.message", equalTo("already taken"))
+  }
+
+  @Test
+  fun `unexpected registration error yields 500`() {
+    val regReq = RegistrationRequest(Registration(username = testUser.username, email = testUser.email, password = testUser.password))
+
+    doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(testUser.email)
+
+    post("/api/users", regReq)
+      .prettyPeek()
+      .then()
+      .statusCode(500)
   }
 
   @Test

@@ -67,9 +67,6 @@ fun MissingKotlinParameterException.toValidationError() = ValidationError(
   message = message ?: ""
 )
 
-@JsonRootName("errors")
-class ValidationErrorResponse(m: Map<String, ValidationError>) : LinkedHashMap<String, ValidationError>(m) {}
-
 class FieldError(val path: String, message: String) : Throwable(message) {
   fun toValidationError() = ValidationError(
     type = "FieldError",
@@ -77,3 +74,5 @@ class FieldError(val path: String, message: String) : Throwable(message) {
     message = this.message ?: ""
   )
 }
+
+class ValidationErrorResponse(val errors: Map<String, ValidationError>)

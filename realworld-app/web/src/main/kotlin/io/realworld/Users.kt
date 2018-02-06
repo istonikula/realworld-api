@@ -1,11 +1,9 @@
 package io.realworld
 
-import arrow.core.Either
 import com.fasterxml.jackson.annotation.JsonRootName
 import io.realworld.domain.api.*
 import io.realworld.domain.api.dto.UserDto
 import io.realworld.domain.api.event.LoginEvent
-import io.realworld.domain.api.event.RegisterEvent
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -47,16 +45,16 @@ data class UserUpdate(
   val image: String? = null
 )
 
-@JsonRootName("user")
 data class User(
   val email: String,
   val token: String,
   val username: String,
   val bio: String? = null,
   val image: String? = null
-) {
+)
+data class UserResponse(val user: User) {
   companion object {
-    fun fromDto(dto: UserDto) = UserMappers.user.mapReverse(dto)
+    fun fromDto(dto: UserDto) = UserResponse(UserMappers.user.mapReverse(dto))
   }
 }
 
@@ -67,10 +65,10 @@ class UserController(
 ) {
 
   @GetMapping("/api/user")
-  fun currentUser(user: UserDto) = ResponseEntity.ok().body(User.fromDto(user))
+  fun currentUser(user: UserDto) = ResponseEntity.ok().body(UserResponse.fromDto(user))
 
   @PostMapping("/api/users")
-  fun register(@Valid @RequestBody registration: Registration): ResponseEntity<User> {
+  fun register(@Valid @RequestBody registration: Registration): ResponseEntity<UserResponse> {
     val e = registerUser(RegisterUserCommand(UserRegistration(
       username = registration.username,
       email = registration.email,
@@ -86,22 +84,22 @@ class UserController(
             throw FieldError("username", "already taken")
         }
       },
-      { ResponseEntity.status(HttpStatus.CREATED).body(User.fromDto(it.user)) }
+      { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDto(it.user)) }
     )
   }
 
   @PostMapping("/api/users/login")
-  fun login(@Valid @RequestBody login: Login): ResponseEntity<User> {
+  fun login(@Valid @RequestBody login: Login): ResponseEntity<UserResponse> {
     val e = userService.login(LoginEvent(
       email = login.email,
       password = login.password
     ))
-    return ResponseEntity.ok().body(User.fromDto(e.user))
+    return ResponseEntity.ok().body(UserResponse.fromDto(e.user))
   }
 
   @PutMapping("/api/user")
-  fun update(@Valid @RequestBody userUpdate: UserUpdate, user: UserDto): ResponseEntity<User> {
-    return ResponseEntity.ok().body(User.fromDto(user))
+  fun update(@Valid @RequestBody userUpdate: UserUpdate, user: UserDto): ResponseEntity<UserResponse> {
+    return ResponseEntity.ok().body(UserResponse.fromDto(user))
   }
 }
 

@@ -3,7 +3,7 @@ package io.realworld.persistence
 import io.realworld.domain.spi.UserModel
 import io.realworld.domain.spi.UserRepository
 
-class InMemoryUserRepository : UserRepository {
+open class InMemoryUserRepository : UserRepository {
   private val byEmail: MutableMap<String, UserModel> = mutableMapOf()
   private val byUsername: MutableMap<String, UserModel> = mutableMapOf()
 
