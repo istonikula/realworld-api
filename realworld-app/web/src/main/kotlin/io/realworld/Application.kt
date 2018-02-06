@@ -1,10 +1,12 @@
 package io.realworld
 
+import io.realworld.domain.api.LoginUser
 import io.realworld.domain.api.RegisterUser
 import io.realworld.domain.api.UserService
 import io.realworld.domain.api.dto.UserDto
 import io.realworld.domain.api.event.AuthenticateEvent
 import io.realworld.domain.core.*
+import io.realworld.domain.spi.GetUser
 import io.realworld.domain.spi.SaveUser
 import io.realworld.domain.spi.Settings
 import io.realworld.domain.spi.ValidateUserRegistration
@@ -61,6 +63,15 @@ class Spring5Application {
     auth(),
     validateUserRegistration(),
     saveUser()
+  )
+
+  @Bean
+  fun getUser(): GetUser = GetUserBean(userRepository())
+
+  @Bean
+  fun loginUser(): LoginUser = LoginUserWorkflow(
+    auth(),
+    getUser()
   )
 }
 

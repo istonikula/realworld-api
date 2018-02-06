@@ -8,11 +8,18 @@ import io.realworld.domain.api.dto.UserDto
 data class RegisterUserCommand(val data: UserRegistration)
 data class UserRegistration(val username: String, val email: String, val password: String)
 data class RegisterUserAcknowledgment(val user: UserDto)
-
 sealed class UserRegistrationValidationError {
   object EmailAlreadyTaken : UserRegistrationValidationError()
   object UsernameAlreadyTaken : UserRegistrationValidationError()
 }
-
 typealias RegisterUser =
   (cmd: RegisterUserCommand) -> IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>>
+
+data class LoginUserCommand(val email: String, val password: String)
+data class LoginUserAcknowledgment(val user: UserDto)
+sealed class UserLoginError {
+  object BadCredentials : UserLoginError()
+}
+typealias LoginUser =
+  (cmd: LoginUserCommand) -> IO<Either<UserLoginError, LoginUserAcknowledgment>>
+

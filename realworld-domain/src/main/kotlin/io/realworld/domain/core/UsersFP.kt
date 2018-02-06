@@ -7,21 +7,19 @@ import arrow.data.value
 import arrow.effects.IO
 import arrow.effects.IOHK
 import arrow.effects.ev
+import arrow.effects.functor
+import arrow.syntax.either.right
 import arrow.typeclasses.binding
 import io.realworld.domain.api.*
-import io.realworld.domain.spi.SaveUser
-import io.realworld.domain.spi.UserModel
-import io.realworld.domain.spi.UserRepository
-import io.realworld.domain.spi.ValidateUserRegistration
+import io.realworld.domain.spi.*
 
 class RegisterUserWorkflow(
   val auth: Auth,
   val validateUserRegistration: ValidateUserRegistration,
   val saveUser: SaveUser
-) : RegisterUser {
+): RegisterUser {
   override fun invoke(cmd: RegisterUserCommand): IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>> =
     EitherT.monad<IOHK, UserRegistrationValidationError>().binding() {
-      // TODO all this needs to be run inside db transaction
       val validRegistration = EitherT(validateUserRegistration(cmd.data)).bind()
       val savedUser = EitherT(saveUser(UserModel(
         email = validRegistration.email,
@@ -33,9 +31,26 @@ class RegisterUserWorkflow(
     }.value().ev()
   }
 
+class LoginUserWorkflow(
+  val auth: Auth,
+  val getUser: GetUser
+): LoginUser {
+  override fun invoke(cmd: LoginUserCommand): IO<Either<UserLoginError, LoginUserAcknowledgment>> =
+    EitherT.monad<IOHK, UserLoginError>().binding() {
+      val user = EitherT(getUser(cmd.email)).mapLeft({ UserLoginError.BadCredentials }, IO.functor()).bind()
+      auth.checkPassword(cmd.password, user.password)
+      EitherT(IO.pure(
+        when (auth.checkPassword(cmd.password, user.password)) {
+          true -> LoginUserAcknowledgment(user.toDto()).right()
+          false -> Either.left(UserLoginError.BadCredentials)
+        }
+      )).bind()
+    }.value().ev()
+}
+
 class ValidateUserRegistrationBean(
   val userRepository: UserRepository
-) : ValidateUserRegistration {
+): ValidateUserRegistration {
   override fun invoke(reg: UserRegistration): IO<Either<UserRegistrationValidationError, UserRegistration>> =
     IO {
       when {
@@ -48,7 +63,14 @@ class ValidateUserRegistrationBean(
 
 class SaveUserBean(
   val userRepository: UserRepository
-) : SaveUser {
+): SaveUser {
   override fun invoke(model: UserModel): IO<Either<UserRegistrationValidationError, UserModel>> =
     IO { Either.right(userRepository.save(model)) }
+}
+
+class GetUserBean(
+  val userRepository: UserRepository
+) : GetUser {
+  override fun invoke(email: String): IO<Either<UserNotFound, UserModel>> =
+    IO {userRepository.findByEmail(email)?.let { it.right() } ?: Either.left(UserNotFound()) }
 }
