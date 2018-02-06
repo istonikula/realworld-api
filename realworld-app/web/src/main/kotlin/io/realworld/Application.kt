@@ -2,7 +2,7 @@ package io.realworld
 
 import io.realworld.domain.api.LoginUser
 import io.realworld.domain.api.RegisterUser
-import io.realworld.domain.api.dto.UserDto
+import io.realworld.domain.api.UserDto
 import io.realworld.domain.core.*
 import io.realworld.domain.spi.*
 import io.realworld.persistence.InMemoryUserRepository

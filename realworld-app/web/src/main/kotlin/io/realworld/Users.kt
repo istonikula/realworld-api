@@ -2,7 +2,6 @@ package io.realworld
 
 import com.fasterxml.jackson.annotation.JsonRootName
 import io.realworld.domain.api.*
-import io.realworld.domain.api.dto.UserDto
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

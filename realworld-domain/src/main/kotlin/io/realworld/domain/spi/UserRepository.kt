@@ -1,6 +1,6 @@
 package io.realworld.domain.spi
 
-import io.realworld.domain.api.dto.UserDto
+import io.realworld.domain.api.UserDto
 
 data class UserModel(
   val email: String,

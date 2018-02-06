@@ -2,8 +2,14 @@ package io.realworld.domain.api
 
 import arrow.core.Either
 import arrow.effects.IO
-import io.realworld.domain.api.dto.UserDto
 
+data class UserDto(
+  val email: String,
+  val token: String,
+  val username: String,
+  val bio: String? = null,
+  val image: String? = null
+)
 
 data class RegisterUserCommand(val data: UserRegistration)
 data class UserRegistration(val username: String, val email: String, val password: String)
