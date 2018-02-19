@@ -1,22 +1,28 @@
 buildscript {
   ext {
     arrowVersion = '0.6.1'
+    gradleVersionsPluginVersion = '0.17.0'
     jasyptVersion = '1.9.2'
-    jjwtVersion = '0.7.0'
+    javaVersion = '1.8'
+    jjwtVersion = '0.9.0'
+    junitPlatformVersion = '1.1.0'
     kotlinVersion = '1.2.21'
-    orikaVersion = '1.5.1'
-    restAssuredVersion = '3.0.3'
+    orikaVersion = '1.5.2'
+    restAssuredVersion = '3.0.7'
     springBootVersion = '2.0.0.RC1'
   }
   repositories {
     mavenCentral()
+    jcenter()
     maven { url "https://repo.spring.io/snapshot" }
     maven { url "https://repo.spring.io/milestone" }
   }
   dependencies {
+    classpath "com.github.ben-manes:gradle-versions-plugin:${gradleVersionsPluginVersion}"
     classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
     classpath("org.jetbrains.kotlin:kotlin-allopen:${kotlinVersion}")
+    classpath("org.junit.platform:junit-platform-gradle-plugin:${junitPlatformVersion}")
   }
 }
 
@@ -24,7 +30,13 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   apply plugin: 'kotlin'
   apply plugin: 'kotlin-spring'
   apply plugin: 'io.spring.dependency-management'
+  apply plugin: 'org.junit.platform.gradle.plugin'
 
+  // the versions below override versions from spring-boot-starter-parent BOM, see properties from
+  // https://github.com/spring-projects/spring-boot/blob/master/spring-boot-project/spring-boot-dependencies/pom.xml
+  ext['flyway.version'] = '5.0.7'
+  ext['junit-jupiter.version'] = '5.1.0'
+  ext['jackson.version'] = '2.9.4'
   dependencyManagement {
     imports {
       mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
@@ -33,12 +45,12 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
 
   version = '0.0.1-SNAPSHOT'
 
-  sourceCompatibility = 1.8
+  sourceCompatibility = javaVersion
   compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = javaVersion
   }
   compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = javaVersion
   }
 
   repositories {
@@ -74,16 +86,15 @@ project('realworld-app:web') {
     compile project(':realworld-domain')
     compile project(':realworld-infra:persistence')
 
-    compile("ma.glasnost.orika:orika-core:${orikaVersion}")
     compile('com.fasterxml.jackson.module:jackson-module-kotlin')
     compile('org.flywaydb:flyway-core')
-//    compile('org.springframework.boot:spring-boot-starter-security')
     compile('org.springframework.boot:spring-boot-starter-webflux')
+
+    compile("ma.glasnost.orika:orika-core:${orikaVersion}")
 
     runtime('com.h2database:h2')
 
     testCompile("io.rest-assured:rest-assured:${restAssuredVersion}")
-//    testCompile('org.springframework.security:spring-security-test')
   }
 }
 
@@ -103,3 +114,5 @@ project('realworld-infra:persistence') {
 task wrapper(type: Wrapper) {
   gradleVersion = '4.5.1'
 }
+
+apply plugin: 'com.github.ben-manes.versions'
