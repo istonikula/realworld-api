@@ -1,6 +1,7 @@
 package io.realworld.domain.api
 
 import arrow.core.Either
+import arrow.core.Option
 import arrow.effects.IO
 
 data class UserDto(
@@ -29,3 +30,15 @@ sealed class UserLoginError {
 typealias LoginUser =
   (cmd: LoginUserCommand) -> IO<Either<UserLoginError, LoginUserAcknowledgment>>
 
+data class UserUpdate(
+  val username: Option<String>,
+  val email: Option<String>,
+  val password: Option<String>,
+  val bio: Option<String>,
+  val image: Option<String>
+)
+// TODO these are duplicates
+sealed class UserUpdateValidationError {
+  object EmailAlreadyTaken : UserUpdateValidationError()
+  object UsernameAlreadyTaken : UserUpdateValidationError()
+}

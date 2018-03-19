@@ -41,7 +41,7 @@ class Spring5ApplicationTests {
   @SpyBean lateinit var userRepo: InMemoryUserRepository
 
   @LocalServerPort
-  lateinit var port: Integer
+  var port: Int = 0
 
   private lateinit var testUser: UserModel
 

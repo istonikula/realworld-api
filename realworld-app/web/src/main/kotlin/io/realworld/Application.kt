@@ -3,8 +3,17 @@ package io.realworld
 import io.realworld.domain.api.LoginUser
 import io.realworld.domain.api.RegisterUser
 import io.realworld.domain.api.UserDto
-import io.realworld.domain.core.*
-import io.realworld.domain.spi.*
+import io.realworld.domain.core.Auth
+import io.realworld.domain.core.GetUserBean
+import io.realworld.domain.core.LoginUserWorkflow
+import io.realworld.domain.core.RegisterUserWorkflow
+import io.realworld.domain.core.SaveUserBean
+import io.realworld.domain.core.ValidateUserRegistrationBean
+import io.realworld.domain.spi.GetUser
+import io.realworld.domain.spi.SaveUser
+import io.realworld.domain.spi.Settings
+import io.realworld.domain.spi.UserRepository
+import io.realworld.domain.spi.ValidateUserRegistration
 import io.realworld.persistence.InMemoryUserRepository
 import ma.glasnost.orika.Converter
 import ma.glasnost.orika.Mapper
@@ -101,15 +110,15 @@ class UserArgumentResolver(
   val auth: Auth,
   val userRepository: UserRepository
 ): HandlerMethodArgumentResolver {
-  override fun supportsParameter(parameter: MethodParameter?): Boolean =
-    UserDto::class.java.isAssignableFrom(parameter?.parameterType)
+  override fun supportsParameter(parameter: MethodParameter): Boolean =
+    UserDto::class.java.isAssignableFrom(parameter.parameterType)
 
   override fun resolveArgument(
-    parameter: MethodParameter?,
-    bindingContext: BindingContext?,
-    exchange: ServerWebExchange?
+    parameter: MethodParameter,
+    bindingContext: BindingContext,
+    exchange: ServerWebExchange
   ): Mono<Any> {
-    val authorization: String? = exchange?.request?.headers?.getFirst(HttpHeaders.AUTHORIZATION)
+    val authorization: String? = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
     authorization?.apply {
       if (startsWith(TOKEN_PREFIX)) {
         return try {
