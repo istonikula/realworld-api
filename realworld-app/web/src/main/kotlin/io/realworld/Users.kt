@@ -9,8 +9,8 @@ import io.realworld.domain.api.UserRegistrationValidationError
 import io.realworld.domain.core.Auth
 import io.realworld.domain.core.GetUserSyntax
 import io.realworld.domain.core.LoginUserWorkflowSyntax
+import io.realworld.domain.core.RegisterUserWorkflowSyntax
 import io.realworld.domain.core.SaveUserSyntax
-import io.realworld.domain.core.UserWorkflowSyntax
 import io.realworld.domain.core.ValidateUserSyntax
 import io.realworld.domain.spi.GetUser
 import io.realworld.domain.spi.SaveUser
@@ -88,13 +88,13 @@ class UserController(
     val validateUserSyntax = object : ValidateUserSyntax { override val userRepository = userRepository0 }
     val saveUserSyntax = object : SaveUserSyntax { override val userRepository = userRepository0 }
 
-    val userWorkflowSyntax = object: UserWorkflowSyntax {
+    val workflowSyntax = object: RegisterUserWorkflowSyntax {
       override val auth = auth0
       override val saveUser: SaveUser = { x -> saveUserSyntax.run { x.save() } }
       override val validateUser: ValidateUserRegistration = { x -> validateUserSyntax.run { x.validate() } }
     }
 
-    return userWorkflowSyntax.run {
+    return workflowSyntax.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
         email = registration.email,

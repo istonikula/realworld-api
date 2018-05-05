@@ -1,9 +1,6 @@
 package io.realworld.domain.api
 
-import arrow.core.Either
 import arrow.core.Option
-import arrow.effects.IO
-import io.realworld.domain.core.UserWorkflowSyntax
 
 data class UserDto(
   val email: String,
@@ -20,16 +17,12 @@ sealed class UserRegistrationValidationError {
   object EmailAlreadyTaken : UserRegistrationValidationError()
   object UsernameAlreadyTaken : UserRegistrationValidationError()
 }
-typealias RegisterUser =
-  (cmd: RegisterUserCommand) -> IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>>
 
 data class LoginUserCommand(val email: String, val password: String)
 data class LoginUserAcknowledgment(val user: UserDto)
 sealed class UserLoginError {
   object BadCredentials : UserLoginError()
 }
-typealias LoginUser =
-  (cmd: LoginUserCommand) -> IO<Either<UserLoginError, LoginUserAcknowledgment>>
 
 data class UserUpdate(
   val username: Option<String>,
@@ -42,8 +35,4 @@ data class UserUpdate(
 sealed class UserUpdateValidationError {
   object EmailAlreadyTaken : UserUpdateValidationError()
   object UsernameAlreadyTaken : UserUpdateValidationError()
-}
-
-object UserWorkflowOps {
-  fun UserWorkflowSyntax.registerUser(cmd: RegisterUserCommand) = cmd.registerUser()
 }

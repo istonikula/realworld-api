@@ -24,7 +24,7 @@ import io.realworld.domain.spi.UserNotFound
 import io.realworld.domain.spi.UserRepository
 import io.realworld.domain.spi.ValidateUserRegistration
 
-interface UserWorkflowSyntax {
+interface RegisterUserWorkflowSyntax {
   val auth: Auth
   val saveUser: SaveUser
   val validateUser: ValidateUserRegistration

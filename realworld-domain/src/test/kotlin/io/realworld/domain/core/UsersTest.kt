@@ -20,7 +20,7 @@ class RegisterUserWorkflowTests {
 
   @Test
   fun `happy path`() {
-    val actual = object : UserWorkflowSyntax {
+    val actual = object : RegisterUserWorkflowSyntax {
       override val auth = auth0
       override val saveUser = { x: UserModel -> IO { x } }
       override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
@@ -32,7 +32,7 @@ class RegisterUserWorkflowTests {
   @Test
   fun `exceptions from dependencies are propagated`() {
     assertThatThrownBy {
-      object : UserWorkflowSyntax {
+      object : RegisterUserWorkflowSyntax {
         override val auth = auth0
         override val saveUser = { x: UserModel -> IO { throw RuntimeException("BOOM!") } }
         override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
@@ -40,7 +40,7 @@ class RegisterUserWorkflowTests {
     }.hasMessage("BOOM!")
 
     assertThatThrownBy {
-      object : UserWorkflowSyntax {
+      object : RegisterUserWorkflowSyntax {
         override val auth = auth0
         override val saveUser = { x: UserModel -> IO { x } }
         override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
@@ -53,7 +53,7 @@ class RegisterUserWorkflowTests {
     var userSaved = false
 
     catchThrowable {
-      object : UserWorkflowSyntax {
+      object : RegisterUserWorkflowSyntax {
         override val auth = auth0
         override val saveUser = { x: UserModel -> IO {
           userSaved = true
@@ -65,7 +65,7 @@ class RegisterUserWorkflowTests {
     assertThat(userSaved).isFalse()
   }
 
-  private fun UserWorkflowSyntax.test(input: UserRegistration) = this.run {
+  private fun RegisterUserWorkflowSyntax.test(input: UserRegistration) = this.run {
     RegisterUserCommand(input).registerUser()
   }
 }
