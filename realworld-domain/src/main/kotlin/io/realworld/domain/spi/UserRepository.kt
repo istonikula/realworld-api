@@ -13,6 +13,7 @@ data class UserModel(
   fun toDto() = UserDto(email = email, token = token, username = username, bio = bio, image = image)
 }
 
+// TODO refactor there to return IO?
 interface UserRepository {
   fun save(user: UserModel): UserModel
   fun findByEmail(email: String): UserModel?

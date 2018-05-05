@@ -3,6 +3,7 @@ package io.realworld.domain.api
 import arrow.core.Either
 import arrow.core.Option
 import arrow.effects.IO
+import io.realworld.domain.core.UserWorkflowSyntax
 
 data class UserDto(
   val email: String,
@@ -41,4 +42,8 @@ data class UserUpdate(
 sealed class UserUpdateValidationError {
   object EmailAlreadyTaken : UserUpdateValidationError()
   object UsernameAlreadyTaken : UserUpdateValidationError()
+}
+
+object UserWorkflowOps {
+  fun UserWorkflowSyntax.registerUser(cmd: RegisterUserCommand) = cmd.registerUser()
 }

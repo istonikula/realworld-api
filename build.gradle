@@ -19,6 +19,8 @@ buildscript {
             arrow_syntax        : "io.arrow-kt:arrow-syntax:${arrowVersion}",
             arrow_typeclasses   : "io.arrow-kt:arrow-typeclasses:${arrowVersion}",
             jackson_kotlin      : "com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonKotlinVersion}",
+            jasypt              : "org.jasypt:jasypt:${jasyptVersion}",
+            jjwt                : "io.jsonwebtoken:jjwt:${jjwtVersion}",
             junit_jupiter_api   : "org.junit.jupiter:junit-jupiter-api",
             junit_jupiter_engine: "org.junit.jupiter:junit-jupiter-engine",
             kotlin_reflect      : "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}",
@@ -148,8 +150,8 @@ project('realworld-app:web') {
 
 project('realworld-domain') {
   dependencies {
-    compile("io.jsonwebtoken:jjwt:${jjwtVersion}")
-    compile("org.jasypt:jasypt:${jasyptVersion}")
+    compile libs.jasypt
+    compile libs.jjwt
   }
 }
 

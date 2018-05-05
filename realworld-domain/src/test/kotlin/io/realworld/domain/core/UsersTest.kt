@@ -5,11 +5,12 @@ import arrow.effects.IO
 import io.realworld.domain.api.RegisterUserCommand
 import io.realworld.domain.api.UserRegistration
 import io.realworld.domain.spi.Settings
+import io.realworld.domain.spi.UserModel
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class RegisterUserWorkflowTests {
-  val auth = Auth(Settings().apply {
+  val auth0 = Auth(Settings().apply {
     security.tokenSecret = "secret"
   }.security)
 
@@ -19,11 +20,11 @@ class RegisterUserWorkflowTests {
 
   @Test
   fun `happy path`() {
-    val actual = RegisterUserWorkflow(
-      auth,
-      { IO { Either.right(it) } },
-      { IO { it } }
-    ).test(userRegistration).unsafeRunSync()
+    val actual = object : UserWorkflowSyntax {
+      override val auth = auth0
+      override val saveUser = { x: UserModel -> IO { x } }
+      override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
+    }.test(userRegistration).unsafeRunSync()
 
     assertThat(actual.isRight()).isTrue()
   }
@@ -31,19 +32,19 @@ class RegisterUserWorkflowTests {
   @Test
   fun `exceptions from dependencies are propagated`() {
     assertThatThrownBy {
-      RegisterUserWorkflow(
-        auth,
-        { IO { throw RuntimeException("BOOM!") } },
-        { IO { it } }
-      ).test(userRegistration).unsafeRunSync()
+      object : UserWorkflowSyntax {
+        override val auth = auth0
+        override val saveUser = { x: UserModel -> IO { throw RuntimeException("BOOM!") } }
+        override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
+      }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
     assertThatThrownBy {
-      RegisterUserWorkflow(
-        auth,
-        { IO { Either.right(it) } },
-        { IO { throw RuntimeException("BOOM!") } }
-      ).test(userRegistration).unsafeRunSync()
+      object : UserWorkflowSyntax {
+        override val auth = auth0
+        override val saveUser = { x: UserModel -> IO { x } }
+        override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
+      }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
   }
 
@@ -52,20 +53,19 @@ class RegisterUserWorkflowTests {
     var userSaved = false
 
     catchThrowable {
-      RegisterUserWorkflow(
-        auth,
-        { IO { throw RuntimeException("BOOM!") } },
-        {
-          IO {
-            userSaved = true
-            it
-          }
-        }
-      ).test(userRegistration).unsafeRunSync()
+      object : UserWorkflowSyntax {
+        override val auth = auth0
+        override val saveUser = { x: UserModel -> IO {
+          userSaved = true
+          x
+        }}
+        override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
+      }.test(userRegistration).unsafeRunSync()
     }
     assertThat(userSaved).isFalse()
   }
 
-  private fun RegisterUserWorkflow.test(input: UserRegistration) =
-    this.invoke(RegisterUserCommand(input))
+  private fun UserWorkflowSyntax.test(input: UserRegistration) = this.run {
+    RegisterUserCommand(input).registerUser()
+  }
 }
