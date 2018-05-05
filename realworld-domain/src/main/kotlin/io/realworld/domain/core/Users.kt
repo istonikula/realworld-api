@@ -1,14 +1,15 @@
 package io.realworld.domain.core
 
 import arrow.core.Either
+import arrow.core.right
 import arrow.data.EitherT
-import arrow.data.monad
-import arrow.data.value
+import arrow.data.fix
+import arrow.effects.ForIO
 import arrow.effects.IO
-import arrow.effects.IOHK
-import arrow.effects.ev
+import arrow.effects.fix
 import arrow.effects.functor
-import arrow.syntax.either.right
+import arrow.effects.monad
+import arrow.instances.monad
 import arrow.typeclasses.binding
 import io.realworld.domain.api.LoginUserAcknowledgment
 import io.realworld.domain.api.LoginUserCommand
@@ -31,7 +32,7 @@ interface RegisterUserWorkflowSyntax {
 
   fun RegisterUserCommand.registerUser(): IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>> {
     val cmd = this
-    return EitherT.monad<IOHK, UserRegistrationValidationError>().binding {
+    return EitherT.monad<ForIO, UserRegistrationValidationError>(IO.monad()).binding {
       val validRegistration = EitherT(validateUser(cmd.data)).bind()
       val savedUser = EitherT(
         saveUser(UserModel(
@@ -42,7 +43,7 @@ interface RegisterUserWorkflowSyntax {
         )).map { Either.right(it) }
       ).bind()
       RegisterUserAcknowledgment(savedUser.toDto())
-    }.value().ev()
+    }.fix().value.fix()
   }
 }
 
@@ -76,15 +77,15 @@ interface LoginUserWorkflowSyntax {
 
   fun LoginUserCommand.loginUser(): IO<Either<UserLoginError, LoginUserAcknowledgment>> {
     val cmd = this
-    return EitherT.monad<IOHK, UserLoginError>().binding {
-      val user = EitherT(getUser(cmd.email)).mapLeft({ UserLoginError.BadCredentials }, IO.functor()).bind()
-      EitherT(IO.pure(
+    return EitherT.monad<ForIO, UserLoginError>(IO.monad()).binding {
+      val user = EitherT(getUser(cmd.email)).mapLeft(IO.functor(), { UserLoginError.BadCredentials }).bind()
+      EitherT(IO.just(
         when (auth.checkPassword(cmd.password, user.password)) {
           true -> LoginUserAcknowledgment(user.toDto()).right()
           false -> Either.left(UserLoginError.BadCredentials)
         }
       )).bind()
-    }.value().ev()
+    }.fix().value.fix()
   }
 }
 
