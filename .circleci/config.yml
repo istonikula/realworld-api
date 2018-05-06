@@ -1,0 +1,52 @@
+version: 2
+
+references:
+  gradle_user_home: &gradle_user_home
+    .gradle-user-home
+
+  workspace_root: &workspace_root
+    ~/repo
+
+  defaults: &defaults
+    working_directory: *workspace_root
+    environment:
+      GRADLE_USER_HOME: *gradle_user_home
+      JVM_OPTS: -Xmx3200m
+
+  container_config: &container_config
+    <<: *defaults
+    docker:
+      - image: circleci/openjdk:8-jdk
+
+  repo_cache_key: &repo_cache_key
+    v1-repo-{{ .Branch }}-{{ .Revision }}
+
+  restore_repo: &restore_repo
+    restore_cache:
+      keys:
+        - *repo_cache_key
+
+  deps_cache_key: &deps_cache_key
+    v1-deps-{{ checksum "build.gradle" }}
+
+  restore_deps: &restore_deps
+    restore_cache:
+      keys:
+        - *deps_cache_key
+
+jobs:
+  build:
+    <<: *container_config
+    steps:
+      - *restore_repo
+      - checkout
+      - save_cache:
+          key: *repo_cache_key
+          paths:
+            - .
+      - *restore_deps
+      - run: ./gradlew --no-daemon clean build
+      - save_cache:
+          key: *deps_cache_key
+          paths:
+            - *gradle_user_home

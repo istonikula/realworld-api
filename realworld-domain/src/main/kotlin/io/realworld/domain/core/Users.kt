@@ -1,75 +1,99 @@
 package io.realworld.domain.core
 
 import arrow.core.Either
+import arrow.core.right
 import arrow.data.EitherT
-import arrow.data.monad
-import arrow.data.value
+import arrow.data.fix
+import arrow.effects.ForIO
 import arrow.effects.IO
-import arrow.effects.IOHK
-import arrow.effects.ev
+import arrow.effects.fix
 import arrow.effects.functor
-import arrow.syntax.either.right
+import arrow.effects.monad
+import arrow.instances.monad
 import arrow.typeclasses.binding
-import io.realworld.domain.api.*
-import io.realworld.domain.spi.*
+import io.realworld.domain.api.LoginUserAcknowledgment
+import io.realworld.domain.api.LoginUserCommand
+import io.realworld.domain.api.RegisterUserAcknowledgment
+import io.realworld.domain.api.RegisterUserCommand
+import io.realworld.domain.api.UserLoginError
+import io.realworld.domain.api.UserRegistration
+import io.realworld.domain.api.UserRegistrationValidationError
+import io.realworld.domain.spi.GetUser
+import io.realworld.domain.spi.SaveUser
+import io.realworld.domain.spi.UserModel
+import io.realworld.domain.spi.UserNotFound
+import io.realworld.domain.spi.UserRepository
+import io.realworld.domain.spi.ValidateUserRegistration
 
-class RegisterUserWorkflow(
-  val auth: Auth,
-  val validateUserRegistration: ValidateUserRegistration,
+interface RegisterUserWorkflowSyntax {
+  val auth: Auth
   val saveUser: SaveUser
-): RegisterUser {
-  override fun invoke(cmd: RegisterUserCommand): IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>> =
-    EitherT.monad<IOHK, UserRegistrationValidationError>().binding() {
-      val validRegistration = EitherT(validateUserRegistration(cmd.data)).bind()
-      val savedUser = EitherT(saveUser(UserModel(
-        email = validRegistration.email,
-        username = validRegistration.username,
-        password = auth.encryptPassword(validRegistration.password),
-        token = auth.createToken(Token(validRegistration.email))
-      )).map { Either.right(it) }).bind()
-      RegisterUserAcknowledgment(savedUser.toDto())
-    }.value().ev()
-  }
+  val validateUser: ValidateUserRegistration
 
-class LoginUserWorkflow(
-  val auth: Auth,
+  fun RegisterUserCommand.registerUser(): IO<Either<UserRegistrationValidationError, RegisterUserAcknowledgment>> {
+    val cmd = this
+    return EitherT.monad<ForIO, UserRegistrationValidationError>(IO.monad()).binding {
+      val validRegistration = EitherT(validateUser(cmd.data)).bind()
+      val savedUser = EitherT(
+        saveUser(UserModel(
+          email = validRegistration.email,
+          username = validRegistration.username,
+          password = auth.encryptPassword(validRegistration.password),
+          token = auth.createToken(Token(validRegistration.email))
+        )).map { Either.right(it) }
+      ).bind()
+      RegisterUserAcknowledgment(savedUser.toDto())
+    }.fix().value.fix()
+  }
+}
+
+interface ValidateUserSyntax {
+  val userRepository: UserRepository
+
+  fun UserRegistration.validate(): IO<Either<UserRegistrationValidationError, UserRegistration>> {
+    return IO {
+      when {
+        userRepository.existsByEmail(this.email) ->
+          Either.left(UserRegistrationValidationError.EmailAlreadyTaken)
+        userRepository.existsByUsername(this.username) ->
+          Either.left(UserRegistrationValidationError.UsernameAlreadyTaken)
+        else -> Either.right(this)
+      }
+    }
+  }
+}
+
+interface SaveUserSyntax {
+  val userRepository: UserRepository
+
+  fun UserModel.save(): IO<UserModel> {
+    return IO { userRepository.save(this) }
+  }
+}
+
+interface LoginUserWorkflowSyntax {
+  val auth: Auth
   val getUser: GetUser
-): LoginUser {
-  override fun invoke(cmd: LoginUserCommand): IO<Either<UserLoginError, LoginUserAcknowledgment>> =
-    EitherT.monad<IOHK, UserLoginError>().binding() {
-      val user = EitherT(getUser(cmd.email)).mapLeft({ UserLoginError.BadCredentials }, IO.functor()).bind()
-      EitherT(IO.pure(
+
+  fun LoginUserCommand.loginUser(): IO<Either<UserLoginError, LoginUserAcknowledgment>> {
+    val cmd = this
+    return EitherT.monad<ForIO, UserLoginError>(IO.monad()).binding {
+      val user = EitherT(getUser(cmd.email)).mapLeft(IO.functor(), { UserLoginError.BadCredentials }).bind()
+      EitherT(IO.just(
         when (auth.checkPassword(cmd.password, user.password)) {
           true -> LoginUserAcknowledgment(user.toDto()).right()
           false -> Either.left(UserLoginError.BadCredentials)
         }
       )).bind()
-    }.value().ev()
+    }.fix().value.fix()
+  }
 }
 
-class ValidateUserRegistrationBean(
+typealias Email = String
+interface GetUserSyntax {
   val userRepository: UserRepository
-): ValidateUserRegistration {
-  override fun invoke(reg: UserRegistration): IO<Either<UserRegistrationValidationError, UserRegistration>> =
-    IO {
-      when {
-        userRepository.existsByEmail(reg.email) -> Either.left(UserRegistrationValidationError.EmailAlreadyTaken)
-        userRepository.existsByUsername(reg.username) -> Either.left(UserRegistrationValidationError.UsernameAlreadyTaken)
-        else -> Either.right(reg)
-      }
-    }
-}
 
-class SaveUserBean(
-  val userRepository: UserRepository
-): SaveUser {
-  override fun invoke(model: UserModel): IO<UserModel> =
-    IO { userRepository.save(model) }
-}
-
-class GetUserBean(
-  val userRepository: UserRepository
-) : GetUser {
-  override fun invoke(email: String): IO<Either<UserNotFound, UserModel>> =
-    IO { userRepository.findByEmail(email)?.right() ?: Either.left(UserNotFound()) }
+  fun Email.getUser(): IO<Either<UserNotFound, UserModel>> {
+    return IO { userRepository.findByEmail(this)?.right() ?: Either.left(UserNotFound()) }
+  }
 }
