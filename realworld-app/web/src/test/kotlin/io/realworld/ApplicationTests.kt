@@ -1,9 +1,9 @@
 package io.realworld
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.realworld.domain.core.Auth
-import io.realworld.domain.core.Token
-import io.realworld.domain.spi.UserModel
+import io.realworld.domain.common.Auth
+import io.realworld.domain.common.Token
+import io.realworld.domain.users.UserModel
 import io.realworld.persistence.InMemoryUserRepository
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
@@ -23,7 +23,6 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDO
 import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.test.context.junit.jupiter.SpringExtension
-
 
 data class RegistrationRequest(var user: RegistrationDto)
 data class LoginRequest(var user: LoginDto)

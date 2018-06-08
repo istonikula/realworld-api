@@ -1,11 +1,7 @@
-package io.realworld.domain.spi
+package io.realworld.domain.users
 
 import arrow.core.Either
 import arrow.effects.IO
-import io.realworld.domain.api.UserRegistration
-import io.realworld.domain.api.UserRegistrationValidationError
-import io.realworld.domain.api.UserUpdate
-import io.realworld.domain.api.UserUpdateValidationError
 
 typealias ValidateUserRegistration =
   (reg: UserRegistration) -> IO<Either<UserRegistrationValidationError, UserRegistration>>
@@ -17,3 +13,10 @@ typealias SaveUser =
 
 class UserNotFound
 typealias GetUser = (email: String) -> IO<Either<UserNotFound, UserModel>>
+
+interface UserRepository {
+  fun save(user: UserModel): UserModel
+  fun findByEmail(email: String): UserModel?
+  fun existsByEmail(email: String): Boolean
+  fun existsByUsername(username: String): Boolean
+}

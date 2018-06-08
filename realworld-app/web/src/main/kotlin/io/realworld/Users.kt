@@ -1,21 +1,21 @@
 package io.realworld
 
 import com.fasterxml.jackson.annotation.JsonRootName
-import io.realworld.domain.api.LoginUserCommand
-import io.realworld.domain.api.RegisterUserCommand
-import io.realworld.domain.api.User
-import io.realworld.domain.api.UserRegistration
-import io.realworld.domain.api.UserRegistrationValidationError
-import io.realworld.domain.core.Auth
-import io.realworld.domain.core.GetUserSyntax
-import io.realworld.domain.core.LoginUserWorkflowSyntax
-import io.realworld.domain.core.RegisterUserWorkflowSyntax
-import io.realworld.domain.core.SaveUserSyntax
-import io.realworld.domain.core.ValidateUserSyntax
-import io.realworld.domain.spi.GetUser
-import io.realworld.domain.spi.SaveUser
-import io.realworld.domain.spi.UserRepository
-import io.realworld.domain.spi.ValidateUserRegistration
+import io.realworld.domain.common.Auth
+import io.realworld.domain.users.GetUser
+import io.realworld.domain.users.GetUserByEmail
+import io.realworld.domain.users.LoginUserCommand
+import io.realworld.domain.users.LoginUserUseCase
+import io.realworld.domain.users.RegisterUserCommand
+import io.realworld.domain.users.RegisterUserUseCase
+import io.realworld.domain.users.SaveUser
+import io.realworld.domain.users.SaveUserIO
+import io.realworld.domain.users.User
+import io.realworld.domain.users.UserRegistration
+import io.realworld.domain.users.UserRegistrationValidationError
+import io.realworld.domain.users.UserRepository
+import io.realworld.domain.users.ValidateUser
+import io.realworld.domain.users.ValidateUserRegistration
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -92,16 +92,14 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUserSyntax = object : ValidateUserSyntax { override val userRepository = userRepository0 }
-    val saveUserSyntax = object : SaveUserSyntax { override val userRepository = userRepository0 }
+    val validateUser = object : ValidateUser { override val userRepository = userRepository0 }
+    val saveUser = object : SaveUserIO { override val userRepository = userRepository0 }
 
-    val workflowSyntax = object: RegisterUserWorkflowSyntax {
+    return object: RegisterUserUseCase {
       override val auth = auth0
-      override val saveUser: SaveUser = { x -> saveUserSyntax.run { x.save() } }
-      override val validateUser: ValidateUserRegistration = { x -> validateUserSyntax.run { x.validate() } }
-    }
-
-    return workflowSyntax.run {
+      override val saveUser: SaveUser = { x -> saveUser.run { x.save() } }
+      override val validateUser: ValidateUserRegistration = { x -> validateUser.run { x.validate() } }
+    }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
         email = registration.email,
@@ -118,22 +116,20 @@ class UserController(
               throw FieldError("username", "already taken")
           }
         },
-        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it.user)) }
+        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
       )
   }
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    val getUserSyntax = object : GetUserSyntax {
+    val getUserByEmail = object : GetUserByEmail {
       override val userRepository = userRepository0
     }
 
-    val loginWorkflowSyntax = object : LoginUserWorkflowSyntax {
+    return object : LoginUserUseCase {
       override val auth = auth0
-      override val getUser: GetUser = { x -> getUserSyntax.run { x.getUser() } }
-    }
-
-    return loginWorkflowSyntax.run {
+      override val getUser: GetUser = { x -> getUserByEmail.run { x.getUser() } }
+    }.run {
       LoginUserCommand(
         email = login.email,
         password = login.password
@@ -142,7 +138,7 @@ class UserController(
       .unsafeRunSync()
       .fold(
         { throw UnauthrorizedException() },
-        { ResponseEntity.ok().body(UserResponse.fromDomain(it.user)) })
+        { ResponseEntity.ok().body(UserResponse.fromDomain(it)) })
   }
 
   @PutMapping("/api/user")

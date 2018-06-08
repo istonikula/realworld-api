@@ -1,9 +1,9 @@
 package io.realworld
 
-import io.realworld.domain.api.User
-import io.realworld.domain.core.Auth
-import io.realworld.domain.spi.Settings
-import io.realworld.domain.spi.UserRepository
+import io.realworld.domain.common.Auth
+import io.realworld.domain.common.Settings
+import io.realworld.domain.users.User
+import io.realworld.domain.users.UserRepository
 import io.realworld.persistence.InMemoryUserRepository
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
