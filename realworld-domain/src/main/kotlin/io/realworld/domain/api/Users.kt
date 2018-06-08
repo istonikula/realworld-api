@@ -2,7 +2,7 @@ package io.realworld.domain.api
 
 import arrow.core.Option
 
-data class UserDto(
+data class User(
   val email: String,
   val token: String,
   val username: String,
@@ -12,14 +12,14 @@ data class UserDto(
 
 data class RegisterUserCommand(val data: UserRegistration)
 data class UserRegistration(val username: String, val email: String, val password: String)
-data class RegisterUserAcknowledgment(val user: UserDto)
+data class RegisterUserAcknowledgment(val user: User)
 sealed class UserRegistrationValidationError {
   object EmailAlreadyTaken : UserRegistrationValidationError()
   object UsernameAlreadyTaken : UserRegistrationValidationError()
 }
 
 data class LoginUserCommand(val email: String, val password: String)
-data class LoginUserAcknowledgment(val user: UserDto)
+data class LoginUserAcknowledgment(val user: User)
 sealed class UserLoginError {
   object BadCredentials : UserLoginError()
 }

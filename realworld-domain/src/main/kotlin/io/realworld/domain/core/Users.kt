@@ -44,7 +44,7 @@ interface RegisterUserWorkflowSyntax {
             token = auth.createToken(Token(validRegistration.email))
           )).map { it.right() }
         ).bind()
-        RegisterUserAcknowledgment(savedUser.toDto())
+        RegisterUserAcknowledgment(savedUser.toDomain())
       }.value().fix()
     }
   }
@@ -85,7 +85,7 @@ interface LoginUserWorkflowSyntax {
         val user = EitherT(getUser(cmd.email)).mapLeft(IO.functor(), { UserLoginError.BadCredentials }).bind()
         EitherT(IO.just(
           when (auth.checkPassword(cmd.password, user.password)) {
-            true -> LoginUserAcknowledgment(user.toDto()).right()
+            true -> LoginUserAcknowledgment(user.toDomain()).right()
             false -> UserLoginError.BadCredentials.left()
           }
         )).bind()

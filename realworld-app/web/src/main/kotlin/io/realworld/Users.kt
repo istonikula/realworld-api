@@ -3,7 +3,7 @@ package io.realworld
 import com.fasterxml.jackson.annotation.JsonRootName
 import io.realworld.domain.api.LoginUserCommand
 import io.realworld.domain.api.RegisterUserCommand
-import io.realworld.domain.api.UserDto
+import io.realworld.domain.api.User
 import io.realworld.domain.api.UserRegistration
 import io.realworld.domain.api.UserRegistrationValidationError
 import io.realworld.domain.core.Auth
@@ -28,7 +28,7 @@ import javax.validation.constraints.Email
 import javax.validation.constraints.NotBlank
 
 @JsonRootName("user")
-data class Login(
+data class LoginDto(
   @field:Email
   @field:NotBlank
   val email: String,
@@ -38,7 +38,7 @@ data class Login(
 )
 
 @JsonRootName("user")
-data class Registration(
+data class RegistrationDto(
   @field:NotBlank
   val username: String,
 
@@ -51,7 +51,7 @@ data class Registration(
 )
 
 @JsonRootName("user")
-data class UserUpdate(
+data class UserUpdateDto(
   @field:Email
   val email: String? = null,
 
@@ -61,16 +61,23 @@ data class UserUpdate(
   val image: String? = null
 )
 
-data class User(
+data class UserDto(
   val email: String,
   val token: String,
   val username: String,
   val bio: String? = null,
   val image: String? = null
-)
-data class UserResponse(val user: User) {
+) {
   companion object {
-    fun fromDto(dto: UserDto) = UserResponse(UserMappers.user.mapReverse(dto))
+    fun fromDomain(domain: User) = with(domain) {
+      UserDto(email = email, token = token, username = username, bio = bio, image = image)
+    }
+  }
+}
+
+data class UserResponse(val user: UserDto) {
+  companion object {
+    fun fromDomain(domain: User) = UserResponse(UserDto.fromDomain(domain))
   }
 }
 
@@ -81,10 +88,10 @@ class UserController(
 ) {
 
   @GetMapping("/api/user")
-  fun currentUser(user: UserDto) = ResponseEntity.ok().body(UserResponse.fromDto(user))
+  fun currentUser(user: User) = ResponseEntity.ok().body(UserResponse.fromDomain(user))
 
   @PostMapping("/api/users")
-  fun register(@Valid @RequestBody registration: Registration): ResponseEntity<UserResponse> {
+  fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
     val validateUserSyntax = object : ValidateUserSyntax { override val userRepository = userRepository0 }
     val saveUserSyntax = object : SaveUserSyntax { override val userRepository = userRepository0 }
 
@@ -111,12 +118,12 @@ class UserController(
               throw FieldError("username", "already taken")
           }
         },
-        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDto(it.user)) }
+        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it.user)) }
       )
   }
 
   @PostMapping("/api/users/login")
-  fun login(@Valid @RequestBody login: Login): ResponseEntity<UserResponse> {
+  fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
     val getUserSyntax = object : GetUserSyntax {
       override val userRepository = userRepository0
     }
@@ -135,14 +142,10 @@ class UserController(
       .unsafeRunSync()
       .fold(
         { throw UnauthrorizedException() },
-        { ResponseEntity.ok().body(UserResponse.fromDto(it.user)) })
+        { ResponseEntity.ok().body(UserResponse.fromDomain(it.user)) })
   }
 
   @PutMapping("/api/user")
-  fun update(@Valid @RequestBody userUpdate: UserUpdate, user: UserDto): ResponseEntity<UserResponse> =
-    ResponseEntity.ok().body(UserResponse.fromDto(user))
-}
-
-object UserMappers {
-  val user = OrikaBeanMapper.FACTORY.getMapperFacade(User::class.javaObjectType, UserDto::class.javaObjectType)
+  fun update(@Valid @RequestBody userUpdate: UserUpdateDto, user: User): ResponseEntity<UserResponse> =
+    ResponseEntity.ok().body(UserResponse.fromDomain(user))
 }

@@ -7,7 +7,6 @@ buildscript {
     javaVersion = '1.8'
     jjwtVersion = '0.9.0'
     kotlinVersion = '1.2.41'
-    orikaVersion = '1.5.2'
     restAssuredVersion = '3.1.0'
     springBootVersion = '2.0.2.RELEASE'
 
@@ -26,7 +25,6 @@ buildscript {
             junit_jupiter_engine: "org.junit.jupiter:junit-jupiter-engine",
             kotlin_reflect      : "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}",
             kotlin_std          : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}",
-            orika               : "ma.glasnost.orika:orika-core:${orikaVersion}",
             reactor_test        : "io.projectreactor:reactor-test",
             restassured         : "io.rest-assured:rest-assured:${restAssuredVersion}",
             spring_boot_devtools: "org.springframework.boot:spring-boot-devtools"
@@ -144,7 +142,6 @@ project('realworld-app:web') {
     compile starters.webflux
 
     compile libs.jackson_kotlin
-    compile libs.orika
 
     testCompile libs.restassured
   }

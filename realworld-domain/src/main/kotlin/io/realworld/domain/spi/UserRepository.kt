@@ -1,6 +1,6 @@
 package io.realworld.domain.spi
 
-import io.realworld.domain.api.UserDto
+import io.realworld.domain.api.User
 
 data class UserModel(
   val email: String,
@@ -10,7 +10,7 @@ data class UserModel(
   val bio: String? = null,
   val image: String? = null
 ) {
-  fun toDto() = UserDto(email = email, token = token, username = username, bio = bio, image = image)
+  fun toDomain() = User(email = email, token = token, username = username, bio = bio, image = image)
 }
 
 // TODO refactor to return IO?
