@@ -3,6 +3,11 @@ realworld:
   security:
     token-secret: secret
 spring:
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/realworld
+    username: realworld
+    password: secret
   jackson:
     deserialization.UNWRAP_ROOT_VALUE: true
     serialization:

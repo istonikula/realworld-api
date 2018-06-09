@@ -43,7 +43,7 @@ sealed class UserUpdateValidationError {
 
 interface RegisterUserUseCase {
   val auth: Auth
-  val saveUser: SaveUser
+  val createUser: CreateUser
   val validateUser: ValidateUserRegistration
 
   fun RegisterUserCommand.registerUser(): IO<Either<UserRegistrationValidationError, User>> {
@@ -51,15 +51,14 @@ interface RegisterUserUseCase {
     return ForEitherT<ForIO, UserRegistrationValidationError>(arrow.effects.IO.monad()) extensions {
       binding {
         val validRegistration = EitherT(validateUser(cmd.data)).bind()
-        val savedUser = EitherT(
-          saveUser(UserModel(
+        EitherT(
+          createUser(ValidUserRegistration(
             email = validRegistration.email,
             username = validRegistration.username,
-            password = auth.encryptPassword(validRegistration.password),
-            token = auth.createToken(Token(validRegistration.email))
+            token = auth.createToken(Token(validRegistration.email)),
+            encryptedPassword = auth.encryptPassword(validRegistration.password)
           )).map { it.right() }
         ).bind()
-        savedUser.toDomain()
       }.value().fix()
     }
   }
@@ -75,11 +74,12 @@ interface LoginUserUseCase {
       binding {
         val user = EitherT(getUser(cmd.email)).mapLeft(IO.functor(), { UserLoginError.BadCredentials }).bind()
         EitherT(IO.just(
-          when (auth.checkPassword(cmd.password, user.password)) {
-            true -> user.toDomain().right()
+          when (auth.checkPassword(cmd.password, user.encryptedPassword)) {
+            true -> user.right()
             false -> UserLoginError.BadCredentials.left()
           }
         )).bind()
+        user.user
       }.value().fix()
     }
   }

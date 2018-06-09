@@ -8,15 +8,17 @@ typealias ValidateUserRegistration =
 typealias ValidateUserUpdate =
   (upd: UserUpdate) -> IO<Either<UserUpdateValidationError, UserUpdate>>
 
-typealias SaveUser =
-  (model: UserModel) -> IO<UserModel>
+typealias SaveUser = (user: User) -> IO<User>
+
+typealias CreateUser = (user: ValidUserRegistration) -> IO<User>
 
 class UserNotFound
-typealias GetUser = (email: String) -> IO<Either<UserNotFound, UserModel>>
+typealias GetUser = (email: String) -> IO<Either<UserNotFound, UserAndPassword>>
 
 interface UserRepository {
-  fun save(user: UserModel): UserModel
-  fun findByEmail(email: String): UserModel?
+  fun create(user: ValidUserRegistration): User
+  fun update(user: User): User
+  fun findByEmail(email: String): UserAndPassword?
   fun existsByEmail(email: String): Boolean
   fun existsByUsername(username: String): Boolean
 }
