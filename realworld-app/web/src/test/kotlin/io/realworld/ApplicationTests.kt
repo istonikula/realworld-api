@@ -5,6 +5,11 @@ import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.UserModel
 import io.realworld.persistence.InMemoryUserRepository
+import io.realworld.users.LoginDto
+import io.realworld.users.RegistrationDto
+import io.realworld.users.UserResponse
+import io.realworld.users.UserResponseDto
+import io.realworld.users.UserUpdateDto
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
@@ -62,7 +67,7 @@ class Spring5ApplicationTests {
   @Test
   fun `register and login`() {
     val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = testUser.email, password = testUser.password))
-    val expected = UserDto(username = testUser.username, email = testUser.email, token = testUser.token)
+    val expected = UserResponseDto(username = testUser.username, email = testUser.email, token = testUser.token)
     var actual = post("/api/users", regReq)
       .prettyPeek()
       .then()

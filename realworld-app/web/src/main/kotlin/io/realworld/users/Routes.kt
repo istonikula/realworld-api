@@ -1,6 +1,7 @@
-package io.realworld
+package io.realworld.users
 
-import com.fasterxml.jackson.annotation.JsonRootName
+import io.realworld.FieldError
+import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.GetUser
 import io.realworld.domain.users.GetUserByEmail
@@ -24,60 +25,10 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import javax.validation.Valid
-import javax.validation.constraints.Email
-import javax.validation.constraints.NotBlank
 
-@JsonRootName("user")
-data class LoginDto(
-  @field:Email
-  @field:NotBlank
-  val email: String,
-
-  @field:NotBlank
-  val password: String
-)
-
-@JsonRootName("user")
-data class RegistrationDto(
-  @field:NotBlank
-  val username: String,
-
-  @field:Email
-  @field:NotBlank
-  val email: String,
-
-  @field:NotBlank
-  val password: String
-)
-
-@JsonRootName("user")
-data class UserUpdateDto(
-  @field:Email
-  val email: String? = null,
-
-  val username: String? = null,
-  val password: String? = null,
-  val bio: String? = null,
-  val image: String? = null
-)
-
-data class UserDto(
-  val email: String,
-  val token: String,
-  val username: String,
-  val bio: String? = null,
-  val image: String? = null
-) {
+data class UserResponse(val user: UserResponseDto) {
   companion object {
-    fun fromDomain(domain: User) = with(domain) {
-      UserDto(email = email, token = token, username = username, bio = bio, image = image)
-    }
-  }
-}
-
-data class UserResponse(val user: UserDto) {
-  companion object {
-    fun fromDomain(domain: User) = UserResponse(UserDto.fromDomain(domain))
+    fun fromDomain(domain: User) = UserResponse(UserResponseDto.fromDomain(domain))
   }
 }
 
