@@ -2,6 +2,7 @@ package io.realworld.domain.users
 
 import arrow.core.Either
 import arrow.effects.IO
+import arrow.effects.liftIO
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import org.assertj.core.api.Assertions.*
@@ -16,12 +17,16 @@ class RegisterUserWorkflowTests {
     "foo", "foo@bar.com", "bar"
   )
 
+  val createUser0: CreateUser = { x ->
+    User(email = x.email, token = x.token, username = x.username).liftIO()
+  }
+
   @Test
   fun `happy path`() {
     val actual = object : RegisterUserUseCase {
       override val auth = auth0
-      override val saveUser = { x: UserModel -> IO { x } }
-      override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
+      override val createUser = createUser0
+      override val validateUser = { x: UserRegistration -> Either.right(x).liftIO() }
     }.test(userRegistration).unsafeRunSync()
 
     assertThat(actual.isRight()).isTrue()
@@ -32,16 +37,16 @@ class RegisterUserWorkflowTests {
     assertThatThrownBy {
       object : RegisterUserUseCase {
         override val auth = auth0
-        override val saveUser = { x: UserModel -> IO { throw RuntimeException("BOOM!") } }
-        override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
+        override val createUser: CreateUser = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
+        override val validateUser = { x: UserRegistration -> Either.right(x).liftIO() }
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
     assertThatThrownBy {
       object : RegisterUserUseCase {
         override val auth = auth0
-        override val saveUser = { x: UserModel -> IO { x } }
-        override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
+        override val createUser = createUser0
+        override val validateUser: ValidateUserRegistration = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
   }
@@ -53,10 +58,12 @@ class RegisterUserWorkflowTests {
     catchThrowable {
       object : RegisterUserUseCase {
         override val auth = auth0
-        override val saveUser = { x: UserModel -> IO {
-          userSaved = true
-          x
-        }}
+        override val createUser: CreateUser = { x ->
+          IO {
+            userSaved = true
+            User(email = x.email, token = x.token, username = x.username)
+          }
+        }
         override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
       }.test(userRegistration).unsafeRunSync()
     }

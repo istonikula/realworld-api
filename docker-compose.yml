@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  realworld-db:
+    image: postgres:9.6-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - realworld-db-data:/var/lib/postgresql/data
+      - ./docker/realworld-db:/docker-entrypoint-initdb.d
+    environment:
+      APP_USER: realworld
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: realworld
+
+volumes:
+  realworld-db-data:
+    driver: local

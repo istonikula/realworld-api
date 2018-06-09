@@ -3,20 +3,20 @@ package io.realworld.users
 import io.realworld.FieldError
 import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
+import io.realworld.domain.users.CreateUser
+import io.realworld.domain.users.CreateUserService
 import io.realworld.domain.users.GetUser
-import io.realworld.domain.users.GetUserByEmail
+import io.realworld.domain.users.GetUserByEmailService
 import io.realworld.domain.users.LoginUserCommand
 import io.realworld.domain.users.LoginUserUseCase
 import io.realworld.domain.users.RegisterUserCommand
 import io.realworld.domain.users.RegisterUserUseCase
-import io.realworld.domain.users.SaveUser
-import io.realworld.domain.users.SaveUserIO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRegistration
 import io.realworld.domain.users.UserRegistrationValidationError
 import io.realworld.domain.users.UserRepository
-import io.realworld.domain.users.ValidateUser
 import io.realworld.domain.users.ValidateUserRegistration
+import io.realworld.domain.users.ValidateUserService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -43,13 +43,13 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUser = object : ValidateUser { override val userRepository = userRepository0 }
-    val saveUser = object : SaveUserIO { override val userRepository = userRepository0 }
+    val validateUserSrv = object : ValidateUserService { override val userRepository = userRepository0 }
+    val createUserSrv = object : CreateUserService { override val userRepository = userRepository0 }
 
     return object: RegisterUserUseCase {
       override val auth = auth0
-      override val saveUser: SaveUser = { x -> saveUser.run { x.save() } }
-      override val validateUser: ValidateUserRegistration = { x -> validateUser.run { x.validate() } }
+      override val createUser: CreateUser = { x -> createUserSrv.run { x.create() } }
+      override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
     }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
@@ -73,7 +73,7 @@ class UserController(
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    val getUserByEmail = object : GetUserByEmail {
+    val getUserByEmail = object : GetUserByEmailService {
       override val userRepository = userRepository0
     }
 

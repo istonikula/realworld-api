@@ -1,6 +1,7 @@
 buildscript {
   ext {
     arrowVersion = '0.7.2'
+    flywayVersion = '5.1.1'
     gradleVersionsPluginVersion = '0.17.0'
     jacksonKotlinVersion = '2.9.5'
     jasyptVersion = '1.9.2'
@@ -25,6 +26,7 @@ buildscript {
             junit_jupiter_engine: "org.junit.jupiter:junit-jupiter-engine",
             kotlin_reflect      : "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}",
             kotlin_std          : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}",
+            postgresql          : "org.postgresql:postgresql",
             reactor_test        : "io.projectreactor:reactor-test",
             restassured         : "io.rest-assured:rest-assured:${restAssuredVersion}",
             spring_boot_devtools: "org.springframework.boot:spring-boot-devtools"
@@ -32,6 +34,7 @@ buildscript {
 
     starters = [
             actuator: 'org.springframework.boot:spring-boot-starter-actuator',
+            jdbc    : 'org.springframework.boot:spring-boot-starter-jdbc',
             test    : 'org.springframework.boot:spring-boot-starter-test',
             webflux : 'org.springframework.boot:spring-boot-starter-webflux'
     ]
@@ -42,12 +45,14 @@ buildscript {
     jcenter()
     maven { url "https://repo.spring.io/snapshot" }
     maven { url "https://repo.spring.io/milestone" }
+    maven { url "https://plugins.gradle.org/m2/" }
   }
   dependencies {
     classpath "com.github.ben-manes:gradle-versions-plugin:${gradleVersionsPluginVersion}"
     classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
     classpath("org.jetbrains.kotlin:kotlin-allopen:${kotlinVersion}")
+    classpath("gradle.plugin.com.boxfuse.client:gradle-plugin-publishing:${flywayVersion}")
   }
 }
 
@@ -133,6 +138,16 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
 
 project('realworld-app:web') {
   apply plugin: 'org.springframework.boot'
+  apply plugin: 'org.flywaydb.flyway'
+
+  flyway {
+    url = 'jdbc:postgresql://localhost:5432/realworld'
+    user = 'postgres'
+    password = 'secret'
+    placeholders = [
+      'application_user': 'realworld'
+    ]
+  }
 
   dependencies {
     compile project(':realworld-domain')
@@ -157,6 +172,9 @@ project('realworld-domain') {
 project('realworld-infra:persistence') {
   dependencies {
     compile project(':realworld-domain')
+
+    compile starters.jdbc
+    compile libs.postgresql
   }
 }
 

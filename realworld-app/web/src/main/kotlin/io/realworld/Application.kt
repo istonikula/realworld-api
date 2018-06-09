@@ -4,13 +4,14 @@ import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRepository
-import io.realworld.persistence.InMemoryUserRepository
+import io.realworld.persistence.JdbcUserRepository
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.core.MethodParameter
 import org.springframework.http.HttpHeaders
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.web.reactive.BindingContext
 import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver
 import org.springframework.web.server.ServerWebExchange
@@ -23,13 +24,14 @@ class Spring5Application {
   fun settings() = Settings()
 
   @Bean
-  fun userArgumentResolver() = UserArgumentResolver(auth(), userRepository())
+  fun userArgumentResolver(repo: UserRepository) = UserArgumentResolver(auth(), repo)
 
   @Bean
   fun auth() = Auth(settings().security)
 
   @Bean
-  fun userRepository() = InMemoryUserRepository()
+  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) =
+    JdbcUserRepository(jdbcTemplate)
 }
 
 fun main(args: Array<String>) {
@@ -63,10 +65,10 @@ class UserArgumentResolver(
 
   private fun authenticate(tokenString: String): User {
     val token = auth.parse(tokenString)
-    val user = userRepository.findByEmail(token.email)
+    val user = userRepository.findByEmail(token.email)?.user
     return when (user?.email) {
-    // TODO check expiration
-      token.email -> user.toDomain()
+      // TODO check expiration
+      token.email -> user
       else -> throw RuntimeException("Authentication required")
     }
   }

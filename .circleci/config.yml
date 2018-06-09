@@ -17,6 +17,10 @@ references:
     <<: *defaults
     docker:
       - image: circleci/openjdk:8-jdk
+      - image: postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: realworld
+          POSTGRES_PASSWORD: secret
 
   repo_cache_key: &repo_cache_key
     v1-repo-{{ .Branch }}-{{ .Revision }}
@@ -45,6 +49,7 @@ jobs:
           paths:
             - .
       - *restore_deps
+      - run: ./gradlew --no-daemon flywayMigrate
       - run: ./gradlew --no-daemon clean build
       - save_cache:
           key: *deps_cache_key

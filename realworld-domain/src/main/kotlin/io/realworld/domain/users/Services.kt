@@ -5,7 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import arrow.effects.IO
 
-interface ValidateUser {
+interface ValidateUserService {
   val userRepository: UserRepository
 
   fun UserRegistration.validate(): IO<Either<UserRegistrationValidationError, UserRegistration>> {
@@ -21,19 +21,19 @@ interface ValidateUser {
   }
 }
 
-interface SaveUserIO { // TODO repo should return IO
+interface CreateUserService { // TODO repo should return IO
   val userRepository: UserRepository
 
-  fun UserModel.save(): IO<UserModel> {
-    return IO { userRepository.save(this) }
+  fun ValidUserRegistration.create(): IO<User> {
+    return IO { userRepository.create(this) }
   }
 }
 
 typealias Email = String
-interface GetUserByEmail {
+interface GetUserByEmailService {
   val userRepository: UserRepository
 
-  fun Email.getUser(): IO<Either<UserNotFound, UserModel>> {
+  fun Email.getUser(): IO<Either<UserNotFound, UserAndPassword>> {
     return IO { userRepository.findByEmail(this)?.right() ?: UserNotFound().left() }
   }
 }
