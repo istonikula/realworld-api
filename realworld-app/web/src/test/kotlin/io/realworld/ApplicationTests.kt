@@ -1,10 +1,15 @@
 package io.realworld
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.realworld.domain.core.Auth
-import io.realworld.domain.core.Token
-import io.realworld.domain.spi.UserModel
+import io.realworld.domain.common.Auth
+import io.realworld.domain.common.Token
+import io.realworld.domain.users.UserModel
 import io.realworld.persistence.InMemoryUserRepository
+import io.realworld.users.LoginDto
+import io.realworld.users.RegistrationDto
+import io.realworld.users.UserResponse
+import io.realworld.users.UserResponseDto
+import io.realworld.users.UserUpdateDto
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
@@ -24,10 +29,9 @@ import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.test.context.junit.jupiter.SpringExtension
 
-
-data class RegistrationRequest(var user: Registration)
-data class LoginRequest(var user: Login)
-data class UserUpdateRequest(var user: UserUpdate)
+data class RegistrationRequest(var user: RegistrationDto)
+data class LoginRequest(var user: LoginDto)
+data class UserUpdateRequest(var user: UserUpdateDto)
 
 @TestInstance(PER_CLASS)
 @ExtendWith(SpringExtension::class)
@@ -62,8 +66,8 @@ class Spring5ApplicationTests {
 
   @Test
   fun `register and login`() {
-    val regReq = RegistrationRequest(Registration(username = testUser.username, email = testUser.email, password = testUser.password))
-    val expected = User(username = testUser.username, email = testUser.email, token = testUser.token)
+    val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = testUser.email, password = testUser.password))
+    val expected = UserResponseDto(username = testUser.username, email = testUser.email, token = testUser.token)
     var actual = post("/api/users", regReq)
       .prettyPeek()
       .then()
@@ -71,7 +75,7 @@ class Spring5ApplicationTests {
       .extract().`as`(UserResponse::class.java)
     assertThat(actual.user).isEqualTo(expected)
 
-    val loginReq = LoginRequest(Login(email = regReq.user.email, password = regReq.user.password))
+    val loginReq = LoginRequest(LoginDto(email = regReq.user.email, password = regReq.user.password))
     actual = post("/api/users/login", loginReq)
       .then()
       .statusCode(200)
@@ -87,7 +91,7 @@ class Spring5ApplicationTests {
       username = testUser.username,
       password = "baz"
     ))
-    val regReq = RegistrationRequest(Registration(username = testUser.username, email = "unique.${testUser.email}", password = testUser.password))
+    val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = "unique.${testUser.email}", password = testUser.password))
     post("/api/users", regReq)
       .prettyPeek()
       .then()
@@ -103,7 +107,7 @@ class Spring5ApplicationTests {
       username = testUser.username,
       password = "baz"
     ))
-    val regReq = RegistrationRequest(Registration(username = "unique", email = testUser.email, password = testUser.password))
+    val regReq = RegistrationRequest(RegistrationDto(username = "unique", email = testUser.email, password = testUser.password))
     post("/api/users", regReq)
       .prettyPeek()
       .then()
@@ -113,7 +117,7 @@ class Spring5ApplicationTests {
 
   @Test
   fun `unexpected registration error yields 500`() {
-    val regReq = RegistrationRequest(Registration(username = testUser.username, email = testUser.email, password = testUser.password))
+    val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = testUser.email, password = testUser.password))
 
     doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(testUser.email)
 
@@ -125,7 +129,7 @@ class Spring5ApplicationTests {
 
   @Test
   fun `invalid request payload is detected`() {
-    val req = Login(email = "foo@bar.com", password = "baz")
+    val req = LoginDto(email = "foo@bar.com", password = "baz")
 
     post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
         .prettyPeek()
@@ -168,7 +172,7 @@ class Spring5ApplicationTests {
       password = "baz"
     ))
 
-    val updateReq = UserUpdateRequest(UserUpdate(email = "updated.${testUser.email}"))
+    val updateReq = UserUpdateRequest(UserUpdateDto(email = "updated.${testUser.email}"))
     println(asJson(updateReq))
     val actual = put("/api/user", updateReq, testUser.token)
       .then()

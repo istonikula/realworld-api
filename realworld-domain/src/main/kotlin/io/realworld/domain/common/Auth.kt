@@ -1,8 +1,7 @@
-package io.realworld.domain.core
+package io.realworld.domain.common
 
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
-import io.realworld.domain.spi.Settings
 import org.jasypt.util.password.PasswordEncryptor
 import org.jasypt.util.password.StrongPasswordEncryptor
 

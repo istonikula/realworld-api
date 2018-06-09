@@ -1,11 +1,9 @@
-package io.realworld.domain.core
+package io.realworld.domain.users
 
 import arrow.core.Either
 import arrow.effects.IO
-import io.realworld.domain.api.RegisterUserCommand
-import io.realworld.domain.api.UserRegistration
-import io.realworld.domain.spi.Settings
-import io.realworld.domain.spi.UserModel
+import io.realworld.domain.common.Auth
+import io.realworld.domain.common.Settings
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -20,7 +18,7 @@ class RegisterUserWorkflowTests {
 
   @Test
   fun `happy path`() {
-    val actual = object : RegisterUserWorkflowSyntax {
+    val actual = object : RegisterUserUseCase {
       override val auth = auth0
       override val saveUser = { x: UserModel -> IO { x } }
       override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
@@ -32,7 +30,7 @@ class RegisterUserWorkflowTests {
   @Test
   fun `exceptions from dependencies are propagated`() {
     assertThatThrownBy {
-      object : RegisterUserWorkflowSyntax {
+      object : RegisterUserUseCase {
         override val auth = auth0
         override val saveUser = { x: UserModel -> IO { throw RuntimeException("BOOM!") } }
         override val validateUser = { x: UserRegistration -> IO { Either.right(x) } }
@@ -40,7 +38,7 @@ class RegisterUserWorkflowTests {
     }.hasMessage("BOOM!")
 
     assertThatThrownBy {
-      object : RegisterUserWorkflowSyntax {
+      object : RegisterUserUseCase {
         override val auth = auth0
         override val saveUser = { x: UserModel -> IO { x } }
         override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
@@ -53,7 +51,7 @@ class RegisterUserWorkflowTests {
     var userSaved = false
 
     catchThrowable {
-      object : RegisterUserWorkflowSyntax {
+      object : RegisterUserUseCase {
         override val auth = auth0
         override val saveUser = { x: UserModel -> IO {
           userSaved = true
@@ -65,7 +63,7 @@ class RegisterUserWorkflowTests {
     assertThat(userSaved).isFalse()
   }
 
-  private fun RegisterUserWorkflowSyntax.test(input: UserRegistration) = this.run {
+  private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
     RegisterUserCommand(input).registerUser()
   }
 }

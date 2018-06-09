@@ -1,4 +1,4 @@
-package io.realworld.domain.spi
+package io.realworld.domain.common
 
 class Settings {
   val security = Security()
