@@ -1,5 +1,6 @@
 package io.realworld.users
 
+import arrow.core.Option
 import io.realworld.FieldError
 import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
@@ -11,12 +12,20 @@ import io.realworld.domain.users.LoginUserCommand
 import io.realworld.domain.users.LoginUserUseCase
 import io.realworld.domain.users.RegisterUserCommand
 import io.realworld.domain.users.RegisterUserUseCase
+import io.realworld.domain.users.UpdateUser
+import io.realworld.domain.users.UpdateUserCommand
+import io.realworld.domain.users.UpdateUserService
+import io.realworld.domain.users.UpdateUserUseCase
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRegistration
-import io.realworld.domain.users.UserRegistrationValidationError
+import io.realworld.domain.users.UserRegistrationError
 import io.realworld.domain.users.UserRepository
+import io.realworld.domain.users.UserUpdate
+import io.realworld.domain.users.UserUpdateError
 import io.realworld.domain.users.ValidateUserRegistration
 import io.realworld.domain.users.ValidateUserService
+import io.realworld.domain.users.ValidateUserUpdate
+import io.realworld.domain.users.ValidateUserUpdateService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -55,20 +64,18 @@ class UserController(
         username = registration.username,
         email = registration.email,
         password = registration.password
-      )).registerUser()
-    }
-      .unsafeRunSync()
-      .fold(
-        {
-          when (it) {
-            is UserRegistrationValidationError.EmailAlreadyTaken ->
-              throw FieldError("email", "already taken")
-            is UserRegistrationValidationError.UsernameAlreadyTaken ->
-              throw FieldError("username", "already taken")
-          }
-        },
-        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
-      )
+      )).runUseCase()
+    }.unsafeRunSync().fold(
+      {
+        when (it) {
+          is UserRegistrationError.EmailAlreadyTaken ->
+            throw FieldError("email", "already taken")
+          is UserRegistrationError.UsernameAlreadyTaken ->
+            throw FieldError("username", "already taken")
+        }
+      },
+      { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
+    )
   }
 
   @PostMapping("/api/users/login")
@@ -84,15 +91,43 @@ class UserController(
       LoginUserCommand(
         email = login.email,
         password = login.password
-      ).loginUser()
-    }
-      .unsafeRunSync()
-      .fold(
-        { throw UnauthrorizedException() },
-        { ResponseEntity.ok().body(UserResponse.fromDomain(it)) })
+      ).runUseCase()
+    }.unsafeRunSync().fold(
+      { throw UnauthrorizedException() },
+      { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
+    )
   }
 
   @PutMapping("/api/user")
-  fun update(@Valid @RequestBody userUpdate: UserUpdateDto, user: User): ResponseEntity<UserResponse> =
-    ResponseEntity.ok().body(UserResponse.fromDomain(user))
+  fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
+    val validateUpdateSrv = object : ValidateUserUpdateService { override val userRepository = userRepository0 }
+    val updateUserSrv = object : UpdateUserService { override val userRepository = userRepository0  }
+
+    return object : UpdateUserUseCase {
+      override val auth = auth0
+      override val validateUpdate: ValidateUserUpdate = { x -> validateUpdateSrv.run { x.validate() } }
+      override val updateUser: UpdateUser = { x, y -> updateUserSrv.run { x.update(y) } }
+    }.run {
+      UpdateUserCommand(
+        data = UserUpdate(
+          username = Option.fromNullable(update.username),
+          email = Option.fromNullable(update.email),
+          password = Option.fromNullable(update.password),
+          bio = Option.fromNullable(update.bio),
+          image = Option.fromNullable(update.image)
+        ),
+        current = user
+      ).runUseCase()
+    }.unsafeRunSync().fold(
+      {
+        when (it) {
+          is UserUpdateError.EmailAlreadyTaken ->
+            throw FieldError("email", "already taken")
+          is UserUpdateError.UsernameAlreadyTaken ->
+            throw FieldError("username", "already taken")
+        }
+      },
+      { ResponseEntity.ok(UserResponse.fromDomain(it)) }
+    )
+  }
 }

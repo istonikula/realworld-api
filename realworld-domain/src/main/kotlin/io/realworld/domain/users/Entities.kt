@@ -1,5 +1,7 @@
 package io.realworld.domain.users
 
+import arrow.core.Option
+
 data class User(
   val email: String,
   val token: String,
@@ -18,3 +20,19 @@ data class ValidUserRegistration(
 )
 
 data class UserAndPassword(val user: User, val encryptedPassword: String) { companion object }
+
+data class UserUpdate(
+  val username: Option<String>,
+  val email: Option<String>,
+  val password: Option<String>,
+  val bio: Option<String>,
+  val image: Option<String>
+)
+
+data class ValidUserUpdate(
+  val username: String,
+  val email: String,
+  val encryptedPassword: Option<String>,
+  val bio: String?,
+  val image: String?
+)

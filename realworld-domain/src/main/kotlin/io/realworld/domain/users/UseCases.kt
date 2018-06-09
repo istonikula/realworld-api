@@ -1,7 +1,7 @@
 package io.realworld.domain.users
 
 import arrow.core.Either
-import arrow.core.Option
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import arrow.data.EitherT
@@ -18,37 +18,31 @@ import io.realworld.domain.common.Token
 
 data class RegisterUserCommand(val data: UserRegistration)
 data class LoginUserCommand(val email: String, val password: String)
+data class UpdateUserCommand(val data: UserUpdate, val current: User)
 sealed class UserLoginError {
   object BadCredentials : UserLoginError()
 }
 
-sealed class UserRegistrationValidationError {
-  object EmailAlreadyTaken : UserRegistrationValidationError()
-  object UsernameAlreadyTaken : UserRegistrationValidationError()
+sealed class UserRegistrationError {
+  object EmailAlreadyTaken : UserRegistrationError()
+  object UsernameAlreadyTaken : UserRegistrationError()
 }
 
-data class UserUpdate(
-  val username: Option<String>,
-  val email: Option<String>,
-  val password: Option<String>,
-  val bio: Option<String>,
-  val image: Option<String>
-)
-
-// TODO these are duplicates
-sealed class UserUpdateValidationError {
-  object EmailAlreadyTaken : UserUpdateValidationError()
-  object UsernameAlreadyTaken : UserUpdateValidationError()
+sealed class UserUpdateError {
+  object EmailAlreadyTaken : UserUpdateError()
+  object UsernameAlreadyTaken : UserUpdateError()
 }
+
+object UserNotFound
 
 interface RegisterUserUseCase {
   val auth: Auth
   val createUser: CreateUser
   val validateUser: ValidateUserRegistration
 
-  fun RegisterUserCommand.registerUser(): IO<Either<UserRegistrationValidationError, User>> {
+  fun RegisterUserCommand.runUseCase(): IO<Either<UserRegistrationError, User>> {
     val cmd = this
-    return ForEitherT<ForIO, UserRegistrationValidationError>(arrow.effects.IO.monad()) extensions {
+    return ForEitherT<ForIO, UserRegistrationError>(arrow.effects.IO.monad()) extensions {
       binding {
         val validRegistration = EitherT(validateUser(cmd.data)).bind()
         EitherT(
@@ -68,7 +62,7 @@ interface LoginUserUseCase {
   val auth: Auth
   val getUser: GetUser
 
-  fun LoginUserCommand.loginUser(): IO<Either<UserLoginError, User>> {
+  fun LoginUserCommand.runUseCase(): IO<Either<UserLoginError, User>> {
     val cmd = this
     return ForEitherT<ForIO, UserLoginError>(IO.monad()) extensions {
       binding {
@@ -80,6 +74,30 @@ interface LoginUserUseCase {
           }
         )).bind()
         user.user
+      }.value().fix()
+    }
+  }
+}
+
+interface UpdateUserUseCase {
+  val auth: Auth
+  val validateUpdate: ValidateUserUpdate
+  val updateUser: UpdateUser
+
+  fun UpdateUserCommand.runUseCase(): IO<Either<UserUpdateError, User>> {
+    val cmd = this
+    return ForEitherT<ForIO, UserUpdateError>(IO.monad()) extensions {
+      binding {
+        val user = EitherT(validateUpdate(cmd.data)).bind()
+        EitherT(
+          updateUser(ValidUserUpdate(
+            email = user.email.getOrElse { cmd.current.email },
+            username = user.username.getOrElse { cmd.current.username },
+            encryptedPassword = user.password.map { auth.encryptPassword(it) },
+            bio = user.bio.getOrElse { cmd.current.bio },
+            image = user.image.getOrElse { cmd.current.image }
+          ), current).map { it.right() }
+        ).bind()
       }.value().fix()
     }
   }

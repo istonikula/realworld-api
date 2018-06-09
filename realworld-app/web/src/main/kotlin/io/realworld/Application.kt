@@ -30,8 +30,7 @@ class Spring5Application {
   fun auth() = Auth(settings().security)
 
   @Bean
-  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) =
-    JdbcUserRepository(jdbcTemplate)
+  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = JdbcUserRepository(jdbcTemplate)
 }
 
 fun main(args: Array<String>) {

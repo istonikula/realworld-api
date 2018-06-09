@@ -71,6 +71,6 @@ class RegisterUserWorkflowTests {
   }
 
   private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
-    RegisterUserCommand(input).registerUser()
+    RegisterUserCommand(input).runUseCase()
   }
 }

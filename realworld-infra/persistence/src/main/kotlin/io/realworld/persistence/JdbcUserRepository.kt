@@ -4,6 +4,7 @@ import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
+import io.realworld.domain.users.ValidUserUpdate
 import io.realworld.persistence.UserTbl.eq
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -47,8 +48,25 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     return jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
   }
 
-  override fun update(user: User): User {
-    TODO("not implemented")
+  override fun update(update: ValidUserUpdate, current: User): User {
+    val sql = with(UserTbl) {
+      StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")
+        .also { if (update.encryptedPassword.isDefined()) it.append(", ${password.set()}") }
+        .also { it.append(" WHERE $email = :currentEmail RETURNING *") }
+        .toString()
+    }
+    val params = with(UserTbl) {
+      mapOf(
+        username to update.username,
+        email to update.email,
+        bio to update.bio,
+        image to update.image,
+        password to update.encryptedPassword.orNull(),
+        "currentEmail" to current.email
+      )
+    }
+
+    return jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
   }
 
   override fun findByEmail(email: String): UserAndPassword? = DataAccessUtils.singleResult(
@@ -69,7 +87,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
 
   private fun queryIfExists(table: String, where: String, params: Map<String, Any>): Boolean =
     jdbcTemplate.queryForObject(
-      "SELECT COUNT(*) FROM ${table} WHERE $where",
+      "SELECT COUNT(*) FROM $table WHERE $where",
       params,
       { rs, _ -> rs.getInt("count") > 0 }
     )!!

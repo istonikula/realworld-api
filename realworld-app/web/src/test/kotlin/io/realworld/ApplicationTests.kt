@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
-import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.persistence.UserTbl
@@ -20,7 +19,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
@@ -56,7 +54,6 @@ class Spring5ApplicationTests {
   var port: Int = 0
 
   private lateinit var testUser: User
-  private lateinit var testUserAndPassword: UserAndPassword
 
   @BeforeAll
   fun initUser() {
@@ -173,13 +170,13 @@ class Spring5ApplicationTests {
 
   // TODO invalid password on login
 
-  @Disabled
   @Test
   fun `update user email`() {
-    userRepo.update(User(
+    userRepo.create(ValidUserRegistration(
       email = testUser.email,
       token = testUser.token,
-      username = testUser.username
+      username = testUser.username,
+      encryptedPassword = "encrypted"
     ))
 
     val updateReq = UserUpdateRequest(UserUpdateDto(email = "updated.${testUser.email}"))
