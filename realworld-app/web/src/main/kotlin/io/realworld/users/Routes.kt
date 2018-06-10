@@ -1,7 +1,6 @@
 package io.realworld.users
 
 import arrow.core.Option
-import arrow.effects.IO
 import io.realworld.FieldError
 import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
@@ -79,7 +78,7 @@ class UserController(
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
     return object : LoginUserUseCase {
       override val auth = auth0
-      override val getUser: GetUserByEmail = { x -> IO { userRepository0.findByEmail(x) } }
+      override val getUser: GetUserByEmail = userRepository0::findByEmail
     }.run {
       LoginUserCommand(
         email = login.email,

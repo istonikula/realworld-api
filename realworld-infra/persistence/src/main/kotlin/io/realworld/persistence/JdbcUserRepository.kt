@@ -78,13 +78,16 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     }
   }
 
-  override fun findByEmail(email: String): Option<UserAndPassword> = DataAccessUtils.singleResult(
-    jdbcTemplate.query(
-      "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
-      mapOf(UserTbl.email to email),
-      { rs, _ -> UserAndPassword.fromRs(rs) }
-    )
-  ).toOption()
+  override fun findByEmail(email: String): IO<Option<UserAndPassword>> =
+    IO {
+      DataAccessUtils.singleResult(
+        jdbcTemplate.query(
+          "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
+          mapOf(UserTbl.email to email),
+          { rs, _ -> UserAndPassword.fromRs(rs) }
+        )
+      ).toOption()
+    }
 
   override fun existsByEmail(email: String): Boolean = UserTbl.let {
     queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))

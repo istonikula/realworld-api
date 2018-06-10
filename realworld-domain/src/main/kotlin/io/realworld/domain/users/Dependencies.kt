@@ -15,7 +15,7 @@ typealias GetUserByEmail = (email: String) -> IO<Option<UserAndPassword>>
 interface UserRepository {
   fun create(user: ValidUserRegistration): IO<User>
   fun update(update: ValidUserUpdate, current: User): IO<User>
-  fun findByEmail(email: String): Option<UserAndPassword>
+  fun findByEmail(email: String): IO<Option<UserAndPassword>>
   fun existsByEmail(email: String): Boolean
   fun existsByUsername(username: String): Boolean
 }
