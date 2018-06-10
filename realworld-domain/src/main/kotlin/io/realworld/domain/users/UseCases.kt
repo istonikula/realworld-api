@@ -91,7 +91,7 @@ interface UpdateUserUseCase {
     val cmd = this
     return ForEitherT<ForIO, UserUpdateError>(IO.monad()) extensions {
       binding {
-        val user = EitherT(validateUpdate(cmd.data)).bind()
+        val user = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
         EitherT(
           updateUser(ValidUserUpdate(
             email = user.email.getOrElse { cmd.current.email },

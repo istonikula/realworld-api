@@ -31,16 +31,14 @@ interface ValidateUserService {
 interface ValidateUserUpdateService {
   val userRepository: UserRepository
 
-  fun UserUpdate.validate(): IO<Either<UserUpdateError, UserUpdate>> {
+  fun UserUpdate.validate(current: User): IO<Either<UserUpdateError, UserUpdate>> {
     val cmd = this
-    val email = cmd.email.orNull()
-    val username = cmd.username.orNull()
     return ForIO extensions {
       binding {
         when {
-          email != null && userRepository.existsByEmail(email).bind() ->
+          cmd.email.fold({ false }, { current.email !== it && userRepository.existsByEmail(it).bind() }) ->
             UserUpdateError.EmailAlreadyTaken.left()
-          username != null && userRepository.existsByUsername(username).bind() ->
+          cmd.username.fold({ false }, { current.username !== it && userRepository.existsByUsername(it).bind() }) ->
             UserUpdateError.UsernameAlreadyTaken.left()
           else -> cmd.right()
         }

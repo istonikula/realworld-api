@@ -96,7 +96,7 @@ class UserController(
 
     return object : UpdateUserUseCase {
       override val auth = auth0
-      override val validateUpdate: ValidateUserUpdate = { x -> validateUpdateSrv.run { x.validate() } }
+      override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
       override val updateUser: UpdateUser = userRepository0::update
     }.run {
       UpdateUserCommand(

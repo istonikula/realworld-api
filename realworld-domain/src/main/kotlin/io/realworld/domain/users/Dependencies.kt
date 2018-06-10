@@ -7,7 +7,7 @@ import arrow.effects.IO
 typealias ValidateUserRegistration = (reg: UserRegistration) -> IO<Either<UserRegistrationError, UserRegistration>>
 typealias CreateUser = (user: ValidUserRegistration) -> IO<User>
 
-typealias ValidateUserUpdate = (update: UserUpdate) -> IO<Either<UserUpdateError, UserUpdate>>
+typealias ValidateUserUpdate = (update: UserUpdate, current: User) -> IO<Either<UserUpdateError, UserUpdate>>
 typealias UpdateUser = (update: ValidUserUpdate, current: User) -> IO<User>
 
 typealias GetUserByEmail = (email: String) -> IO<Option<UserAndPassword>>
