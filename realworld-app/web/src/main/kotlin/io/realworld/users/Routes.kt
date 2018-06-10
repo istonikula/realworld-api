@@ -14,7 +14,6 @@ import io.realworld.domain.users.RegisterUserCommand
 import io.realworld.domain.users.RegisterUserUseCase
 import io.realworld.domain.users.UpdateUser
 import io.realworld.domain.users.UpdateUserCommand
-import io.realworld.domain.users.UpdateUserService
 import io.realworld.domain.users.UpdateUserUseCase
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRegistration
@@ -101,12 +100,11 @@ class UserController(
   @PutMapping("/api/user")
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
     val validateUpdateSrv = object : ValidateUserUpdateService { override val userRepository = userRepository0 }
-    val updateUserSrv = object : UpdateUserService { override val userRepository = userRepository0  }
 
     return object : UpdateUserUseCase {
       override val auth = auth0
       override val validateUpdate: ValidateUserUpdate = { x -> validateUpdateSrv.run { x.validate() } }
-      override val updateUser: UpdateUser = { x, y -> updateUserSrv.run { x.update(y) } }
+      override val updateUser: UpdateUser = userRepository0::update
     }.run {
       UpdateUserCommand(
         data = UserUpdate(

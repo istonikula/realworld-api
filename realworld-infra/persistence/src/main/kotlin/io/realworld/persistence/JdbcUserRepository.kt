@@ -1,11 +1,14 @@
 package io.realworld.persistence
 
+import arrow.effects.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.ValidUserUpdate
+import io.realworld.persistence.UserTbl.email
 import io.realworld.persistence.UserTbl.eq
+import io.realworld.persistence.UserTbl.username
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
@@ -48,7 +51,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     return jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
   }
 
-  override fun update(update: ValidUserUpdate, current: User): User {
+  override fun update(update: ValidUserUpdate, current: User): IO<User> {
     val sql = with(UserTbl) {
       StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")
         .also { if (update.encryptedPassword.isDefined()) it.append(", ${password.set()}") }
@@ -66,7 +69,9 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       )
     }
 
-    return jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
+    return IO {
+      jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
+    }
   }
 
   override fun findByEmail(email: String): UserAndPassword? = DataAccessUtils.singleResult(
@@ -77,12 +82,12 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     )
   )
 
-  override fun existsByEmail(byEmail: String): Boolean = with(UserTbl) {
-    queryIfExists(table, "${email.eq()}", mapOf(email to byEmail))
+  override fun existsByEmail(email: String): Boolean = UserTbl.let {
+    queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
   }
 
-  override fun existsByUsername(byUsername: String): Boolean = with(UserTbl) {
-    queryIfExists(table, "${username.eq()}", mapOf(username to byUsername))
+  override fun existsByUsername(username: String): Boolean = UserTbl.let {
+    queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
   }
 
   private fun queryIfExists(table: String, where: String, params: Map<String, Any>): Boolean =

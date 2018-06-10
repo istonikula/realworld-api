@@ -57,11 +57,3 @@ interface GetUserByEmailService {
     return IO { userRepository.findByEmail(this)?.right() ?: UserNotFound.left() }
   }
 }
-
-interface UpdateUserService {
-  val userRepository: UserRepository
-
-  fun ValidUserUpdate.update(current: User): IO<User> {
-    return IO { userRepository.update(this, current) }
-  }
-}
