@@ -16,6 +16,6 @@ interface UserRepository {
   fun create(user: ValidUserRegistration): IO<User>
   fun update(update: ValidUserUpdate, current: User): IO<User>
   fun findByEmail(email: String): IO<Option<UserAndPassword>>
-  fun existsByEmail(email: String): Boolean
-  fun existsByUsername(username: String): Boolean
+  fun existsByEmail(email: String): IO<Boolean>
+  fun existsByUsername(username: String): IO<Boolean>
 }
