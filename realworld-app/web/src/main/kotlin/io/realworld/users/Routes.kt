@@ -1,12 +1,12 @@
 package io.realworld.users
 
 import arrow.core.Option
+import arrow.effects.IO
 import io.realworld.FieldError
 import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.CreateUser
-import io.realworld.domain.users.GetUser
-import io.realworld.domain.users.GetUserByEmailService
+import io.realworld.domain.users.GetUserByEmail
 import io.realworld.domain.users.LoginUserCommand
 import io.realworld.domain.users.LoginUserUseCase
 import io.realworld.domain.users.RegisterUserCommand
@@ -77,13 +77,9 @@ class UserController(
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    val getUserByEmail = object : GetUserByEmailService {
-      override val userRepository = userRepository0
-    }
-
     return object : LoginUserUseCase {
       override val auth = auth0
-      override val getUser: GetUser = { x -> getUserByEmail.run { x.getUser() } }
+      override val getUser: GetUserByEmail = { x -> IO { userRepository0.findByEmail(x) } }
     }.run {
       LoginUserCommand(
         email = login.email,

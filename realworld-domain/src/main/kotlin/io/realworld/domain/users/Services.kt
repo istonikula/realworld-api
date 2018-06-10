@@ -40,12 +40,3 @@ interface ValidateUserUpdateService {
     }
   }
 }
-
-typealias Email = String
-interface GetUserByEmailService {
-  val userRepository: UserRepository
-
-  fun Email.getUser(): IO<Either<UserNotFound, UserAndPassword>> {
-    return IO { userRepository.findByEmail(this)?.right() ?: UserNotFound.left() }
-  }
-}

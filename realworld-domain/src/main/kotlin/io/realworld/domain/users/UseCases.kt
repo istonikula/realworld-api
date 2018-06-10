@@ -9,7 +9,6 @@ import arrow.data.value
 import arrow.effects.ForIO
 import arrow.effects.IO
 import arrow.effects.fix
-import arrow.effects.functor
 import arrow.effects.monad
 import arrow.instances.ForEitherT
 import arrow.typeclasses.binding
@@ -60,13 +59,17 @@ interface RegisterUserUseCase {
 
 interface LoginUserUseCase {
   val auth: Auth
-  val getUser: GetUser
+  val getUser: GetUserByEmail
 
   fun LoginUserCommand.runUseCase(): IO<Either<UserLoginError, User>> {
     val cmd = this
     return ForEitherT<ForIO, UserLoginError>(IO.monad()) extensions {
       binding {
-        val user = EitherT(getUser(cmd.email)).mapLeft(IO.functor(), { UserLoginError.BadCredentials }).bind()
+        val user = EitherT(
+          getUser(cmd.email).map {
+            it.toEither { UserLoginError.BadCredentials }
+          }
+        ).bind()
         EitherT(IO.just(
           when (auth.checkPassword(cmd.password, user.encryptedPassword)) {
             true -> user.right()

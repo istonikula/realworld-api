@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.users.User
@@ -64,12 +65,9 @@ class UserArgumentResolver(
 
   private fun authenticate(tokenString: String): User {
     val token = auth.parse(tokenString)
-    val user = userRepository.findByEmail(token.email)?.user
-    return when (user?.email) {
-      // TODO check expiration
-      token.email -> user
-      else -> throw RuntimeException("Authentication required")
-    }
+    return userRepository.findByEmail(token.email)
+      .map { it.user }
+      .getOrElse { throw RuntimeException("Authentication required")  }
   }
 
   companion object {

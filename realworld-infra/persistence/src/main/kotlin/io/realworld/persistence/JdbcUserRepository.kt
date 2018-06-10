@@ -1,5 +1,7 @@
 package io.realworld.persistence
 
+import arrow.core.Option
+import arrow.core.toOption
 import arrow.effects.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
@@ -76,13 +78,13 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     }
   }
 
-  override fun findByEmail(email: String): UserAndPassword? = DataAccessUtils.singleResult(
+  override fun findByEmail(email: String): Option<UserAndPassword> = DataAccessUtils.singleResult(
     jdbcTemplate.query(
       "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
       mapOf(UserTbl.email to email),
       { rs, _ -> UserAndPassword.fromRs(rs) }
     )
-  )
+  ).toOption()
 
   override fun existsByEmail(email: String): Boolean = UserTbl.let {
     queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
