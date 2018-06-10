@@ -21,14 +21,6 @@ interface ValidateUserService {
   }
 }
 
-interface CreateUserService {
-  val userRepository: UserRepository
-
-  fun ValidUserRegistration.create(): IO<User> {
-    return IO { userRepository.create(this) }
-  }
-}
-
 interface ValidateUserUpdateService {
   val userRepository: UserRepository
 

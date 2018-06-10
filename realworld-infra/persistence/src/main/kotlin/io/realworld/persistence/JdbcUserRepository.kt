@@ -29,7 +29,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     UserAndPassword(User.fromRs(rs), rs.getString(password))
   }
 
-  override fun create(user: ValidUserRegistration): User {
+  override fun create(user: ValidUserRegistration): IO<User> {
     val sql = with(UserTbl) {
       """
       INSERT INTO $table (
@@ -48,7 +48,9 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
         password to user.encryptedPassword
       )
     }
-    return jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
+    return IO {
+      jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
+    }
   }
 
   override fun update(update: ValidUserUpdate, current: User): IO<User> {

@@ -5,7 +5,6 @@ import io.realworld.FieldError
 import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.CreateUser
-import io.realworld.domain.users.CreateUserService
 import io.realworld.domain.users.GetUser
 import io.realworld.domain.users.GetUserByEmailService
 import io.realworld.domain.users.LoginUserCommand
@@ -52,11 +51,10 @@ class UserController(
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
     val validateUserSrv = object : ValidateUserService { override val userRepository = userRepository0 }
-    val createUserSrv = object : CreateUserService { override val userRepository = userRepository0 }
 
     return object: RegisterUserUseCase {
       override val auth = auth0
-      override val createUser: CreateUser = { x -> createUserSrv.run { x.create() } }
+      override val createUser: CreateUser = userRepository0::create
       override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
     }.run {
       RegisterUserCommand(UserRegistration(

@@ -95,7 +95,7 @@ class Spring5ApplicationTests {
       token = testUser.token,
       username = testUser.username,
       encryptedPassword = "encrypted"
-    ))
+    )).unsafeRunSync()
     val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = "unique.${testUser.email}", password = "plain"))
     post("/api/users", regReq)
       .prettyPeek()
@@ -111,7 +111,7 @@ class Spring5ApplicationTests {
       token = testUser.token,
       username = testUser.username,
       encryptedPassword = "encrypted"
-    ))
+    )).unsafeRunSync()
     val regReq = RegistrationRequest(RegistrationDto(username = "unique", email = testUser.email, password = "plain"))
     post("/api/users", regReq)
       .prettyPeek()
@@ -149,9 +149,10 @@ class Spring5ApplicationTests {
       token = testUser.token,
       username = testUser.username,
       encryptedPassword = "encrypted"
-    ))
+    )).unsafeRunSync()
 
     val actual = get("/api/user", testUser.token)
+      .prettyPeek()
       .then()
       .statusCode(200)
       .extract().`as`(UserResponse::class.java)
@@ -177,7 +178,7 @@ class Spring5ApplicationTests {
       token = testUser.token,
       username = testUser.username,
       encryptedPassword = "encrypted"
-    ))
+    )).unsafeRunSync()
 
     val updateReq = UserUpdateRequest(UserUpdateDto(email = "updated.${testUser.email}"))
     println(asJson(updateReq))
