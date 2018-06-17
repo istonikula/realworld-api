@@ -1,7 +1,6 @@
 package io.realworld.domain.users
 
 import arrow.core.Either
-import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import arrow.data.EitherT
@@ -13,7 +12,6 @@ import arrow.effects.monad
 import arrow.instances.ForEitherT
 import arrow.typeclasses.binding
 import io.realworld.domain.common.Auth
-import io.realworld.domain.common.Token
 
 data class RegisterUserCommand(val data: UserRegistration)
 data class LoginUserCommand(val email: String, val password: String)
@@ -44,14 +42,7 @@ interface RegisterUserUseCase {
     return ForEitherT<ForIO, UserRegistrationError>(arrow.effects.IO.monad()) extensions {
       binding {
         val validRegistration = EitherT(validateUser(cmd.data)).bind()
-        EitherT(
-          createUser(ValidUserRegistration(
-            email = validRegistration.email,
-            username = validRegistration.username,
-            token = auth.createToken(Token(validRegistration.email)),
-            encryptedPassword = auth.encryptPassword(validRegistration.password)
-          )).map { it.right() }
-        ).bind()
+        EitherT(createUser(validRegistration).map { it.right() }).bind()
       }.value().fix()
     }
   }
@@ -65,18 +56,18 @@ interface LoginUserUseCase {
     val cmd = this
     return ForEitherT<ForIO, UserLoginError>(IO.monad()) extensions {
       binding {
-        val user = EitherT(
+        val userAndPassword = EitherT(
           getUser(cmd.email).map {
             it.toEither { UserLoginError.BadCredentials }
           }
         ).bind()
         EitherT(IO.just(
-          when (auth.checkPassword(cmd.password, user.encryptedPassword)) {
-            true -> user.right()
+          when (auth.checkPassword(cmd.password, userAndPassword.encryptedPassword)) {
+            true -> userAndPassword.right()
             false -> UserLoginError.BadCredentials.left()
           }
         )).bind()
-        user.user
+        userAndPassword.user
       }.value().fix()
     }
   }
@@ -91,16 +82,8 @@ interface UpdateUserUseCase {
     val cmd = this
     return ForEitherT<ForIO, UserUpdateError>(IO.monad()) extensions {
       binding {
-        val user = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
-        EitherT(
-          updateUser(ValidUserUpdate(
-            email = user.email.getOrElse { cmd.current.email },
-            username = user.username.getOrElse { cmd.current.username },
-            encryptedPassword = user.password.map { auth.encryptPassword(it) },
-            bio = user.bio.getOrElse { cmd.current.bio },
-            image = user.image.getOrElse { cmd.current.image }
-          ), current).map { it.right() }
-        ).bind()
+        val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
+        EitherT(updateUser(validUpdate, current).map { it.right() }).bind()
       }.value().fix()
     }
   }

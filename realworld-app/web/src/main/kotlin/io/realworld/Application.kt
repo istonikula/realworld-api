@@ -65,7 +65,7 @@ class UserArgumentResolver(
 
   private fun authenticate(tokenString: String): User {
     val token = auth.parse(tokenString)
-    return userRepository.findByEmail(token.email)
+    return userRepository.findById(token.id)
       .unsafeRunSync()
       .map { it.user }
       .getOrElse { throw RuntimeException("Authentication required")  }

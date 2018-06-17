@@ -3,10 +3,10 @@ package io.realworld
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
-import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.persistence.UserTbl
+import io.realworld.persistence.UserTbl.token
 import io.realworld.users.LoginDto
 import io.realworld.users.RegistrationDto
 import io.realworld.users.UserResponse
@@ -18,7 +18,6 @@ import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
@@ -32,6 +31,7 @@ import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.jdbc.JdbcTestUtils
+import java.util.*
 
 data class RegistrationRequest(var user: RegistrationDto)
 data class LoginRequest(var user: LoginDto)
@@ -53,15 +53,10 @@ class Spring5ApplicationTests {
   @LocalServerPort
   var port: Int = 0
 
-  private lateinit var testUser: User
-
-  @BeforeAll
-  fun initUser() {
-    testUser = User(
-      email = "foo@bar.com",
-      token = auth.createToken(Token("foo@bar.com")),
-      username = "foo"
-    )
+  object TestUser {
+    val email = "foo@bar.com"
+    val username = "foo"
+    val password = "plain"
   }
 
   @AfterEach
@@ -71,32 +66,35 @@ class Spring5ApplicationTests {
 
   @Test
   fun `register and login`() {
-    val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = testUser.email, password = "plain"))
-    val expected = UserResponseDto(username = testUser.username, email = testUser.email, token = testUser.token)
+    val regReq = RegistrationRequest(RegistrationDto(
+      username = TestUser.username,
+      email = TestUser.email,
+      password = TestUser.password
+    ))
+    val expected = UserResponseDto(username = TestUser.username, email = TestUser.email, token = "ignore")
     var actual = post("/api/users", regReq)
       .prettyPeek()
       .then()
       .statusCode(201)
       .extract().`as`(UserResponse::class.java)
-    assertThat(actual.user).isEqualTo(expected)
+    assertThat(actual.user).isEqualToIgnoringGivenFields(expected, "token")
 
     val loginReq = LoginRequest(LoginDto(email = regReq.user.email, password = regReq.user.password))
     actual = post("/api/users/login", loginReq)
       .then()
       .statusCode(200)
       .extract().`as`(UserResponse::class.java)
-    assertThat(actual.user).isEqualTo(expected)
+    assertThat(actual.user).isEqualToIgnoringGivenFields(expected, token)
   }
 
   @Test
   fun `cannot register already existing username`() {
-    userRepo.create(ValidUserRegistration(
-      email = testUser.email,
-      token = testUser.token,
-      username = testUser.username,
-      encryptedPassword = "encrypted"
-    )).unsafeRunSync()
-    val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = "unique.${testUser.email}", password = "plain"))
+    userRepo.create(validTestUserRegistration()).unsafeRunSync()
+    val regReq = RegistrationRequest(RegistrationDto(
+      username = TestUser.username,
+      email = "unique.${TestUser.email}",
+      password = TestUser.password
+    ))
     post("/api/users", regReq)
       .prettyPeek()
       .then()
@@ -106,13 +104,12 @@ class Spring5ApplicationTests {
 
   @Test
   fun `cannot register already existing email`() {
-    userRepo.create(ValidUserRegistration(
-      email = testUser.email,
-      token = testUser.token,
-      username = testUser.username,
-      encryptedPassword = "encrypted"
-    )).unsafeRunSync()
-    val regReq = RegistrationRequest(RegistrationDto(username = "unique", email = testUser.email, password = "plain"))
+    userRepo.create(validTestUserRegistration()).unsafeRunSync()
+    val regReq = RegistrationRequest(RegistrationDto(
+      username = "unique",
+      email = TestUser.email,
+      password = TestUser.password
+    ))
     post("/api/users", regReq)
       .prettyPeek()
       .then()
@@ -122,9 +119,13 @@ class Spring5ApplicationTests {
 
   @Test
   fun `unexpected registration error yields 500`() {
-    val regReq = RegistrationRequest(RegistrationDto(username = testUser.username, email = testUser.email, password = "plain"))
+    val regReq = RegistrationRequest(RegistrationDto(
+      username = TestUser.username,
+      email = TestUser.email,
+      password = TestUser.password
+    ))
 
-    doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(testUser.email)
+    doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(TestUser.email)
 
     post("/api/users", regReq)
       .prettyPeek()
@@ -144,14 +145,10 @@ class Spring5ApplicationTests {
 
   @Test
   fun `current user is resolved from token`() {
-    userRepo.create(ValidUserRegistration(
-      email = testUser.email,
-      token = testUser.token,
-      username = testUser.username,
-      encryptedPassword = "encrypted"
-    )).unsafeRunSync()
+    val registered = validTestUserRegistration()
+    userRepo.create(registered).unsafeRunSync()
 
-    val actual = get("/api/user", testUser.token)
+    val actual = get("/api/user", registered.token)
       .prettyPeek()
       .then()
       .statusCode(200)
@@ -169,26 +166,75 @@ class Spring5ApplicationTests {
     get("/api/user").then().statusCode(401)
   }
 
-  // TODO invalid password on login
+  @Test
+  fun `invalid password is reported as 401`() {
+    val registered = validTestUserRegistration()
+    userRepo.create(registered).unsafeRunSync()
+
+    with( LoginRequest(LoginDto(email = registered.email, password = "invalid"))) {
+      post("/api/users/login", this).then().statusCode(401)
+    }
+  }
 
   @Test
   fun `update user email`() {
-    userRepo.create(ValidUserRegistration(
-      email = testUser.email,
-      token = testUser.token,
-      username = testUser.username,
-      encryptedPassword = "encrypted"
-    )).unsafeRunSync()
+    val registered = validTestUserRegistration()
+    userRepo.create(registered).unsafeRunSync()
 
-    val updateReq = UserUpdateRequest(UserUpdateDto(email = "updated.${testUser.email}"))
-    println(asJson(updateReq))
-    val actual = put("/api/user", updateReq, testUser.token)
-      .then()
-      .statusCode(200)
-      .extract().`as`(UserResponse::class.java)
-    // TODO assert email changed
-    // - in response
-    // - in repo
+    UserUpdateRequest(UserUpdateDto(email = "updated.${registered.email}")).apply {
+      val actual = put("/api/user", this, registered.token)
+        .then()
+        .statusCode(200)
+        .extract().`as`(UserResponse::class.java)
+      assertThat(actual.user.email).isEqualTo("updated.${registered.email}")
+    }
+  }
+
+  @Test
+  fun `update user password`() {
+    val registered = validTestUserRegistration()
+    userRepo.create(registered).unsafeRunSync()
+
+    UserUpdateRequest(UserUpdateDto(password = "updated.plain")).apply {
+      put("/api/user", this, registered.token).then().statusCode(200)
+    }
+    LoginRequest(LoginDto(email = registered.email, password = "updated.plain")).apply {
+      post("/api/users/login", this).then().statusCode(200)
+    }
+  }
+
+  @Test
+  fun `update user username`() {
+    val registered = validTestUserRegistration()
+    userRepo.create(registered).unsafeRunSync()
+
+    UserUpdateRequest(UserUpdateDto(username = "updated.${registered.username}")).apply {
+      val actual = put("/api/user", this, registered.token)
+        .then()
+        .statusCode(200)
+        .extract().`as`(UserResponse::class.java)
+      assertThat(actual.user.username).isEqualTo("updated.${registered.username}")
+    }
+  }
+
+  @Test
+  fun `update user username, image, bio`() {
+    val registered = validTestUserRegistration()
+    userRepo.create(registered).unsafeRunSync()
+
+    UserUpdateRequest(UserUpdateDto(
+      username = "updated.${registered.username}",
+      image = "updated.image",
+      bio = "updated.bio"
+    )).apply {
+      val actual = put("/api/user", this, registered.token)
+        .then()
+        .statusCode(200)
+        .extract().`as`(UserResponse::class.java)
+      assertThat(actual.user.username).isEqualTo("updated.${registered.username}")
+      assertThat(actual.user.image).isEqualTo("updated.image")
+      assertThat(actual.user.bio).isEqualTo("updated.bio")
+    }
   }
 
   private fun post(path: String, body: Any) =
@@ -201,6 +247,21 @@ class Spring5ApplicationTests {
     given().baseUri("http://localhost:${port}").token(token).get(path)
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
+
+  private fun String.encrypt() = auth.encryptPassword(this)
+
+  private fun String.checkPass(plain: String) = auth.checkPassword(plain, this)
+
+  private fun validTestUserRegistration(): ValidUserRegistration {
+    val id = UUID.randomUUID()
+    return ValidUserRegistration(
+      id = id,
+      username = TestUser.username,
+      email = TestUser.email,
+      encryptedPassword = auth.encryptPassword(TestUser.password),
+      token = auth.createToken(Token(id))
+    )
+  }
 
   fun RequestSpecification.token(token: String?) =
     if (token != null) {

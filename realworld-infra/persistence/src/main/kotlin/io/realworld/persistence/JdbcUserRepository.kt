@@ -14,6 +14,7 @@ import io.realworld.persistence.UserTbl.username
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
+import java.util.*
 
 open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : UserRepository {
 
@@ -35,15 +36,16 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     val sql = with(UserTbl) {
       """
       INSERT INTO $table (
-        $email, $token, $username, $password
+        $id, $email, $token, $username, $password
       ) VALUES (
-        :$email, :$token, :$username, :$password
+        :$id, :$email, :$token, :$username, :$password
       )
       RETURNING *
       """
     }
     val params = with(UserTbl) {
       mapOf(
+        id to user.id,
         email to user.email,
         token to user.token,
         username to user.username,
@@ -77,6 +79,17 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
     }
   }
+
+  override fun findById(id: UUID): IO<Option<UserAndPassword>> =
+    IO {
+      DataAccessUtils.singleResult(
+        jdbcTemplate.query(
+          "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
+          mapOf(UserTbl.id to id),
+          { rs, _ -> UserAndPassword.fromRs(rs) }
+        )
+      ).toOption()
+    }
 
   override fun findByEmail(email: String): IO<Option<UserAndPassword>> =
     IO {

@@ -49,7 +49,10 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUserSrv = object : ValidateUserService { override val userRepository = userRepository0 }
+    val validateUserSrv = object : ValidateUserService {
+      override val auth = auth0
+      override val userRepository = userRepository0
+    }
 
     return object: RegisterUserUseCase {
       override val auth = auth0
@@ -92,7 +95,10 @@ class UserController(
 
   @PutMapping("/api/user")
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
-    val validateUpdateSrv = object : ValidateUserUpdateService { override val userRepository = userRepository0 }
+    val validateUpdateSrv = object : ValidateUserUpdateService {
+      override val auth = auth0
+      override val userRepository = userRepository0
+    }
 
     return object : UpdateUserUseCase {
       override val auth = auth0

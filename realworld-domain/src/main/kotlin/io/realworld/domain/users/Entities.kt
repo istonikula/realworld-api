@@ -1,6 +1,7 @@
 package io.realworld.domain.users
 
 import arrow.core.Option
+import java.util.*
 
 data class User(
   val email: String,
@@ -13,6 +14,7 @@ data class User(
 data class UserRegistration(val username: String, val email: String, val password: String)
 
 data class ValidUserRegistration(
+  val id: UUID,
   val email: String,
   val token: String,
   val username: String,
