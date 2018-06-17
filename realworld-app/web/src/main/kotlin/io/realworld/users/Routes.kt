@@ -1,22 +1,28 @@
 package io.realworld.users
 
+import arrow.core.Option
 import io.realworld.FieldError
 import io.realworld.UnauthrorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.CreateUser
-import io.realworld.domain.users.CreateUserService
-import io.realworld.domain.users.GetUser
-import io.realworld.domain.users.GetUserByEmailService
+import io.realworld.domain.users.GetUserByEmail
 import io.realworld.domain.users.LoginUserCommand
 import io.realworld.domain.users.LoginUserUseCase
 import io.realworld.domain.users.RegisterUserCommand
 import io.realworld.domain.users.RegisterUserUseCase
+import io.realworld.domain.users.UpdateUser
+import io.realworld.domain.users.UpdateUserCommand
+import io.realworld.domain.users.UpdateUserUseCase
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRegistration
-import io.realworld.domain.users.UserRegistrationValidationError
+import io.realworld.domain.users.UserRegistrationError
 import io.realworld.domain.users.UserRepository
+import io.realworld.domain.users.UserUpdate
+import io.realworld.domain.users.UserUpdateError
 import io.realworld.domain.users.ValidateUserRegistration
 import io.realworld.domain.users.ValidateUserService
+import io.realworld.domain.users.ValidateUserUpdate
+import io.realworld.domain.users.ValidateUserUpdateService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -43,56 +49,82 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUserSrv = object : ValidateUserService { override val userRepository = userRepository0 }
-    val createUserSrv = object : CreateUserService { override val userRepository = userRepository0 }
+    val validateUserSrv = object : ValidateUserService {
+      override val auth = auth0
+      override val userRepository = userRepository0
+    }
 
     return object: RegisterUserUseCase {
       override val auth = auth0
-      override val createUser: CreateUser = { x -> createUserSrv.run { x.create() } }
+      override val createUser: CreateUser = userRepository0::create
       override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
     }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
         email = registration.email,
         password = registration.password
-      )).registerUser()
-    }
-      .unsafeRunSync()
-      .fold(
-        {
-          when (it) {
-            is UserRegistrationValidationError.EmailAlreadyTaken ->
-              throw FieldError("email", "already taken")
-            is UserRegistrationValidationError.UsernameAlreadyTaken ->
-              throw FieldError("username", "already taken")
-          }
-        },
-        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
-      )
+      )).runUseCase()
+    }.unsafeRunSync().fold(
+      {
+        when (it) {
+          is UserRegistrationError.EmailAlreadyTaken ->
+            throw FieldError("email", "already taken")
+          is UserRegistrationError.UsernameAlreadyTaken ->
+            throw FieldError("username", "already taken")
+        }
+      },
+      { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
+    )
   }
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    val getUserByEmail = object : GetUserByEmailService {
-      override val userRepository = userRepository0
-    }
-
     return object : LoginUserUseCase {
       override val auth = auth0
-      override val getUser: GetUser = { x -> getUserByEmail.run { x.getUser() } }
+      override val getUser: GetUserByEmail = userRepository0::findByEmail
     }.run {
       LoginUserCommand(
         email = login.email,
         password = login.password
-      ).loginUser()
-    }
-      .unsafeRunSync()
-      .fold(
-        { throw UnauthrorizedException() },
-        { ResponseEntity.ok().body(UserResponse.fromDomain(it)) })
+      ).runUseCase()
+    }.unsafeRunSync().fold(
+      { throw UnauthrorizedException() },
+      { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
+    )
   }
 
   @PutMapping("/api/user")
-  fun update(@Valid @RequestBody userUpdate: UserUpdateDto, user: User): ResponseEntity<UserResponse> =
-    ResponseEntity.ok().body(UserResponse.fromDomain(user))
+  fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
+    val validateUpdateSrv = object : ValidateUserUpdateService {
+      override val auth = auth0
+      override val userRepository = userRepository0
+    }
+
+    return object : UpdateUserUseCase {
+      override val auth = auth0
+      override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
+      override val updateUser: UpdateUser = userRepository0::update
+    }.run {
+      UpdateUserCommand(
+        data = UserUpdate(
+          username = Option.fromNullable(update.username),
+          email = Option.fromNullable(update.email),
+          password = Option.fromNullable(update.password),
+          bio = Option.fromNullable(update.bio),
+          image = Option.fromNullable(update.image)
+        ),
+        current = user
+      ).runUseCase()
+    }.unsafeRunSync().fold(
+      {
+        when (it) {
+          is UserUpdateError.EmailAlreadyTaken ->
+            throw FieldError("email", "already taken")
+          is UserUpdateError.UsernameAlreadyTaken ->
+            throw FieldError("username", "already taken")
+        }
+      },
+      { ResponseEntity.ok(UserResponse.fromDomain(it)) }
+    )
+  }
 }

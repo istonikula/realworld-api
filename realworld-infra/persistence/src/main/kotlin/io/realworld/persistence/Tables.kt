@@ -7,6 +7,7 @@ interface BaseTbl {
 
 object UserTbl : BaseTbl {
   const val table = "users"
+  const val id = "id"
   const val email = "email"
   const val token = "token"
   const val username = "username"

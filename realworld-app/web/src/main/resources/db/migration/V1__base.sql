@@ -1,4 +1,5 @@
 CREATE TABLE users (
+  id UUID NOT NULL,
   email TEXT NOT NULL,
   token TEXT NOT NULL,
   username TEXT NOT NULL,

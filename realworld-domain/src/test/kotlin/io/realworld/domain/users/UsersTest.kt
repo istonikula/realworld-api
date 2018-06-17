@@ -1,12 +1,14 @@
 package io.realworld.domain.users
 
-import arrow.core.Either
+import arrow.core.right
 import arrow.effects.IO
 import arrow.effects.liftIO
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
+import io.realworld.domain.common.Token
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.util.*
 
 class RegisterUserWorkflowTests {
   val auth0 = Auth(Settings().apply {
@@ -26,7 +28,7 @@ class RegisterUserWorkflowTests {
     val actual = object : RegisterUserUseCase {
       override val auth = auth0
       override val createUser = createUser0
-      override val validateUser = { x: UserRegistration -> Either.right(x).liftIO() }
+      override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
     }.test(userRegistration).unsafeRunSync()
 
     assertThat(actual.isRight()).isTrue()
@@ -38,7 +40,7 @@ class RegisterUserWorkflowTests {
       object : RegisterUserUseCase {
         override val auth = auth0
         override val createUser: CreateUser = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
-        override val validateUser = { x: UserRegistration -> Either.right(x).liftIO() }
+        override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
@@ -71,6 +73,16 @@ class RegisterUserWorkflowTests {
   }
 
   private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
-    RegisterUserCommand(input).registerUser()
+    RegisterUserCommand(input).runUseCase()
+  }
+
+  private fun UserRegistration.autovalid() = UUID.randomUUID().let {
+    ValidUserRegistration(
+      id = it,
+      username = username,
+      email = email,
+      token = auth0.createToken(Token(it)),
+      encryptedPassword = auth0.encryptPassword(password)
+    )
   }
 }

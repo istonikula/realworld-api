@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.users.User
@@ -30,8 +31,7 @@ class Spring5Application {
   fun auth() = Auth(settings().security)
 
   @Bean
-  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) =
-    JdbcUserRepository(jdbcTemplate)
+  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = JdbcUserRepository(jdbcTemplate)
 }
 
 fun main(args: Array<String>) {
@@ -65,12 +65,10 @@ class UserArgumentResolver(
 
   private fun authenticate(tokenString: String): User {
     val token = auth.parse(tokenString)
-    val user = userRepository.findByEmail(token.email)?.user
-    return when (user?.email) {
-      // TODO check expiration
-      token.email -> user
-      else -> throw RuntimeException("Authentication required")
-    }
+    return userRepository.findById(token.id)
+      .unsafeRunSync()
+      .map { it.user }
+      .getOrElse { throw RuntimeException("Authentication required")  }
   }
 
   companion object {

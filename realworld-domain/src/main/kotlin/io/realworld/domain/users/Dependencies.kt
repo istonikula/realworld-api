@@ -1,24 +1,23 @@
 package io.realworld.domain.users
 
 import arrow.core.Either
+import arrow.core.Option
 import arrow.effects.IO
+import java.util.*
 
-typealias ValidateUserRegistration =
-  (reg: UserRegistration) -> IO<Either<UserRegistrationValidationError, UserRegistration>>
-typealias ValidateUserUpdate =
-  (upd: UserUpdate) -> IO<Either<UserUpdateValidationError, UserUpdate>>
-
-typealias SaveUser = (user: User) -> IO<User>
-
+typealias ValidateUserRegistration = (reg: UserRegistration) -> IO<Either<UserRegistrationError, ValidUserRegistration>>
 typealias CreateUser = (user: ValidUserRegistration) -> IO<User>
 
-class UserNotFound
-typealias GetUser = (email: String) -> IO<Either<UserNotFound, UserAndPassword>>
+typealias ValidateUserUpdate = (update: UserUpdate, current: User) -> IO<Either<UserUpdateError, ValidUserUpdate>>
+typealias UpdateUser = (update: ValidUserUpdate, current: User) -> IO<User>
+
+typealias GetUserByEmail = (email: String) -> IO<Option<UserAndPassword>>
 
 interface UserRepository {
-  fun create(user: ValidUserRegistration): User
-  fun update(user: User): User
-  fun findByEmail(email: String): UserAndPassword?
-  fun existsByEmail(email: String): Boolean
-  fun existsByUsername(username: String): Boolean
+  fun create(user: ValidUserRegistration): IO<User>
+  fun update(update: ValidUserUpdate, current: User): IO<User>
+  fun findById(id: UUID): IO<Option<UserAndPassword>>
+  fun findByEmail(email: String): IO<Option<UserAndPassword>>
+  fun existsByEmail(email: String): IO<Boolean>
+  fun existsByUsername(username: String): IO<Boolean>
 }
