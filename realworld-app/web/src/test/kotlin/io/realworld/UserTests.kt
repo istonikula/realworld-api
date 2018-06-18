@@ -40,7 +40,7 @@ data class UserUpdateRequest(var user: UserUpdateDto)
 @TestInstance(PER_CLASS)
 @ExtendWith(SpringExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
-class Spring5ApplicationTests {
+class UserTests {
 
   @Autowired lateinit var jdbcTemplate: JdbcTemplate
 
@@ -247,10 +247,6 @@ class Spring5ApplicationTests {
     given().baseUri("http://localhost:${port}").token(token).get(path)
 
   private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
-
-  private fun String.encrypt() = auth.encryptPassword(this)
-
-  private fun String.checkPass(plain: String) = auth.checkPassword(plain, this)
 
   private fun validTestUserRegistration(): ValidUserRegistration {
     val id = UUID.randomUUID()

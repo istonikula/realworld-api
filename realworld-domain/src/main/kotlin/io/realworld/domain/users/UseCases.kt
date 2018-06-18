@@ -30,8 +30,6 @@ sealed class UserUpdateError {
   object UsernameAlreadyTaken : UserUpdateError()
 }
 
-object UserNotFound
-
 interface RegisterUserUseCase {
   val auth: Auth
   val createUser: CreateUser

@@ -102,6 +102,17 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       ).toOption()
     }
 
+  override fun findByUsername(username: String): IO<Option<User>> =
+    IO {
+      DataAccessUtils.singleResult(
+        jdbcTemplate.query(
+          "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.username.eq()}",
+          mapOf(UserTbl.username to username),
+          { rs, _ -> User.fromRs(rs) }
+        )
+      ).toOption()
+    }
+
   override fun existsByEmail(email: String): IO<Boolean> = UserTbl.let {
     queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
   }
@@ -109,6 +120,55 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
   override fun existsByUsername(username: String): IO<Boolean> = UserTbl.let {
     queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
   }
+
+  override fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean> {
+    val u = UserTbl
+    val f = FollowTbl
+    val sql =
+    """
+      SELECT COUNT(*)
+      FROM ${f.table} f
+        JOIN ${u.table} u1 ON (u1.${u.id} = f.${f.followee})
+        JOIN ${u.table} u2 ON (u2.${u.id} = f.${f.follower})
+      WHERE
+        u1.${u.username} = :followeeUsername AND
+        u2.${u.username} = :followerUsername
+    """
+    val params = mapOf(
+      "followeeUsername" to followeeUsername,
+      "followerUsername" to followerUsername
+    )
+
+    return IO {
+      jdbcTemplate.queryForObject(
+        sql,
+        params,
+        { rs, _ -> rs.getInt("count") > 0 }
+      )!!
+    }
+  }
+
+  override fun addFollower(followeeUsername: String, followerUsername: String): IO<Int> {
+    val sql =
+    """
+      INSERT INTO ${FollowTbl.table} (
+        ${FollowTbl.followee},
+        ${FollowTbl.follower}
+      ) VALUES (
+        (SELECT ${UserTbl.id} FROM ${UserTbl.table} WHERE ${UserTbl.username} = :followeeUsername),
+        (SELECT ${UserTbl.id} FROM ${UserTbl.table} WHERE ${UserTbl.username} = :followerUsername)
+      )
+    """
+    val params = mapOf(
+      "followeeUsername" to followeeUsername,
+      "followerUsername" to followerUsername
+    )
+
+    return IO {
+      jdbcTemplate.update(sql, params)
+    }
+  }
+
 
   private fun queryIfExists(table: String, where: String, params: Map<String, Any>): IO<Boolean> =
     IO {

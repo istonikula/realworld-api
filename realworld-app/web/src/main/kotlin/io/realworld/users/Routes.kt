@@ -2,7 +2,7 @@ package io.realworld.users
 
 import arrow.core.Option
 import io.realworld.FieldError
-import io.realworld.UnauthrorizedException
+import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.CreateUser
 import io.realworld.domain.users.GetUserByEmail
@@ -88,7 +88,7 @@ class UserController(
         password = login.password
       ).runUseCase()
     }.unsafeRunSync().fold(
-      { throw UnauthrorizedException() },
+      { throw UnauthorizedException() },
       { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
     )
   }
