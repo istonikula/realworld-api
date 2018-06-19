@@ -30,7 +30,7 @@ class ErrorHandler {
     }
   }
 
-  @ExceptionHandler(UnauthrorizedException::class)
+  @ExceptionHandler(UnauthorizedException::class)
   fun unauthorized() = handleError(HttpStatus.UNAUTHORIZED)
 
   @ExceptionHandler(FieldError::class)

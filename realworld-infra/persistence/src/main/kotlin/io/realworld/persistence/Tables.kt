@@ -15,3 +15,9 @@ object UserTbl : BaseTbl {
   const val bio = "bio"
   const val image = "image"
 }
+
+object FollowTbl : BaseTbl {
+  const val table = "follows"
+  const val followee = "followee"
+  const val follower = "follower"
+}

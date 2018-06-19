@@ -3,7 +3,6 @@ package io.realworld
 import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
-import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRepository
 import io.realworld.persistence.JdbcUserRepository
 import org.springframework.boot.SpringApplication
@@ -25,7 +24,12 @@ class Spring5Application {
   fun settings() = Settings()
 
   @Bean
-  fun userArgumentResolver(repo: UserRepository) = UserArgumentResolver(auth(), repo)
+  fun userArgumentResolverBean(repo: UserRepository) = userArgumentResolver(
+    JwtTokenResolver(auth()::parse),
+    { token ->
+      repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
+    }
+  )
 
   @Bean
   fun auth() = Auth(settings().security)
@@ -38,42 +42,24 @@ fun main(args: Array<String>) {
   SpringApplication.run(Spring5Application::class.java, *args)
 }
 
-class UserArgumentResolver(
-  val auth: Auth,
-  val userRepository: UserRepository
-): HandlerMethodArgumentResolver {
-  override fun supportsParameter(parameter: MethodParameter): Boolean =
+
+inline fun <reified User, reified Token> userArgumentResolver(
+  crossinline resolveToken: ResolveToken<Token>,
+  crossinline createUser: (token: Token) -> User
+) = object : HandlerMethodArgumentResolver {
+  override fun supportsParameter(parameter: MethodParameter) =
     User::class.java.isAssignableFrom(parameter.parameterType)
 
   override fun resolveArgument(
     parameter: MethodParameter,
     bindingContext: BindingContext,
     exchange: ServerWebExchange
-  ): Mono<Any> {
-    val authorization: String? = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
-    authorization?.apply {
-      if (startsWith(TOKEN_PREFIX)) {
-        return try {
-          Mono.just(authenticate(substring(TOKEN_PREFIX.length)))
-        } catch (t: Throwable) {
-          throw UnauthrorizedException()
-        }
-      }
-    }
-    throw UnauthrorizedException()
-  }
-
-  private fun authenticate(tokenString: String): User {
-    val token = auth.parse(tokenString)
-    return userRepository.findById(token.id)
-      .unsafeRunSync()
-      .map { it.user }
-      .getOrElse { throw RuntimeException("Authentication required")  }
-  }
-
-  companion object {
-    private val TOKEN_PREFIX = "Token "
+  ) = with(exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)) {
+    resolveToken(this).fold(
+      { throw UnauthorizedException() },
+      { Mono.just(createUser(it) as Any) }
+    )
   }
 }
 
-class UnauthrorizedException : Throwable()
+class UnauthorizedException : Throwable()

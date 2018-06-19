@@ -18,6 +18,10 @@ interface UserRepository {
   fun update(update: ValidUserUpdate, current: User): IO<User>
   fun findById(id: UUID): IO<Option<UserAndPassword>>
   fun findByEmail(email: String): IO<Option<UserAndPassword>>
+  fun findByUsername(username: String): IO<Option<User>>
   fun existsByEmail(email: String): IO<Boolean>
   fun existsByUsername(username: String): IO<Boolean>
+  fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean>
+  fun addFollower(followeeUsername: String, followerUsername: String): IO<Int>
+  fun removeFollower(followeeUsername: String, followerUsername: String): IO<Int>
 }
