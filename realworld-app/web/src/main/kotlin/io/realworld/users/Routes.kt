@@ -16,13 +16,13 @@ import io.realworld.domain.users.UpdateUserUseCase
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRegistration
 import io.realworld.domain.users.UserRegistrationError
-import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.UserUpdate
 import io.realworld.domain.users.UserUpdateError
 import io.realworld.domain.users.ValidateUserRegistration
 import io.realworld.domain.users.ValidateUserService
 import io.realworld.domain.users.ValidateUserUpdate
 import io.realworld.domain.users.ValidateUserUpdateService
+import io.realworld.persistence.UserRepository
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -41,7 +41,7 @@ data class UserResponse(val user: UserResponseDto) {
 @RestController
 class UserController(
   private val auth0: Auth,
-  private val userRepository0: UserRepository
+  private val repo: UserRepository
 ) {
 
   @GetMapping("/api/user")
@@ -51,12 +51,13 @@ class UserController(
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
     val validateUserSrv = object : ValidateUserService {
       override val auth = auth0
-      override val userRepository = userRepository0
+      override val existsByEmail = repo::existsByEmail
+      override val existsByUsername = repo::existsByUsername
     }
 
     return object: RegisterUserUseCase {
       override val auth = auth0
-      override val createUser: CreateUser = userRepository0::create
+      override val createUser: CreateUser = repo::create
       override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
     }.run {
       RegisterUserCommand(UserRegistration(
@@ -81,7 +82,7 @@ class UserController(
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
     return object : LoginUserUseCase {
       override val auth = auth0
-      override val getUser: GetUserByEmail = userRepository0::findByEmail
+      override val getUser: GetUserByEmail = repo::findByEmail
     }.run {
       LoginUserCommand(
         email = login.email,
@@ -97,13 +98,14 @@ class UserController(
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
     val validateUpdateSrv = object : ValidateUserUpdateService {
       override val auth = auth0
-      override val userRepository = userRepository0
+      override val existsByEmail = repo::existsByEmail
+      override val existsByUsername = repo::existsByUsername
     }
 
     return object : UpdateUserUseCase {
       override val auth = auth0
       override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
-      override val updateUser: UpdateUser = userRepository0::update
+      override val updateUser: UpdateUser = repo::update
     }.run {
       UpdateUserCommand(
         data = UserUpdate(

@@ -10,7 +10,7 @@ import io.realworld.domain.profiles.Profile
 import io.realworld.domain.profiles.UnfollowCommand
 import io.realworld.domain.profiles.UnfollowUseCase
 import io.realworld.domain.users.User
-import io.realworld.domain.users.UserRepository
+import io.realworld.persistence.UserRepository
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping

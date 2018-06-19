@@ -3,8 +3,8 @@ package io.realworld
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
-import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
+import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.persistence.UserTbl.token
 import io.realworld.users.LoginDto

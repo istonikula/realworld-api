@@ -3,8 +3,7 @@ package io.realworld
 import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
-import io.realworld.domain.users.UserRepository
-import io.realworld.persistence.JdbcUserRepository
+import io.realworld.persistence.UserRepository
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -35,7 +34,7 @@ class Spring5Application {
   fun auth() = Auth(settings().security)
 
   @Bean
-  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = JdbcUserRepository(jdbcTemplate)
+  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = UserRepository(jdbcTemplate)
 }
 
 fun main(args: Array<String>) {
