@@ -123,7 +123,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     val u = UserTbl
     val f = FollowTbl
     val sql =
-    """
+      """
       SELECT COUNT(*)
       FROM ${f.table} f
         JOIN ${u.table} u1 ON (u1.${u.id} = f.${f.followee})
@@ -131,7 +131,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       WHERE
         u1.${u.username} = :followeeUsername AND
         u2.${u.username} = :followerUsername
-    """
+      """
     val params = mapOf(
       "followeeUsername" to followeeUsername,
       "followerUsername" to followerUsername
@@ -150,7 +150,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     val u = UserTbl
     val f = FollowTbl
     val sql =
-    """
+      """
       INSERT INTO ${f.table} (
         ${f.followee},
         ${f.follower}
@@ -159,7 +159,27 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
         (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followerUsername)
       )
       ON CONFLICT (${f.followee}, ${f.follower}) DO NOTHING
-    """
+      """
+    val params = mapOf(
+      "followeeUsername" to followeeUsername,
+      "followerUsername" to followerUsername
+    )
+
+    return IO {
+      jdbcTemplate.update(sql, params)
+    }
+  }
+
+  override fun removeFollower(followeeUsername: String, followerUsername: String): IO<Int> {
+    val u = UserTbl
+    val f = FollowTbl
+    val sql =
+      """
+      DELETE FROM ${f.table}
+      WHERE
+        ${f.followee} = (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followeeUsername) AND
+        ${f.follower} = (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followerUsername)
+      """
     val params = mapOf(
       "followeeUsername" to followeeUsername,
       "followerUsername" to followerUsername

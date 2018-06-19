@@ -23,4 +23,5 @@ interface UserRepository {
   fun existsByUsername(username: String): IO<Boolean>
   fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean>
   fun addFollower(followeeUsername: String, followerUsername: String): IO<Int>
+  fun removeFollower(followeeUsername: String, followerUsername: String): IO<Int>
 }

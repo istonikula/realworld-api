@@ -106,7 +106,7 @@ class ProfileTests {
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(false))
 
-    post("/api/profiles/bar", null, user1.token)
+    post("/api/profiles/bar/follow", null, user1.token)
       .then()
       .statusCode(200)
       .body("profile.username", equalTo("bar"))
@@ -118,7 +118,7 @@ class ProfileTests {
     val user1 = validTestUserRegistration("foo", "foo@realworld.io")
     userRepo.create(user1).unsafeRunSync()
 
-    post("/api/profiles/bar", null, user1.token)
+    post("/api/profiles/bar/follow", null, user1.token)
       .then()
       .statusCode(404)
   }
@@ -131,13 +131,58 @@ class ProfileTests {
     userRepo.create(user2).unsafeRunSync()
     userRepo.addFollower(user2.username, user1.username).unsafeRunSync()
 
-    post("/api/profiles/bar", null, user1.token)
+    post("/api/profiles/bar/follow", null, user1.token)
+      .then()
+      .statusCode(200)
+  }
+
+  @Test
+  fun `unfollow`() {
+    val user1 = validTestUserRegistration("foo", "foo@realworld.io")
+    val user2 = validTestUserRegistration("bar", "bar@realworld.io")
+    userRepo.create(user1).unsafeRunSync()
+    userRepo.create(user2).unsafeRunSync()
+
+    post("/api/profiles/bar/follow", null, user1.token)
+      .then()
+      .statusCode(200)
+      .body("profile.username", equalTo("bar"))
+      .body("profile.following", equalTo(true))
+
+    delete("/api/profiles/bar/follow", user1.token)
+      .then()
+      .statusCode(200)
+      .body("profile.username", equalTo("bar"))
+      .body("profile.following", equalTo(false))
+  }
+
+  @Test
+  fun `unfollow phantom`() {
+    val user1 = validTestUserRegistration("foo", "foo@realworld.io")
+    userRepo.create(user1).unsafeRunSync()
+
+    delete("/api/profiles/bar/follow", user1.token)
+      .then()
+      .statusCode(404)
+  }
+
+  @Test
+  fun `unfollow not followed`() {
+    val user1 = validTestUserRegistration("foo", "foo@realworld.io")
+    val user2 = validTestUserRegistration("bar", "bar@realworld.io")
+    userRepo.create(user1).unsafeRunSync()
+    userRepo.create(user2).unsafeRunSync()
+
+    delete("/api/profiles/bar/follow", user1.token)
       .then()
       .statusCode(200)
   }
 
   private fun get(path: String, token: String? = null) =
     RestAssured.given().baseUri("http://localhost:${port}").token(token).get(path)
+
+  private fun delete(path: String, token: String? = null) =
+    RestAssured.given().baseUri("http://localhost:${port}").token(token).delete(path)
 
   private fun post(path: String, body: Any?, token: String? = null) =
     RestAssured.given().baseUri("http://localhost:${port}").token(token).contentType(ContentType.JSON).maybeBody(body).post(path)

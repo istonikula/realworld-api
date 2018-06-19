@@ -7,10 +7,13 @@ import io.realworld.domain.profiles.FollowUseCase
 import io.realworld.domain.profiles.GetProfileCommand
 import io.realworld.domain.profiles.GetProfileUseCase
 import io.realworld.domain.profiles.Profile
+import io.realworld.domain.profiles.UnfollowCommand
+import io.realworld.domain.profiles.UnfollowUseCase
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRepository
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -35,7 +38,9 @@ class ProfileController(
     exchange: ServerWebExchange
   ): ResponseEntity<ProfileResponse> {
 
-    val user = JwtTokenResolver(auth::parse)(exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)).toOption().flatMap {
+    val user = JwtTokenResolver(auth::parse)(
+      exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+    ).toOption().flatMap {
       repo.findById(it.id).unsafeRunSync().map { it.user }
     }
 
@@ -50,7 +55,7 @@ class ProfileController(
     )
   }
 
-  @PostMapping("/api/profiles/{username}")
+  @PostMapping("/api/profiles/{username}/follow")
   fun follow(
     @PathVariable("username") username: String,
     current: User
@@ -65,4 +70,21 @@ class ProfileController(
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
   }
+
+  @DeleteMapping("/api/profiles/{username}/follow")
+  fun unfollow(
+    @PathVariable("username") username: String,
+    current: User
+  ): ResponseEntity<ProfileResponse> {
+    return object : UnfollowUseCase {
+      override val getUser = repo::findByUsername
+      override val removeFollower = repo::removeFollower
+    }.run {
+      UnfollowCommand(username, current).runUseCase()
+    }.unsafeRunSync().fold(
+      { ResponseEntity.notFound().build() },
+      { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
+    )
+  }
+
 }

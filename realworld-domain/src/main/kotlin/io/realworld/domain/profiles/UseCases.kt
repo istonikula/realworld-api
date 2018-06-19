@@ -13,6 +13,7 @@ import io.realworld.domain.users.User
 
 data class GetProfileCommand(val username: String, val current: Option<User>)
 data class FollowCommand(val username: String, val current: User)
+data class UnfollowCommand(val username: String, val current: User)
 
 interface GetProfileUseCase {
   val getUser: GetUserByUsername
@@ -57,7 +58,32 @@ interface FollowUseCase {
               username = it.username,
               bio = it.bio.toOption(),
               image = it.image.toOption(),
-              following = true.toOption()
+              following = true.some()
+            ).some()
+          }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface UnfollowUseCase {
+  val getUser: GetUserByUsername
+  val removeFollower: RemoveFollower
+
+  fun UnfollowCommand.runUseCase(): IO<Option<Profile>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getUser(cmd.username).bind().fold(
+          { none<Profile>() },
+          {
+            removeFollower(it.username, current.username).bind()
+            Profile(
+              username = it.username,
+              bio = it.bio.toOption(),
+              image = it.image.toOption(),
+              following = false.some()
             ).some()
           }
         )
