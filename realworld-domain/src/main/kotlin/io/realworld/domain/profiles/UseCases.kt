@@ -11,8 +11,8 @@ import arrow.effects.fix
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 
-
 data class GetProfileCommand(val username: String, val current: Option<User>)
+data class FollowCommand(val username: String, val current: User)
 
 interface GetProfileUseCase {
   val getUser: GetUserByUsername
@@ -31,8 +31,33 @@ interface GetProfileUseCase {
               image = it.image.toOption(),
               following = current.fold(
                 { none<Boolean>() },
-                { hasFollower(it.username, cmd.username).bind().some() }
+                { follower -> hasFollower(cmd.username, follower.username).bind().some() }
               )
+            ).some()
+          }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface FollowUseCase {
+  val getUser: GetUserByUsername
+  val addFollower: AddFollower
+
+  fun FollowCommand.runUseCase(): IO<Option<Profile>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getUser(cmd.username).bind().fold(
+          { none<Profile>() },
+          {
+            addFollower(it.username, current.username).bind()
+            Profile(
+              username = it.username,
+              bio = it.bio.toOption(),
+              image = it.image.toOption(),
+              following = true.toOption()
             ).some()
           }
         )

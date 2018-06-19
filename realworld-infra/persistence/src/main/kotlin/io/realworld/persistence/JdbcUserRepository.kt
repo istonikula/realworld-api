@@ -8,9 +8,7 @@ import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.ValidUserUpdate
-import io.realworld.persistence.UserTbl.email
 import io.realworld.persistence.UserTbl.eq
-import io.realworld.persistence.UserTbl.username
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
@@ -149,15 +147,18 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
   }
 
   override fun addFollower(followeeUsername: String, followerUsername: String): IO<Int> {
+    val u = UserTbl
+    val f = FollowTbl
     val sql =
     """
-      INSERT INTO ${FollowTbl.table} (
-        ${FollowTbl.followee},
-        ${FollowTbl.follower}
+      INSERT INTO ${f.table} (
+        ${f.followee},
+        ${f.follower}
       ) VALUES (
-        (SELECT ${UserTbl.id} FROM ${UserTbl.table} WHERE ${UserTbl.username} = :followeeUsername),
-        (SELECT ${UserTbl.id} FROM ${UserTbl.table} WHERE ${UserTbl.username} = :followerUsername)
+        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followeeUsername),
+        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followerUsername)
       )
+      ON CONFLICT (${f.followee}, ${f.follower}) DO NOTHING
     """
     val params = mapOf(
       "followeeUsername" to followeeUsername,
@@ -168,7 +169,6 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       jdbcTemplate.update(sql, params)
     }
   }
-
 
   private fun queryIfExists(table: String, where: String, params: Map<String, Any>): IO<Boolean> =
     IO {

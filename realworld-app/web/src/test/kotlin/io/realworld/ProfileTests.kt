@@ -7,6 +7,7 @@ import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.persistence.UserTbl
 import io.restassured.RestAssured
+import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
@@ -54,8 +55,8 @@ class ProfileTests {
     userRepo.create(user2).unsafeRunSync()
     userRepo.create(user3).unsafeRunSync()
 
-    userRepo.addFollower(user1.username, user2.username).unsafeRunSync()
-    userRepo.addFollower(user1.username, user3.username).unsafeRunSync()
+    userRepo.addFollower(user2.username, user1.username).unsafeRunSync()
+    userRepo.addFollower(user3.username, user1.username).unsafeRunSync()
 
     get("/api/profiles/bar", user1.token)
       .then()
@@ -92,8 +93,54 @@ class ProfileTests {
       .body("profile.following", equalTo(null))
   }
 
+  @Test
+  fun `follow`() {
+    val user1 = validTestUserRegistration("foo", "foo@realworld.io")
+    val user2 = validTestUserRegistration("bar", "bar@realworld.io")
+    userRepo.create(user1).unsafeRunSync()
+    userRepo.create(user2).unsafeRunSync()
+
+    get("/api/profiles/bar", user1.token)
+      .then()
+      .statusCode(200)
+      .body("profile.username", equalTo("bar"))
+      .body("profile.following", equalTo(false))
+
+    post("/api/profiles/bar", null, user1.token)
+      .then()
+      .statusCode(200)
+      .body("profile.username", equalTo("bar"))
+      .body("profile.following", equalTo(true))
+  }
+
+  @Test
+  fun `follow phantom`() {
+    val user1 = validTestUserRegistration("foo", "foo@realworld.io")
+    userRepo.create(user1).unsafeRunSync()
+
+    post("/api/profiles/bar", null, user1.token)
+      .then()
+      .statusCode(404)
+  }
+
+  @Test
+  fun `follow already followed`() {
+    val user1 = validTestUserRegistration("foo", "foo@realworld.io")
+    val user2 = validTestUserRegistration("bar", "bar@realworld.io")
+    userRepo.create(user1).unsafeRunSync()
+    userRepo.create(user2).unsafeRunSync()
+    userRepo.addFollower(user2.username, user1.username).unsafeRunSync()
+
+    post("/api/profiles/bar", null, user1.token)
+      .then()
+      .statusCode(200)
+  }
+
   private fun get(path: String, token: String? = null) =
     RestAssured.given().baseUri("http://localhost:${port}").token(token).get(path)
+
+  private fun post(path: String, body: Any?, token: String? = null) =
+    RestAssured.given().baseUri("http://localhost:${port}").token(token).contentType(ContentType.JSON).maybeBody(body).post(path)
 
   private fun validTestUserRegistration(username: String, email: String): ValidUserRegistration {
     val id = UUID.randomUUID()
@@ -110,4 +157,10 @@ class ProfileTests {
     if (token != null) {
       this.header("Authorization", "Token ${token}")
     } else this
+
+  fun RequestSpecification.maybeBody(body: Any?) =
+    if (body!= null) {
+      this.body(body)
+    } else this
+
 }

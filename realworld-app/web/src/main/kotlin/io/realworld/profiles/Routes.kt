@@ -2,14 +2,18 @@ package io.realworld.profiles
 
 import io.realworld.JwtTokenResolver
 import io.realworld.domain.common.Auth
+import io.realworld.domain.profiles.FollowCommand
+import io.realworld.domain.profiles.FollowUseCase
 import io.realworld.domain.profiles.GetProfileCommand
 import io.realworld.domain.profiles.GetProfileUseCase
 import io.realworld.domain.profiles.Profile
+import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRepository
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ServerWebExchange
 
@@ -25,7 +29,6 @@ class ProfileController(
   private val repo: UserRepository
 
 ) {
-
   @GetMapping("/api/profiles/{username}")
   fun getProfile(
     @PathVariable("username") username: String,
@@ -37,8 +40,8 @@ class ProfileController(
     }
 
     return object : GetProfileUseCase {
-      override val hasFollower = repo::hasFollower
       override val getUser = repo::findByUsername
+      override val hasFollower = repo::hasFollower
     }.run {
       GetProfileCommand(username, user).runUseCase()
     }.unsafeRunSync().fold(
@@ -47,4 +50,19 @@ class ProfileController(
     )
   }
 
+  @PostMapping("/api/profiles/{username}")
+  fun follow(
+    @PathVariable("username") username: String,
+    current: User
+  ): ResponseEntity<ProfileResponse> {
+    return object : FollowUseCase {
+      override val addFollower = repo::addFollower
+      override val getUser = repo::findByUsername
+    }.run {
+      FollowCommand(username, current).runUseCase()
+    }.unsafeRunSync().fold(
+      { ResponseEntity.notFound().build() },
+      { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
+    )
+  }
 }
