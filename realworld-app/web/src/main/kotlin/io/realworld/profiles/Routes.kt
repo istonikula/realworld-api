@@ -1,6 +1,7 @@
 package io.realworld.profiles
 
 import io.realworld.JwtTokenResolver
+import io.realworld.authHeader
 import io.realworld.domain.common.Auth
 import io.realworld.domain.profiles.FollowCommand
 import io.realworld.domain.profiles.FollowUseCase
@@ -11,7 +12,6 @@ import io.realworld.domain.profiles.UnfollowCommand
 import io.realworld.domain.profiles.UnfollowUseCase
 import io.realworld.domain.users.User
 import io.realworld.persistence.UserRepository
-import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -39,7 +39,7 @@ class ProfileController(
   ): ResponseEntity<ProfileResponse> {
 
     val user = JwtTokenResolver(auth::parse)(
-      exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+      exchange.authHeader()
     ).toOption().flatMap {
       repo.findById(it.id).unsafeRunSync().map { it.user }
     }

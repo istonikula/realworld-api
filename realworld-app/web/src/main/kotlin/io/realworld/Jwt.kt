@@ -5,6 +5,8 @@ import arrow.core.left
 import arrow.core.right
 import io.realworld.JwtError.NoToken
 import io.realworld.JwtError.ParseFail
+import org.springframework.http.HttpHeaders
+import org.springframework.web.server.ServerWebExchange
 
 typealias ResolveToken<T> = (authHeader: String?) -> Either<JwtError, T>
 typealias ParseToken<T> = (token: String) -> T
@@ -33,3 +35,5 @@ class JwtTokenResolver<T>(val parseToken: ParseToken<T>) : ResolveToken<T> {
     val TOKEN_PREFIX = "Token "
   }
 }
+
+fun ServerWebExchange.authHeader() = request.headers.getFirst(HttpHeaders.AUTHORIZATION)

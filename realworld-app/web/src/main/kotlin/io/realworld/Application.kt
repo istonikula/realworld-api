@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.core.MethodParameter
-import org.springframework.http.HttpHeaders
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.web.reactive.BindingContext
 import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver
@@ -53,7 +52,7 @@ inline fun <reified User, reified Token> userArgumentResolver(
     parameter: MethodParameter,
     bindingContext: BindingContext,
     exchange: ServerWebExchange
-  ) = with(exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)) {
+  ) = with(exchange.authHeader()) {
     resolveToken(this).fold(
       { throw UnauthorizedException() },
       { Mono.just(createUser(it) as Any) }
