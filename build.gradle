@@ -36,7 +36,8 @@ buildscript {
             actuator: 'org.springframework.boot:spring-boot-starter-actuator',
             jdbc    : 'org.springframework.boot:spring-boot-starter-jdbc',
             test    : 'org.springframework.boot:spring-boot-starter-test',
-            webflux : 'org.springframework.boot:spring-boot-starter-webflux'
+            undertow: 'org.springframework.boot:spring-boot-starter-undertow',
+            web     : 'org.springframework.boot:spring-boot-starter-web',
     ]
   }
 
@@ -154,7 +155,10 @@ project('realworld-app:web') {
     compile project(':realworld-infra:persistence')
 
     compile starters.actuator
-    compile starters.webflux
+    compile(starters.web) {
+      exclude group: "org.springframework.boot", module: "spring-boot-starter-tomcat"
+    }
+    compile starters.undertow
 
     compile libs.jackson_kotlin
 

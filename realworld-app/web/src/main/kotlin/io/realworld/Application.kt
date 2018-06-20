@@ -3,43 +3,59 @@ package io.realworld
 import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
+import io.realworld.domain.common.Token
+import io.realworld.domain.users.User
 import io.realworld.persistence.UserRepository
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.core.MethodParameter
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.web.reactive.BindingContext
-import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver
-import org.springframework.web.server.ServerWebExchange
-import reactor.core.publisher.Mono
+import org.springframework.web.bind.support.WebDataBinderFactory
+import org.springframework.web.context.request.NativeWebRequest
+import org.springframework.web.method.support.HandlerMethodArgumentResolver
+import org.springframework.web.method.support.ModelAndViewContainer
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @SpringBootApplication
-class Spring5Application {
+class Spring5Application : WebMvcConfigurer {
   @Bean
   @ConfigurationProperties(prefix = "realworld")
   fun settings() = Settings()
 
   @Bean
-  fun userArgumentResolverBean(repo: UserRepository) = userArgumentResolver(
+  fun userArgumentResolverBean() = userArgumentResolver(
     JwtTokenResolver(auth()::parse),
-    { token ->
-      repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
-    }
+    userCreator()
   )
+
+  @Bean
+  fun userCreator() = object : (Token) -> User {
+    @Autowired
+    lateinit var repo: UserRepository
+
+    override fun invoke(token: Token): User {
+      return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
+    }
+  }
 
   @Bean
   fun auth() = Auth(settings().security)
 
   @Bean
   fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = UserRepository(jdbcTemplate)
+
+  override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {
+    resolvers.add(userArgumentResolverBean())
+  }
+
 }
 
 fun main(args: Array<String>) {
   SpringApplication.run(Spring5Application::class.java, *args)
 }
-
 
 inline fun <reified User, reified Token> userArgumentResolver(
   crossinline resolveToken: ResolveToken<Token>,
@@ -50,12 +66,14 @@ inline fun <reified User, reified Token> userArgumentResolver(
 
   override fun resolveArgument(
     parameter: MethodParameter,
-    bindingContext: BindingContext,
-    exchange: ServerWebExchange
-  ) = with(exchange.authHeader()) {
+    mavContainer: ModelAndViewContainer?,
+    webRequest: NativeWebRequest,
+    binderFactory:
+    WebDataBinderFactory?
+  ) = with(webRequest.authHeader()) {
     resolveToken(this).fold(
       { throw UnauthorizedException() },
-      { Mono.just(createUser(it) as Any) }
+      { createUser(it) }
     )
   }
 }

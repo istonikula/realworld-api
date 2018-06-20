@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.context.request.NativeWebRequest
 
 data class ProfileResponse(val profile: ProfileResponseDto) {
   companion object {
@@ -35,11 +35,11 @@ class ProfileController(
   @GetMapping("/api/profiles/{username}")
   fun getProfile(
     @PathVariable("username") username: String,
-    exchange: ServerWebExchange
+    webRequest: NativeWebRequest
   ): ResponseEntity<ProfileResponse> {
 
     val user = JwtTokenResolver(auth::parse)(
-      exchange.authHeader()
+      webRequest.authHeader()
     ).toOption().flatMap {
       repo.findById(it.id).unsafeRunSync().map { it.user }
     }

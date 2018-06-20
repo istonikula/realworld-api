@@ -6,7 +6,7 @@ import arrow.core.right
 import io.realworld.JwtError.NoToken
 import io.realworld.JwtError.ParseFail
 import org.springframework.http.HttpHeaders
-import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.context.request.NativeWebRequest
 
 typealias ResolveToken<T> = (authHeader: String?) -> Either<JwtError, T>
 typealias ParseToken<T> = (token: String) -> T
@@ -36,4 +36,4 @@ class JwtTokenResolver<T>(val parseToken: ParseToken<T>) : ResolveToken<T> {
   }
 }
 
-fun ServerWebExchange.authHeader() = request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+fun NativeWebRequest.authHeader() = this.getHeader(HttpHeaders.AUTHORIZATION)
