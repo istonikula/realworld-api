@@ -57,7 +57,7 @@ data class ValidationError(
 fun JsonMappingException.toValidationErrorPath(): String =
   path.joinToString(separator = ".", transform = { it ->
     val i = if (it.index >= 0) "${it.index}" else ""
-    "${it.fieldName ?: ""}${i}"
+    "${it.fieldName ?: ""}$i"
   })
 
 fun JsonMappingException.toValidationError() = ValidationError(

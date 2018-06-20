@@ -6,9 +6,11 @@ import arrow.effects.liftIO
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
-import org.assertj.core.api.Assertions.*
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.jupiter.api.Test
-import java.util.*
+import java.util.UUID
 
 class RegisterUserWorkflowTests {
   val auth0 = Auth(Settings().apply {
@@ -66,7 +68,7 @@ class RegisterUserWorkflowTests {
             User(email = x.email, token = x.token, username = x.username)
           }
         }
-        override val validateUser = { x: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
+        override val validateUser = { _: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
       }.test(userRegistration).unsafeRunSync()
     }
     assertThat(userSaved).isFalse()
@@ -86,3 +88,5 @@ class RegisterUserWorkflowTests {
     )
   }
 }
+
+private interface KtlintDisableFilenameRule

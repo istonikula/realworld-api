@@ -11,7 +11,7 @@ import io.realworld.persistence.UserTbl.eq
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
-import java.util.*
+import java.util.UUID
 
 open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
 

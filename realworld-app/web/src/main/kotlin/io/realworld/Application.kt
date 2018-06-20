@@ -50,7 +50,6 @@ class Spring5Application : WebMvcConfigurer {
   override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {
     resolvers.add(userArgumentResolverBean())
   }
-
 }
 
 fun main(args: Array<String>) {

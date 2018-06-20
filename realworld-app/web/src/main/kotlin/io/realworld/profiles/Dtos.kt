@@ -19,3 +19,5 @@ data class ProfileResponseDto(
     }
   }
 }
+
+private interface KtlintDisableFilenameRule

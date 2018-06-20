@@ -1,7 +1,7 @@
 package io.realworld.domain.users
 
 import arrow.core.Option
-import java.util.*
+import java.util.UUID
 
 data class User(
   val email: String,

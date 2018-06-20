@@ -11,7 +11,6 @@ import org.springframework.web.context.request.NativeWebRequest
 typealias ResolveToken<T> = (authHeader: String?) -> Either<JwtError, T>
 typealias ParseToken<T> = (token: String) -> T
 
-
 sealed class JwtError {
   object ParseFail : JwtError()
   object NoToken : JwtError()

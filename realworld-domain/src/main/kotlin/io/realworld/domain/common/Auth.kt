@@ -4,11 +4,11 @@ import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import org.jasypt.util.password.PasswordEncryptor
 import org.jasypt.util.password.StrongPasswordEncryptor
-import java.util.*
+import java.util.UUID
 
 data class Token(val id: UUID)
 
-class Auth(val settings: Settings.Security){
+class Auth(val settings: Settings.Security) {
   private val encryptor: PasswordEncryptor = StrongPasswordEncryptor()
 
   // TODO set expiration

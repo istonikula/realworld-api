@@ -20,7 +20,7 @@ import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.jdbc.JdbcTestUtils
-import java.util.*
+import java.util.UUID
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(SpringExtension::class)
@@ -179,13 +179,18 @@ class ProfileTests {
   }
 
   private fun get(path: String, token: String? = null) =
-    RestAssured.given().baseUri("http://localhost:${port}").token(token).get(path)
+    RestAssured.given().baseUri("http://localhost:$port").token(token).get(path)
 
   private fun delete(path: String, token: String? = null) =
-    RestAssured.given().baseUri("http://localhost:${port}").token(token).delete(path)
+    RestAssured.given().baseUri("http://localhost:$port").token(token).delete(path)
 
   private fun post(path: String, body: Any?, token: String? = null) =
-    RestAssured.given().baseUri("http://localhost:${port}").token(token).contentType(ContentType.JSON).maybeBody(body).post(path)
+    RestAssured.given()
+      .baseUri("http://localhost:$port")
+      .token(token)
+      .contentType(ContentType.JSON)
+      .maybeBody(body)
+      .post(path)
 
   private fun validTestUserRegistration(username: String, email: String): ValidUserRegistration {
     val id = UUID.randomUUID()
@@ -200,12 +205,11 @@ class ProfileTests {
 
   fun RequestSpecification.token(token: String?) =
     if (token != null) {
-      this.header("Authorization", "Token ${token}")
+      this.header("Authorization", "Token $token")
     } else this
 
   fun RequestSpecification.maybeBody(body: Any?) =
-    if (body!= null) {
+    if (body != null) {
       this.body(body)
     } else this
-
 }

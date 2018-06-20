@@ -55,7 +55,7 @@ class UserController(
       override val existsByUsername = repo::existsByUsername
     }
 
-    return object: RegisterUserUseCase {
+    return object : RegisterUserUseCase {
       override val auth = auth0
       override val createUser: CreateUser = repo::create
       override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }

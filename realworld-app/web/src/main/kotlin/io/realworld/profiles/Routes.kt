@@ -86,5 +86,4 @@ class ProfileController(
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
   }
-
 }

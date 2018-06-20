@@ -11,7 +11,7 @@ import arrow.effects.fix
 import arrow.typeclasses.binding
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
-import java.util.*
+import java.util.UUID
 
 interface ValidateUserService {
   val auth: Auth
