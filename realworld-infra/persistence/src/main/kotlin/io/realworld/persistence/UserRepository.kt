@@ -5,16 +5,15 @@ import arrow.core.toOption
 import arrow.effects.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
-import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.ValidUserUpdate
 import io.realworld.persistence.UserTbl.eq
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
-import java.util.*
+import java.util.UUID
 
-open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : UserRepository {
+open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
 
   fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     User(
@@ -30,7 +29,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     UserAndPassword(User.fromRs(rs), rs.getString(password))
   }
 
-  override fun create(user: ValidUserRegistration): IO<User> {
+  fun create(user: ValidUserRegistration): IO<User> {
     val sql = with(UserTbl) {
       """
       INSERT INTO $table (
@@ -55,7 +54,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     }
   }
 
-  override fun update(update: ValidUserUpdate, current: User): IO<User> {
+  fun update(update: ValidUserUpdate, current: User): IO<User> {
     val sql = with(UserTbl) {
       StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")
         .also { if (update.encryptedPassword.isDefined()) it.append(", ${password.set()}") }
@@ -78,7 +77,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     }
   }
 
-  override fun findById(id: UUID): IO<Option<UserAndPassword>> =
+  fun findById(id: UUID): IO<Option<UserAndPassword>> =
     IO {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
@@ -89,7 +88,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       ).toOption()
     }
 
-  override fun findByEmail(email: String): IO<Option<UserAndPassword>> =
+  fun findByEmail(email: String): IO<Option<UserAndPassword>> =
     IO {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
@@ -100,7 +99,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       ).toOption()
     }
 
-  override fun findByUsername(username: String): IO<Option<User>> =
+  fun findByUsername(username: String): IO<Option<User>> =
     IO {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
@@ -111,15 +110,15 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
       ).toOption()
     }
 
-  override fun existsByEmail(email: String): IO<Boolean> = UserTbl.let {
+  open fun existsByEmail(email: String): IO<Boolean> = UserTbl.let {
     queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
   }
 
-  override fun existsByUsername(username: String): IO<Boolean> = UserTbl.let {
+  fun existsByUsername(username: String): IO<Boolean> = UserTbl.let {
     queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
   }
 
-  override fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean> {
+  fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean> {
     val u = UserTbl
     val f = FollowTbl
     val sql =
@@ -146,7 +145,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     }
   }
 
-  override fun addFollower(followeeUsername: String, followerUsername: String): IO<Int> {
+  fun addFollower(followeeUsername: String, followerUsername: String): IO<Int> {
     val u = UserTbl
     val f = FollowTbl
     val sql =
@@ -170,7 +169,7 @@ open class JdbcUserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) : Us
     }
   }
 
-  override fun removeFollower(followeeUsername: String, followerUsername: String): IO<Int> {
+  fun removeFollower(followeeUsername: String, followerUsername: String): IO<Int> {
     val u = UserTbl
     val f = FollowTbl
     val sql =

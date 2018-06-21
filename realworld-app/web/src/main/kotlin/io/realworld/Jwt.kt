@@ -5,10 +5,11 @@ import arrow.core.left
 import arrow.core.right
 import io.realworld.JwtError.NoToken
 import io.realworld.JwtError.ParseFail
+import org.springframework.http.HttpHeaders
+import org.springframework.web.context.request.NativeWebRequest
 
 typealias ResolveToken<T> = (authHeader: String?) -> Either<JwtError, T>
 typealias ParseToken<T> = (token: String) -> T
-
 
 sealed class JwtError {
   object ParseFail : JwtError()
@@ -33,3 +34,5 @@ class JwtTokenResolver<T>(val parseToken: ParseToken<T>) : ResolveToken<T> {
     val TOKEN_PREFIX = "Token "
   }
 }
+
+fun NativeWebRequest.authHeader() = this.getHeader(HttpHeaders.AUTHORIZATION)

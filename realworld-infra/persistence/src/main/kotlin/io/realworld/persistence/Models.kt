@@ -1,7 +1,7 @@
 package io.realworld.persistence
 
 import io.realworld.domain.users.User
-import java.util.*
+import java.util.UUID
 
 data class UserModel(
   val id: UUID,
@@ -14,3 +14,5 @@ data class UserModel(
 ) {
   fun toDomain() = User(email = email, token = token, username = username, bio = bio, image = image)
 }
+
+private interface KtlintDisableFilenameRule

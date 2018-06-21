@@ -3,8 +3,8 @@ package io.realworld
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
-import io.realworld.domain.users.UserRepository
 import io.realworld.domain.users.ValidUserRegistration
+import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.persistence.UserTbl.token
 import io.realworld.users.LoginDto
@@ -31,7 +31,7 @@ import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.jdbc.JdbcTestUtils
-import java.util.*
+import java.util.UUID
 
 data class RegistrationRequest(var user: RegistrationDto)
 data class LoginRequest(var user: LoginDto)
@@ -238,15 +238,15 @@ class UserTests {
   }
 
   private fun post(path: String, body: Any) =
-    given().baseUri("http://localhost:${port}").contentType(ContentType.JSON).body(body).post(path)
+    given().baseUri("http://localhost:$port").contentType(ContentType.JSON).body(body).post(path)
 
   private fun put(path: String, body: Any, token: String? = null) =
-    given().baseUri("http://localhost:${port}").token(token).contentType(ContentType.JSON).body(body).put(path)
+    given().baseUri("http://localhost:$port").token(token).contentType(ContentType.JSON).body(body).put(path)
 
   private fun get(path: String, token: String? = null) =
-    given().baseUri("http://localhost:${port}").token(token).get(path)
+    given().baseUri("http://localhost:$port").token(token).get(path)
 
-  private fun asJson(payload: Any) : String = objectMapper.writeValueAsString(payload)
+  private fun asJson(payload: Any): String = objectMapper.writeValueAsString(payload)
 
   private fun validTestUserRegistration(): ValidUserRegistration {
     val id = UUID.randomUUID()
@@ -261,7 +261,6 @@ class UserTests {
 
   fun RequestSpecification.token(token: String?) =
     if (token != null) {
-      this.header("Authorization", "Token ${token}")
+      this.header("Authorization", "Token $token")
     } else this
-
 }

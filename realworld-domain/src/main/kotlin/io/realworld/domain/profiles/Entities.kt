@@ -8,3 +8,5 @@ data class Profile(
   val image: Option<String>,
   val following: Option<Boolean>
 ) { companion object }
+
+private interface ktlintDisableFilenameRule

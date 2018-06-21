@@ -7,19 +7,19 @@ import org.slf4j.LoggerFactory
 import org.springframework.core.NestedExceptionUtils
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.server.ServerWebInputException
 
 @ControllerAdvice
 class ErrorHandler {
   val log: Logger = LoggerFactory.getLogger(ErrorHandler::class.java)
 
-  @ExceptionHandler(ServerWebInputException::class)
-  fun serverWebInputException(ex: ServerWebInputException): ResponseEntity<ValidationErrorResponse> {
+  @ExceptionHandler(HttpMessageNotReadableException::class)
+  fun httpMessageNotReadable(ex: HttpMessageNotReadableException): ResponseEntity<ValidationErrorResponse> {
     val t = NestedExceptionUtils.getMostSpecificCause(ex)
     return when (t) {
-      is MissingKotlinParameterException -> {
+      is JsonMappingException -> {
         handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(t.toValidationError()))
       }
       else -> handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(ValidationError(
@@ -57,8 +57,14 @@ data class ValidationError(
 fun JsonMappingException.toValidationErrorPath(): String =
   path.joinToString(separator = ".", transform = { it ->
     val i = if (it.index >= 0) "${it.index}" else ""
-    "${it.fieldName ?: ""}${i}"
+    "${it.fieldName ?: ""}$i"
   })
+
+fun JsonMappingException.toValidationError() = ValidationError(
+  type = "TypeMismatch",
+  path = toValidationErrorPath(),
+  message = message ?: ""
+)
 
 fun MissingKotlinParameterException.toValidationError() = ValidationError(
   type = "TypeMismatch",

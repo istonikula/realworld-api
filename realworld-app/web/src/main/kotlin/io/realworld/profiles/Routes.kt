@@ -1,6 +1,7 @@
 package io.realworld.profiles
 
 import io.realworld.JwtTokenResolver
+import io.realworld.authHeader
 import io.realworld.domain.common.Auth
 import io.realworld.domain.profiles.FollowCommand
 import io.realworld.domain.profiles.FollowUseCase
@@ -10,15 +11,14 @@ import io.realworld.domain.profiles.Profile
 import io.realworld.domain.profiles.UnfollowCommand
 import io.realworld.domain.profiles.UnfollowUseCase
 import io.realworld.domain.users.User
-import io.realworld.domain.users.UserRepository
-import org.springframework.http.HttpHeaders
+import io.realworld.persistence.UserRepository
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.context.request.NativeWebRequest
 
 data class ProfileResponse(val profile: ProfileResponseDto) {
   companion object {
@@ -35,11 +35,11 @@ class ProfileController(
   @GetMapping("/api/profiles/{username}")
   fun getProfile(
     @PathVariable("username") username: String,
-    exchange: ServerWebExchange
+    webRequest: NativeWebRequest
   ): ResponseEntity<ProfileResponse> {
 
     val user = JwtTokenResolver(auth::parse)(
-      exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+      webRequest.authHeader()
     ).toOption().flatMap {
       repo.findById(it.id).unsafeRunSync().map { it.user }
     }
@@ -86,5 +86,4 @@ class ProfileController(
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
   }
-
 }

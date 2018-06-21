@@ -11,20 +11,21 @@ import arrow.effects.fix
 import arrow.typeclasses.binding
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
-import java.util.*
+import java.util.UUID
 
 interface ValidateUserService {
   val auth: Auth
-  val userRepository: UserRepository
+  val existsByUsername: ExistsByUsername
+  val existsByEmail: ExistsByEmail
 
   fun UserRegistration.validate(): IO<Either<UserRegistrationError, ValidUserRegistration>> {
     val cmd = this
     return ForIO extensions {
       binding {
         when {
-          userRepository.existsByEmail(cmd.email).bind() ->
+          existsByEmail(cmd.email).bind() ->
             UserRegistrationError.EmailAlreadyTaken.left()
-          userRepository.existsByUsername(cmd.username).bind() ->
+          existsByUsername(cmd.username).bind() ->
             UserRegistrationError.UsernameAlreadyTaken.left()
           else -> {
             val id = UUID.randomUUID()
@@ -44,16 +45,17 @@ interface ValidateUserService {
 
 interface ValidateUserUpdateService {
   val auth: Auth
-  val userRepository: UserRepository
+  val existsByUsername: ExistsByUsername
+  val existsByEmail: ExistsByEmail
 
   fun UserUpdate.validate(current: User): IO<Either<UserUpdateError, ValidUserUpdate>> {
     val cmd = this
     return ForIO extensions {
       binding {
         when {
-          cmd.email.fold({ false }, { current.email !== it && userRepository.existsByEmail(it).bind() }) ->
+          cmd.email.fold({ false }, { current.email !== it && existsByEmail(it).bind() }) ->
             UserUpdateError.EmailAlreadyTaken.left()
-          cmd.username.fold({ false }, { current.username !== it && userRepository.existsByUsername(it).bind() }) ->
+          cmd.username.fold({ false }, { current.username !== it && existsByUsername(it).bind() }) ->
             UserUpdateError.UsernameAlreadyTaken.left()
           else -> ValidUserUpdate(
             email = email.getOrElse { current.email },
