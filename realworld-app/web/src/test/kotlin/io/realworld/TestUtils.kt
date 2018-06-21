@@ -33,7 +33,6 @@ class ApiClient(val spec: RequestSpecification, val defaultToken: String? = null
     if (body != null) {
       this.body(body)
     } else this
-
 }
 
 class FixtureFactory(val auth: Auth) {
