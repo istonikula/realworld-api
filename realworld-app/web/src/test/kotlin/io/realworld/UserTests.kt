@@ -2,8 +2,6 @@ package io.realworld
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.common.Auth
-import io.realworld.domain.common.Token
-import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.persistence.UserTbl.token
@@ -12,12 +10,15 @@ import io.realworld.users.RegistrationDto
 import io.realworld.users.UserResponse
 import io.realworld.users.UserResponseDto
 import io.realworld.users.UserUpdateDto
-import io.restassured.RestAssured.given
+import io.restassured.builder.RequestSpecBuilder
+import io.restassured.filter.log.RequestLoggingFilter
+import io.restassured.filter.log.ResponseLoggingFilter
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
@@ -31,7 +32,6 @@ import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.jdbc.JdbcTestUtils
-import java.util.UUID
 
 data class RegistrationRequest(var user: RegistrationDto)
 data class LoginRequest(var user: LoginDto)
@@ -41,6 +41,8 @@ data class UserUpdateRequest(var user: UserUpdateDto)
 @ExtendWith(SpringExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 class UserTests {
+  @LocalServerPort
+  var port: Int = 0
 
   @Autowired lateinit var jdbcTemplate: JdbcTemplate
 
@@ -50,8 +52,21 @@ class UserTests {
 
   @SpyBean lateinit var userRepo: UserRepository
 
-  @LocalServerPort
-  var port: Int = 0
+  lateinit var spec: RequestSpecification
+  lateinit var fixtures: FixtureFactory
+
+  @BeforeEach
+  fun init() {
+    spec = initSpec()
+    fixtures = FixtureFactory(auth)
+  }
+
+  fun initSpec() = RequestSpecBuilder()
+    .setContentType(ContentType.JSON)
+    .setBaseUri("http://localhost:$port")
+    .addFilter(RequestLoggingFilter())
+    .addFilter(ResponseLoggingFilter())
+    .build()
 
   object TestUser {
     val email = "foo@bar.com"
@@ -66,37 +81,37 @@ class UserTests {
 
   @Test
   fun `register and login`() {
+    val client = ApiClient(spec)
+
     val regReq = RegistrationRequest(RegistrationDto(
       username = TestUser.username,
       email = TestUser.email,
       password = TestUser.password
     ))
     val expected = UserResponseDto(username = TestUser.username, email = TestUser.email, token = "ignore")
-    var actual = post("/api/users", regReq)
-      .prettyPeek()
+    var actual: UserResponse = client.post("/api/users", regReq)
       .then()
       .statusCode(201)
-      .extract().`as`(UserResponse::class.java)
+      .toDto()
     assertThat(actual.user).isEqualToIgnoringGivenFields(expected, "token")
 
     val loginReq = LoginRequest(LoginDto(email = regReq.user.email, password = regReq.user.password))
-    actual = post("/api/users/login", loginReq)
+    actual = client.post("/api/users/login", loginReq)
       .then()
       .statusCode(200)
-      .extract().`as`(UserResponse::class.java)
+      .toDto()
     assertThat(actual.user).isEqualToIgnoringGivenFields(expected, token)
   }
 
   @Test
   fun `cannot register already existing username`() {
-    userRepo.create(validTestUserRegistration()).unsafeRunSync()
+    userRepo.create(fixtures.validTestUserRegistration(TestUser.username, TestUser.email)).unsafeRunSync()
     val regReq = RegistrationRequest(RegistrationDto(
       username = TestUser.username,
       email = "unique.${TestUser.email}",
       password = TestUser.password
     ))
-    post("/api/users", regReq)
-      .prettyPeek()
+    ApiClient(spec).post("/api/users", regReq)
       .then()
       .statusCode(422)
       .body("errors.username.message", equalTo("already taken"))
@@ -104,14 +119,13 @@ class UserTests {
 
   @Test
   fun `cannot register already existing email`() {
-    userRepo.create(validTestUserRegistration()).unsafeRunSync()
+    userRepo.create(fixtures.validTestUserRegistration(TestUser.username, TestUser.email)).unsafeRunSync()
     val regReq = RegistrationRequest(RegistrationDto(
       username = "unique",
       email = TestUser.email,
       password = TestUser.password
     ))
-    post("/api/users", regReq)
-      .prettyPeek()
+    ApiClient(spec).post("/api/users", regReq)
       .then()
       .statusCode(422)
       .body("errors.email.message", equalTo("already taken"))
@@ -127,8 +141,7 @@ class UserTests {
 
     doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(TestUser.email)
 
-    post("/api/users", regReq)
-      .prettyPeek()
+    ApiClient(spec).post("/api/users", regReq)
       .then()
       .statusCode(500)
   }
@@ -137,89 +150,89 @@ class UserTests {
   fun `invalid request payload is detected`() {
     val req = LoginRequest(LoginDto(email = "foo@bar.com", password = "baz"))
 
-    post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
-        .prettyPeek()
-        .then()
-        .statusCode(422)
+    ApiClient(spec).post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
+      .then()
+      .statusCode(422)
   }
 
   @Test
   fun `current user is resolved from token`() {
-    val registered = validTestUserRegistration()
+    val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
-    val actual = get("/api/user", registered.token)
-      .prettyPeek()
+    val actual: UserResponse = ApiClient(spec).get("/api/user", registered.token)
       .then()
       .statusCode(200)
-      .extract().`as`(UserResponse::class.java)
+      .toDto()
     assertThat(actual.user.email).isEqualTo("foo@bar.com")
   }
 
   @Test
   fun `invalid token is reported as 401`() {
-    get("/api/user", "invalidToken").then().statusCode(401)
+    ApiClient(spec).get("/api/user", "invalidToken").then().statusCode(401)
   }
 
   @Test
   fun `missing auth header is reported as 401`() {
-    get("/api/user").then().statusCode(401)
+    ApiClient(spec).get("/api/user").then().statusCode(401)
   }
 
   @Test
   fun `invalid password is reported as 401`() {
-    val registered = validTestUserRegistration()
+    val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
     with( LoginRequest(LoginDto(email = registered.email, password = "invalid"))) {
-      post("/api/users/login", this).then().statusCode(401)
+      ApiClient(spec).post("/api/users/login", this).then().statusCode(401)
     }
   }
 
   @Test
   fun `update user email`() {
-    val registered = validTestUserRegistration()
+    val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
     UserUpdateRequest(UserUpdateDto(email = "updated.${registered.email}")).apply {
-      val actual = put("/api/user", this, registered.token)
+      val actual: UserResponse = ApiClient(spec).put("/api/user", this, registered.token)
         .then()
         .statusCode(200)
-        .extract().`as`(UserResponse::class.java)
+        .toDto()
       assertThat(actual.user.email).isEqualTo("updated.${registered.email}")
     }
   }
 
   @Test
   fun `update user password`() {
-    val registered = validTestUserRegistration()
+    val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
+    val client = ApiClient(spec)
+
     UserUpdateRequest(UserUpdateDto(password = "updated.plain")).apply {
-      put("/api/user", this, registered.token).then().statusCode(200)
+      client.put("/api/user", this, registered.token).then().statusCode(200)
     }
     LoginRequest(LoginDto(email = registered.email, password = "updated.plain")).apply {
-      post("/api/users/login", this).then().statusCode(200)
+      client.post("/api/users/login", this).then().statusCode(200)
     }
   }
 
   @Test
   fun `update user username`() {
-    val registered = validTestUserRegistration()
+    val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
     UserUpdateRequest(UserUpdateDto(username = "updated.${registered.username}")).apply {
-      val actual = put("/api/user", this, registered.token)
+      val actual: UserResponse = ApiClient(spec).put("/api/user", this, registered.token)
         .then()
         .statusCode(200)
-        .extract().`as`(UserResponse::class.java)
+        .toDto()
       assertThat(actual.user.username).isEqualTo("updated.${registered.username}")
     }
   }
 
   @Test
   fun `update user username, image, bio`() {
-    val registered = validTestUserRegistration()
+    val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
     UserUpdateRequest(UserUpdateDto(
@@ -227,40 +240,15 @@ class UserTests {
       image = "updated.image",
       bio = "updated.bio"
     )).apply {
-      val actual = put("/api/user", this, registered.token)
+      val actual: UserResponse = ApiClient(spec).put("/api/user", this, registered.token)
         .then()
         .statusCode(200)
-        .extract().`as`(UserResponse::class.java)
+        .toDto()
       assertThat(actual.user.username).isEqualTo("updated.${registered.username}")
       assertThat(actual.user.image).isEqualTo("updated.image")
       assertThat(actual.user.bio).isEqualTo("updated.bio")
     }
   }
 
-  private fun post(path: String, body: Any) =
-    given().baseUri("http://localhost:$port").contentType(ContentType.JSON).body(body).post(path)
-
-  private fun put(path: String, body: Any, token: String? = null) =
-    given().baseUri("http://localhost:$port").token(token).contentType(ContentType.JSON).body(body).put(path)
-
-  private fun get(path: String, token: String? = null) =
-    given().baseUri("http://localhost:$port").token(token).get(path)
-
   private fun asJson(payload: Any): String = objectMapper.writeValueAsString(payload)
-
-  private fun validTestUserRegistration(): ValidUserRegistration {
-    val id = UUID.randomUUID()
-    return ValidUserRegistration(
-      id = id,
-      username = TestUser.username,
-      email = TestUser.email,
-      encryptedPassword = auth.encryptPassword(TestUser.password),
-      token = auth.createToken(Token(id))
-    )
-  }
-
-  fun RequestSpecification.token(token: String?) =
-    if (token != null) {
-      this.header("Authorization", "Token $token")
-    } else this
 }

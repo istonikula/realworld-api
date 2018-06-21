@@ -29,7 +29,6 @@ buildscript {
             kotlin_std          : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}",
             ktlint              : "com.github.shyiko:ktlint:${ktlintVersion}",
             postgresql          : "org.postgresql:postgresql",
-            reactor_test        : "io.projectreactor:reactor-test",
             restassured         : "io.rest-assured:rest-assured:${restAssuredVersion}",
             spring_boot_devtools: "org.springframework.boot:spring-boot-devtools"
     ]
@@ -135,7 +134,6 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
     testCompile(starters.test) {
       exclude group: 'junit', module: 'junit'
     }
-    testCompile libs.reactor_test
 
     testImplementation libs.junit_jupiter_api
     testImplementation libs.junit_jupiter_engine
