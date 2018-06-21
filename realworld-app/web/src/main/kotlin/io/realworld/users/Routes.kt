@@ -23,8 +23,10 @@ import io.realworld.domain.users.ValidateUserService
 import io.realworld.domain.users.ValidateUserUpdate
 import io.realworld.domain.users.ValidateUserUpdateService
 import io.realworld.persistence.UserRepository
+import io.realworld.runWriteTx
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -41,7 +43,8 @@ data class UserResponse(val user: UserResponseDto) {
 @RestController
 class UserController(
   private val auth0: Auth,
-  private val repo: UserRepository
+  private val repo: UserRepository,
+  private val txManager: PlatformTransactionManager
 ) {
 
   @GetMapping("/api/user")
@@ -65,7 +68,7 @@ class UserController(
         email = registration.email,
         password = registration.password
       )).runUseCase()
-    }.unsafeRunSync().fold(
+    }.runWriteTx(txManager).fold(
       {
         when (it) {
           is UserRegistrationError.EmailAlreadyTaken ->
@@ -88,7 +91,7 @@ class UserController(
         email = login.email,
         password = login.password
       ).runUseCase()
-    }.unsafeRunSync().fold(
+    }.runWriteTx(txManager).fold(
       { throw UnauthorizedException() },
       { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
     )
@@ -117,7 +120,7 @@ class UserController(
         ),
         current = user
       ).runUseCase()
-    }.unsafeRunSync().fold(
+    }.runWriteTx(txManager).fold(
       {
         when (it) {
           is UserUpdateError.EmailAlreadyTaken ->

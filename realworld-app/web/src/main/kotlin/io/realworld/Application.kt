@@ -20,7 +20,7 @@ import org.springframework.web.method.support.ModelAndViewContainer
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @SpringBootApplication
-class Spring5Application : WebMvcConfigurer {
+class Application : WebMvcConfigurer {
   @Bean
   @ConfigurationProperties(prefix = "realworld")
   fun settings() = Settings()
@@ -53,7 +53,7 @@ class Spring5Application : WebMvcConfigurer {
 }
 
 fun main(args: Array<String>) {
-  SpringApplication.run(Spring5Application::class.java, *args)
+  SpringApplication.run(Application::class.java, *args)
 }
 
 inline fun <reified User, reified Token> userArgumentResolver(
