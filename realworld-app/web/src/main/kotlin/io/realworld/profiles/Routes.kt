@@ -12,7 +12,10 @@ import io.realworld.domain.profiles.UnfollowCommand
 import io.realworld.domain.profiles.UnfollowUseCase
 import io.realworld.domain.users.User
 import io.realworld.persistence.UserRepository
+import io.realworld.runReadTx
+import io.realworld.runWriteTx
 import org.springframework.http.ResponseEntity
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -29,7 +32,8 @@ data class ProfileResponse(val profile: ProfileResponseDto) {
 @RestController
 class ProfileController(
   private val auth: Auth,
-  private val repo: UserRepository
+  private val repo: UserRepository,
+  private val txManager: PlatformTransactionManager
 
 ) {
   @GetMapping("/api/profiles/{username}")
@@ -49,7 +53,7 @@ class ProfileController(
       override val hasFollower = repo::hasFollower
     }.run {
       GetProfileCommand(username, user).runUseCase()
-    }.unsafeRunSync().fold(
+    }.runReadTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
@@ -65,7 +69,7 @@ class ProfileController(
       override val getUser = repo::findByUsername
     }.run {
       FollowCommand(username, current).runUseCase()
-    }.unsafeRunSync().fold(
+    }.runWriteTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
@@ -81,7 +85,7 @@ class ProfileController(
       override val removeFollower = repo::removeFollower
     }.run {
       UnfollowCommand(username, current).runUseCase()
-    }.unsafeRunSync().fold(
+    }.runWriteTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
