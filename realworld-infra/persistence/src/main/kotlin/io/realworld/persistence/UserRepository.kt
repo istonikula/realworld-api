@@ -189,6 +189,7 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }
   }
 
+  // TODO extract util
   private fun queryIfExists(table: String, where: String, params: Map<String, Any>): IO<Boolean> =
     IO {
       jdbcTemplate.queryForObject(

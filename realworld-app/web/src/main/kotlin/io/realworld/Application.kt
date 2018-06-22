@@ -5,6 +5,7 @@ import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
+import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringApplication
@@ -47,6 +48,9 @@ class Application : WebMvcConfigurer {
   @Bean
   fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = UserRepository(jdbcTemplate)
 
+  @Bean
+  fun articleRepository(jdbcTemplate: NamedParameterJdbcTemplate) = ArticleRepository(jdbcTemplate)
+
   override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {
     resolvers.add(userArgumentResolverBean())
   }
@@ -67,14 +71,11 @@ inline fun <reified User, reified Token> userArgumentResolver(
     parameter: MethodParameter,
     mavContainer: ModelAndViewContainer?,
     webRequest: NativeWebRequest,
-    binderFactory:
-    WebDataBinderFactory?
-  ) = with(webRequest.authHeader()) {
-    resolveToken(this).fold(
-      { throw UnauthorizedException() },
-      { createUser(it) }
-    )
-  }
+    binderFactory: WebDataBinderFactory?
+  ) = resolveToken(webRequest.authHeader()).fold(
+    { throw UnauthorizedException() },
+    { createUser(it) }
+  )
 }
 
 class UnauthorizedException : Throwable()

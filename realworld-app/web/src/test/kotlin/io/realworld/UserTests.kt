@@ -1,6 +1,5 @@
 package io.realworld
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
@@ -33,9 +32,9 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.jdbc.JdbcTestUtils
 
-data class RegistrationRequest(var user: RegistrationDto)
-data class LoginRequest(var user: LoginDto)
-data class UserUpdateRequest(var user: UserUpdateDto)
+data class RegistrationRequest(val user: RegistrationDto)
+data class LoginRequest(val user: LoginDto)
+data class UserUpdateRequest(val user: UserUpdateDto)
 
 @TestInstance(PER_CLASS)
 @ExtendWith(SpringExtension::class)
@@ -45,8 +44,6 @@ class UserTests {
   var port: Int = 0
 
   @Autowired lateinit var jdbcTemplate: JdbcTemplate
-
-  @Autowired lateinit var objectMapper: ObjectMapper
 
   @Autowired lateinit var auth: Auth
 
@@ -150,7 +147,9 @@ class UserTests {
   fun `invalid request payload is detected`() {
     val req = LoginRequest(LoginDto(email = "foo@bar.com", password = "baz"))
 
-    ApiClient(spec).post("/api/users/login", asJson(req).replace("\"password\"", "\"bazword\""))
+    ApiClient(spec).post("/api/users/login", req.toObjectNode().apply {
+      pathToObject("user").remove("password")
+    })
       .then()
       .statusCode(422)
   }
@@ -249,6 +248,4 @@ class UserTests {
       assertThat(actual.user.bio).isEqualTo("updated.bio")
     }
   }
-
-  private fun asJson(payload: Any): String = objectMapper.writeValueAsString(payload)
 }

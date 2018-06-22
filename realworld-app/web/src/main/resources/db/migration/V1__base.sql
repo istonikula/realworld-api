@@ -20,3 +20,33 @@ CREATE TABLE follows (
   CONSTRAINT fk$follower FOREIGN KEY (follower) REFERENCES users ON DELETE CASCADE,
   CONSTRAINT fk$followee FOREIGN KEY (followee) REFERENCES users ON DELETE CASCADE
 );
+
+CREATE TABLE articles (
+  id UUID NOT NULL,
+  slug TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  body TEXT NOT NULL,
+  author UUID NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT pk$articles PRIMARY KEY (id),
+  CONSTRAINT unq$slug UNIQUE (slug),
+  CONSTRAINT fk$author FOREIGN KEY (author) REFERENCES users ON DELETE CASCADE
+);
+
+CREATE TABLE tags (
+  name TEXT NOT NULL,
+
+  CONSTRAINT pk$tags PRIMARY KEY (name)
+);
+
+CREATE TABLE article_tags (
+  article_id UUID NOT NULL,
+  tag TEXT NOT NULL,
+
+  CONSTRAINT pk$acticle_tags PRIMARY KEY (article_id, tag),
+  CONSTRAINT fk$article_id FOREIGN KEY (article_id) REFERENCES articles ON DELETE CASCADE,
+  CONSTRAINT fk$tag FOREIGN KEY (tag) REFERENCES tags ON DELETE CASCADE
+);

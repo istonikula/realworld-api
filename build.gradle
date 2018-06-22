@@ -10,6 +10,7 @@ buildscript {
     kotlinVersion = '1.2.50'
     ktlintVersion = '0.23.1'
     restAssuredVersion = '3.1.0'
+    slugifyVersion = '2.2'
     springBootVersion = '2.0.3.RELEASE'
 
     libs = [
@@ -30,6 +31,7 @@ buildscript {
             ktlint              : "com.github.shyiko:ktlint:${ktlintVersion}",
             postgresql          : "org.postgresql:postgresql",
             restassured         : "io.rest-assured:rest-assured:${restAssuredVersion}",
+            slugify             : "com.github.slugify:slugify:${slugifyVersion}",
             spring_boot_devtools: "org.springframework.boot:spring-boot-devtools"
     ]
 
@@ -191,6 +193,7 @@ project('realworld-domain') {
   dependencies {
     compile libs.jasypt
     compile libs.jjwt
+    compile libs.slugify
   }
 }
 

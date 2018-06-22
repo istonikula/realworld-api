@@ -1,5 +1,8 @@
 package io.realworld
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.ValidUserRegistration
@@ -9,6 +12,10 @@ import io.restassured.specification.RequestSpecification
 import java.util.UUID
 
 inline fun <reified T> ValidatableResponse.toDto(): T = this.extract().`as`(T::class.java)
+
+private val defaultObjectMapper = ObjectMapper()
+fun <T> T.toObjectNode(objectMapper: ObjectMapper = defaultObjectMapper) = objectMapper.valueToTree<ObjectNode>(this)
+fun JsonNode.pathToObject(fieldName: String) = this.path(fieldName) as ObjectNode
 
 class ApiClient(val spec: RequestSpecification, val defaultToken: String? = null) {
 
