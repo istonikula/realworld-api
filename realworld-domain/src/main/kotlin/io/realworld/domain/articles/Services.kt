@@ -14,17 +14,14 @@ fun String.slugify() = slugifier.slugify(this)
 interface CreateUniqueSlugService {
   val existsBySlug: ExistsBySlug
 
-  fun slufigy(s: String): IO<String> {
-    val cmd = this
-    return ForIO extensions {
-      binding {
-        val slugified = s.slugify()
-        var slugCandidate = slugified
-        while (existsBySlug(slugCandidate).bind()) {
-          slugCandidate = "$slugified-${UUID.randomUUID().toString().substring(0, 8)}"
-        }
-        slugCandidate
-      }.fix()
-    }
+  fun slufigy(s: String): IO<String> = ForIO extensions {
+    binding {
+      val slugified = s.slugify()
+      var slugCandidate = slugified
+      while (existsBySlug(slugCandidate).bind()) {
+        slugCandidate = "$slugified-${UUID.randomUUID().toString().substring(0, 8)}"
+      }
+      slugCandidate
+    }.fix()
   }
 }

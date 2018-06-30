@@ -93,8 +93,8 @@ class ProfileTests {
   }
 
   @Test
-  fun `get profile, missing`() {
-    ApiClient(spec).get("/api/profiles/missing").then().statusCode(404)
+  fun `get profile, not found`() {
+    ApiClient(spec).get("/api/profiles/not-found").then().statusCode(404)
   }
 
   @Test

@@ -1,11 +1,15 @@
 package io.realworld.articles
 
 import io.realworld.JwtTokenResolver
+import io.realworld.UnauthorizedException
 import io.realworld.authHeader
 import io.realworld.domain.articles.Article
+import io.realworld.domain.articles.ArticleDeleteError
 import io.realworld.domain.articles.CreateArticleCommand
 import io.realworld.domain.articles.CreateArticleUseCase
 import io.realworld.domain.articles.CreateUniqueSlugService
+import io.realworld.domain.articles.DeleteArticleCommand
+import io.realworld.domain.articles.DeleteArticleUseCase
 import io.realworld.domain.articles.GetArticleCommand
 import io.realworld.domain.articles.GetArticleUseCase
 import io.realworld.domain.common.Auth
@@ -17,6 +21,7 @@ import io.realworld.runWriteTx
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -76,6 +81,27 @@ class ArticleController(
     }.runReadTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+    )
+  }
+
+  @DeleteMapping("/api/articles/{slug}")
+  fun deleteBySlug(
+    @PathVariable("slug") slug: String,
+    user: User
+  ): ResponseEntity<Unit> {
+    return object : DeleteArticleUseCase {
+      override val getArticleBySlug = articleRepo::getBySlug
+      override val deleteArticle = articleRepo::deleteArticle
+    }.run {
+      DeleteArticleCommand(slug, user).runUseCase()
+    }.runWriteTx(txManager).fold(
+      {
+        when (it) {
+          is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
+          is ArticleDeleteError.NotOwner -> throw UnauthorizedException()
+        }
+      },
+      { ResponseEntity.noContent().build() }
     )
   }
 }

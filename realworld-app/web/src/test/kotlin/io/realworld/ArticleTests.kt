@@ -252,11 +252,55 @@ class ArticleTests {
   }
 
   @Test
-  fun `get by slug, missing`() {
+  fun `get by slug, not found`() {
     val client = ApiClient(spec, userAuthor.token)
     val req = CreationRequest(TestArticles.Dragon.creation)
     client.post("/api/articles", req).then().statusCode(201)
 
-    client.get("/api/articles/non-existent-slug").then().statusCode(404)
+    client.get("/api/articles/not-found").then().statusCode(404)
+  }
+
+  @Test
+  fun `delete by slug`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    client.delete("/api/articles/$slug").then().statusCode(204)
+    client.get("/api/articles/$slug").then().statusCode(404)
+  }
+
+  @Test
+  fun `delete by slug, not found`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    client.post("/api/articles", req).then().statusCode(201)
+
+    client.delete("/api/articles/not-found").then().statusCode(404)
+  }
+
+  @Test
+  fun `delete by slug, not owner`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
+    userRepo.create(notAuthor).unsafeRunSync()
+
+    client.delete("/api/articles/$slug", notAuthor.token).then().statusCode(401)
+  }
+
+  @Test
+  fun `delete by slug requires auth`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    client.delete("/api/articles/$slug", token = null).then().statusCode(401)
+    client.get("/api/articles/$slug").then().statusCode(200)
   }
 }

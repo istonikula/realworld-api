@@ -35,6 +35,7 @@ data class ValidArticleUpdate(
 )
 
 data class Article(
+  val id: UUID,
   val slug: String,
   val title: String,
   val description: String,

@@ -53,6 +53,7 @@ data class ArticleDeps(
 )
 
 private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article(
+  id = row.id,
   slug = row.slug,
   title = row.title,
   description = row.description,
@@ -108,6 +109,14 @@ class ArticleRepository(
 
         Article.from(row, deps)
       }.fix()
+    }
+  }
+
+  fun deleteArticle(articleId: UUID): IO<Int> = with(ArticleTbl) {
+    val sql = "DELETE FROM $table WHERE ${id.eq()}"
+    val params = mapOf(id to articleId)
+    IO {
+      jdbcTemplate.update(sql, params)
     }
   }
 
