@@ -3,6 +3,7 @@ package io.realworld
 import io.realworld.articles.ArticleResponse
 import io.realworld.articles.ArticleResponseDto
 import io.realworld.articles.CreationDto
+import io.realworld.domain.articles.slugify
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.persistence.UserRepository
@@ -29,6 +30,45 @@ import org.springframework.test.jdbc.JdbcTestUtils
 import java.time.Instant
 
 data class CreationRequest(val article: CreationDto)
+
+object TestUsers {
+  object Author {
+    val email = "foo@realworld.io"
+    val username = "foo"
+  }
+
+  object NonAuthor {
+    val email = "bar@realworld.io"
+    val username = "bar"
+  }
+}
+
+object TestArticles {
+  object Dragon {
+    val creation = CreationDto(
+      title = "How to train your dragon",
+      description = "Ever wonder how?",
+      body = "You have to believe",
+      tagList = listOf("reactjs", "angularjs", "dragons")
+    )
+
+    val response = ArticleResponseDto(
+      slug = "how-to-train-your-dragon",
+      title = creation.title,
+      description = creation.description,
+      body = creation.body,
+      tagList = creation.tagList,
+      favorited = false,
+      favoritesCount = 0,
+      author = ProfileResponseDto(
+        username = TestUsers.Author.username,
+        following = false
+      ),
+      createdAt = Instant.now(),
+      updatedAt = Instant.now()
+    )
+  }
+}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(SpringExtension::class)
@@ -74,52 +114,38 @@ class ArticleTests {
   fun `create article`() {
     val client = ApiClient(spec, userAuthor.token)
 
-    val req = CreationRequest(CreationDto(
-      title = "How to train your dragon",
-      description = "Ever wonder how?",
-      body = "You have to believe",
-      tagList = listOf("reactjs", "angularjs", "dragons")
-    ))
-    val expected = ArticleResponseDto(
-      slug = "how-to-train-your-dragon",
-      title = req.article.title,
-      description = req.article.description,
-      body = req.article.body,
-      tagList = req.article.tagList,
-      favorited = false,
-      favoritesCount = 0,
-      author = ProfileResponseDto(
-        username = userAuthor.username,
-        following = false
-      ),
-      createdAt = Instant.now(),
-      updatedAt = Instant.now()
-    )
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val expected = TestArticles.Dragon.response
 
-    val actual: ArticleResponse = client.post("/api/articles", req)
+    client.post("/api/articles", req)
       .then()
       .statusCode(201)
-      .toDto()
-    assertThat(actual.article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
-    assertThat(actual.article.createdAt).isNotNull()
-    assertThat(actual.article.createdAt).isEqualTo(actual.article.updatedAt)
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
+        assertThat(article.createdAt).isNotNull()
+        assertThat(article.createdAt).isEqualTo(article.updatedAt)
+      }
+
+    client.get("/api/articles/${expected.title.slugify()}")
+      .then()
+      .statusCode(200)
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
+      }
   }
 
   @Test
   fun `create article without tags`() {
     val client = ApiClient(spec, userAuthor.token)
 
-    val req = CreationRequest(CreationDto(
-      title = "How to train your dragon",
-      description = "Ever wonder how?",
-      body = "You have to believe"
-    ))
+    val req = CreationRequest(TestArticles.Dragon.creation.copy(tagList = listOf()))
 
-    val actual: ArticleResponse = client.post("/api/articles", req)
+    client.post("/api/articles", req)
       .then()
       .statusCode(201)
-      .toDto()
-    assertThat(actual.article.tagList).isEmpty()
+      .toDto<ArticleResponse>().apply {
+        assertThat(article.tagList).isEmpty()
+      }
 
     val bodyJson = req.toObjectNode().apply {
       pathToObject("article").remove("tagList")
@@ -128,19 +154,30 @@ class ArticleTests {
       .then()
       .statusCode(201)
       .toDto<ArticleResponse>().apply {
-        assertThat(actual.article.tagList).isEmpty()
+        assertThat(article.tagList).isEmpty()
       }
+  }
+
+  @Test
+  fun `creation of multiple articles with same title results in unique slugs`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+
+    val slug1 = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+    val slug2 = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+    val slug3 = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+
+    assertThat(slug1).isEqualTo("how-to-train-your-dragon")
+    assertThat(slug2).contains("how-to-train-your-dragon-")
+    assertThat(slug3).contains("how-to-train-your-dragon-")
+    assertThat(slug2).isNotEqualTo(slug3)
   }
 
   @Test
   fun `create requires title, description and body`() {
     val client = ApiClient(spec, userAuthor.token)
 
-    val req = CreationRequest(CreationDto(
-      title = "How to train your dragon",
-      description = "Ever wonder how?",
-      body = "You have to believe"
-    ))
+    val req = CreationRequest(TestArticles.Dragon.creation)
 
     req.toObjectNode().apply {
       pathToObject("article").replace("title", textNode(""))
@@ -170,13 +207,56 @@ class ArticleTests {
   @Test
   fun `create article requires auth`() {
     val client = ApiClient(spec)
-    val req = CreationRequest(CreationDto(
-      title = "How to train your dragon",
-      description = "Ever wonder how?",
-      body = "You have to believe"
-    ))
+    val req = CreationRequest(TestArticles.Dragon.creation)
     client.post("/api/articles", req)
       .then()
       .statusCode(401)
+  }
+
+  @Test
+  fun `get by slug`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val expected = TestArticles.Dragon.response
+    val slug = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+
+    client.get("/api/articles/$slug", token = null)
+      .then()
+      .toDto<ArticleResponse>().apply {
+      assertThat(article).isEqualToIgnoringGivenFields(expected,
+        "author", "createdAt", "updatedAt")
+      assertThat(article.author).isEqualToIgnoringGivenFields(expected.author, "following")
+      assertThat(article.author.following).isNull()
+    }
+
+    val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
+    userRepo.create(notAuthor).unsafeRunSync()
+    client.get("/api/articles/$slug", token = notAuthor.token)
+      .then()
+      .toDto<ArticleResponse>().apply {
+      assertThat(article).isEqualToIgnoringGivenFields(expected,
+        "author", "createdAt", "updatedAt")
+      assertThat(article.author).isEqualToIgnoringGivenFields(expected.author, "following")
+      assertThat(article.author.following).isFalse()
+    }
+
+    userRepo.addFollower(userAuthor.username, notAuthor.username).unsafeRunSync()
+    client.get("/api/articles/$slug", token = notAuthor.token)
+      .then()
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected,
+          "author", "createdAt", "updatedAt")
+        assertThat(article.author).isEqualToIgnoringGivenFields(expected.author, "following")
+        assertThat(article.author.following).isTrue()
+      }
+  }
+
+  @Test
+  fun `get by slug, missing`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    client.post("/api/articles", req).then().statusCode(201)
+
+    client.get("/api/articles/non-existent-slug").then().statusCode(404)
   }
 }

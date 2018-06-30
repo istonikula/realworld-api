@@ -9,7 +9,7 @@ import com.github.slugify.Slugify
 import java.util.UUID
 
 private val slugifier = Slugify()
-private fun String.slugify() = slugifier.slugify(this)
+fun String.slugify() = slugifier.slugify(this)
 
 interface CreateUniqueSlugService {
   val existsBySlug: ExistsBySlug

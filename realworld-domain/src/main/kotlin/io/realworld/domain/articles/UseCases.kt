@@ -1,5 +1,6 @@
 package io.realworld.domain.articles
 
+import arrow.core.Option
 import arrow.effects.ForIO
 import arrow.effects.IO
 import arrow.effects.extensions
@@ -9,6 +10,7 @@ import io.realworld.domain.users.User
 import java.util.UUID
 
 data class CreateArticleCommand(val data: ArticleCreation, val user: User)
+data class GetArticleCommand(val slug: String, val user: Option<User>)
 
 sealed class ArticleUpdateError {
   object NotAllowed : ArticleUpdateError()
@@ -37,5 +39,13 @@ interface CreateArticleUseCase {
         ).bind()
       }.fix()
     }
+  }
+}
+
+interface GetArticleUseCase {
+  val getArticleBySlug: GetArticleBySlug
+
+  fun GetArticleCommand.runUseCase(): IO<Option<Article>> {
+    return getArticleBySlug(slug, user)
   }
 }

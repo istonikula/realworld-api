@@ -1,12 +1,19 @@
 package io.realworld.persistence
 
+import arrow.core.ForOption
+import arrow.core.Option
+import arrow.core.fix
+import arrow.core.getOrElse
 import arrow.core.toOption
 import arrow.effects.IO
+import arrow.instances.extensions
+import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
 import io.realworld.persistence.ArticleTbl.eq
+import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.time.Instant
@@ -45,39 +52,28 @@ data class ArticleDeps(
   var favoritesCount: Long = 0L
 )
 
-class ArticleRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
+private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article(
+  slug = row.slug,
+  title = row.title,
+  description = row.description,
+  body = row.body,
+  createdAt = row.createdAt,
+  updatedAt = row.updatedAt,
+
+  tagList = deps.tagList,
+  favoritesCount = deps.favoritesCount,
+  favorited = deps.favorited,
+  author = deps.author!!
+)
+
+class ArticleRepository(
+  val jdbcTemplate: NamedParameterJdbcTemplate,
+  val userRepo: UserRepository
+) {
 
   fun create(article: ValidArticleCreation, user: User): IO<Article> {
-    val u = UserTbl
-    val sql = with(ArticleTbl) {
-      """
-      INSERT INTO $table (
-        $id, $slug, $title, $description, $body, $author
-      ) VALUES (
-        :$id, :$slug, :$title, :$description, :$body,
-        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :authorUsername)
-      )
-      RETURNING *
-      """
-    }
-
-    val params = with(ArticleTbl) {
-      mapOf(
-        id to article.id,
-        slug to article.slug,
-        title to article.title,
-        description to article.description,
-        body to article.body,
-        "authorUsername" to user.username
-      )
-    }
-
     return IO {
-      val row = jdbcTemplate.queryForObject(
-        sql,
-        params,
-        { rs, _ -> ArticleRow.fromRs(rs) }
-      )!!
+      val row = insertArticleRow(article, user)
 
       val deps = ArticleDeps()
       deps.author = Profile(
@@ -93,24 +89,79 @@ class ArticleRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
         deps.tagList.addAll(article.tagList)
       }
 
-      Article(
-        slug = row.slug,
-        title = row.title,
-        description = row.description,
-        body = row.body,
-        createdAt = row.createdAt,
-        updatedAt = row.updatedAt,
-
-        tagList = deps.tagList,
-        favoritesCount = deps.favoritesCount,
-        favorited = deps.favorited,
-        author = deps.author!!
-      )
+      Article.from(row, deps)
     }
   }
 
   fun existsBySlug(slug: String): IO<Boolean> = ArticleTbl.let {
-    queryIfExists(it.table, "${it.slug.eq()}", mapOf(it.slug to slug))
+    jdbcTemplate.queryIfExists(it.table, "${it.slug.eq()}", mapOf(it.slug to slug))
+  }
+
+  fun getBySlug(slug: String, user: Option<User>): IO<Option<Article>> = IO {
+    ForOption extensions {
+      binding {
+        val row = fetchRowBySlug(slug).bind()
+
+        val deps = ArticleDeps()
+        deps.tagList.addAll(fetchArticleTags(row.id))
+        deps.author = fetchAuthor(row.authorId, user)
+
+        Article.from(row, deps)
+      }.fix()
+    }
+  }
+
+  private fun fetchArticleTags(articleId: UUID): List<String> = with(ArticleTagTbl) {
+    val sql = "SELECT $tag FROM $table WHERE ${article_id.eq()}"
+    val params = mapOf(article_id to articleId)
+    jdbcTemplate.query(sql, params, { rs, _ -> rs.getString(tag) })
+  }
+
+  private fun fetchRowBySlug(slug: String): Option<ArticleRow> = ArticleTbl.let {
+    val sql = "SELECT * FROM ${it.table} WHERE ${it.slug.eq()}"
+    val params = mapOf(it.slug to slug)
+    DataAccessUtils.singleResult(
+      jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+    ).toOption()
+  }
+
+  private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =
+    userRepo.findById(id).unsafeRunSync().map {
+      with(it.user) {
+        Profile(
+          username = username,
+          bio = bio.toOption(),
+          image = image.toOption(),
+          following = querier.map { userRepo.hasFollower(username, it.username).unsafeRunSync() }
+        )
+      }
+    }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
+
+  private fun insertArticleRow(article: ValidArticleCreation, user: User): ArticleRow = with(ArticleTbl) {
+    val u = UserTbl
+    val sql =
+      """
+      INSERT INTO $table (
+        $id, $slug, $title, $description, $body, $author
+      ) VALUES (
+        :$id, :$slug, :$title, :$description, :$body,
+        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :authorUsername)
+      )
+      RETURNING *
+      """
+    val params = mapOf(
+        id to article.id,
+        slug to article.slug,
+        title to article.title,
+        description to article.description,
+        body to article.body,
+        "authorUsername" to user.username
+    )
+    jdbcTemplate.queryForObject(
+      sql,
+      params,
+      { rs, _ -> ArticleRow.fromRs(rs) }
+    )!!
   }
 
   private fun insertTags(tags: List<String>) = with(TagTbl) {
@@ -129,14 +180,4 @@ class ArticleRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }.toTypedArray()
     jdbcTemplate.batchUpdate(sql, params)
   }
-
-  // TODO extract util
-  private fun queryIfExists(table: String, where: String, params: Map<String, Any>): IO<Boolean> =
-    IO {
-      jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM $table WHERE $where",
-        params,
-        { rs, _ -> rs.getInt("count") > 0 }
-      )!!
-    }
 }

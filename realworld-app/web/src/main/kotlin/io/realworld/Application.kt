@@ -49,7 +49,9 @@ class Application : WebMvcConfigurer {
   fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = UserRepository(jdbcTemplate)
 
   @Bean
-  fun articleRepository(jdbcTemplate: NamedParameterJdbcTemplate) = ArticleRepository(jdbcTemplate)
+  fun articleRepository(jdbcTemplate: NamedParameterJdbcTemplate, userRepository: UserRepository) = ArticleRepository(
+    jdbcTemplate, userRepository
+  )
 
   override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {
     resolvers.add(userArgumentResolverBean())
