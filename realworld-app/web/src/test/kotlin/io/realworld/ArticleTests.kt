@@ -3,6 +3,7 @@ package io.realworld
 import io.realworld.articles.ArticleResponse
 import io.realworld.articles.ArticleResponseDto
 import io.realworld.articles.CreationDto
+import io.realworld.articles.UpdateDto
 import io.realworld.domain.articles.slugify
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.ValidUserRegistration
@@ -30,6 +31,7 @@ import org.springframework.test.jdbc.JdbcTestUtils
 import java.time.Instant
 
 data class CreationRequest(val article: CreationDto)
+data class UpdateRequest(val article: UpdateDto)
 
 object TestUsers {
   object Author {
@@ -302,5 +304,145 @@ class ArticleTests {
 
     client.delete("/api/articles/$slug", token = null).then().statusCode(401)
     client.get("/api/articles/$slug").then().statusCode(200)
+  }
+
+  @Test
+  fun `update article title`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val expected = TestArticles.Dragon.response
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val updateReq = UpdateRequest(UpdateDto(title = "updated.${req.article.title}"))
+    client.put("/api/articles/$slug", updateReq)
+      .then()
+      .statusCode(200)
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected,
+          "slug",
+          "title",
+          "createdAt",
+          "updatedAt"
+        )
+        assertThat(article.slug).isEqualTo("updated-${expected.slug}")
+        assertThat(article.title).isEqualTo("updated.${expected.title}")
+        assertThat(article.updatedAt).isAfter(article.createdAt)
+      }
+  }
+
+  @Test
+  fun `update article description`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val expected = TestArticles.Dragon.response
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val updateReq = UpdateRequest(UpdateDto(description = "updated.${req.article.description}"))
+    client.put("/api/articles/$slug", updateReq)
+      .then()
+      .statusCode(200)
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected,
+          "description",
+          "createdAt",
+          "updatedAt"
+        )
+        assertThat(article.description).isEqualTo("updated.${expected.description}")
+        assertThat(article.updatedAt).isAfter(article.createdAt)
+      }
+  }
+
+  @Test
+  fun `update article body`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val expected = TestArticles.Dragon.response
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val updateReq = UpdateRequest(UpdateDto(body = "updated.${req.article.body}"))
+    client.put("/api/articles/$slug", updateReq)
+      .then()
+      .statusCode(200)
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected,
+          "body",
+          "createdAt",
+          "updatedAt"
+        )
+        assertThat(article.body).isEqualTo("updated.${expected.body}")
+        assertThat(article.updatedAt).isAfter(article.createdAt)
+      }
+  }
+
+  @Test
+  fun `update article title, description and body`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val expected = TestArticles.Dragon.response
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val updateReq = UpdateRequest(UpdateDto(
+      title = "updated.${req.article.title}",
+      description = "updated.${req.article.description}",
+      body = "updated.${req.article.body}"
+    ))
+    client.put("/api/articles/$slug", updateReq)
+      .then()
+      .statusCode(200)
+      .toDto<ArticleResponse>().apply {
+        assertThat(article).isEqualToIgnoringGivenFields(expected,
+          "slug",
+          "title",
+          "description",
+          "body",
+          "createdAt",
+          "updatedAt"
+        )
+        assertThat(article.slug).isEqualTo("updated-${expected.slug}")
+        assertThat(article.title).isEqualTo("updated.${expected.title}")
+        assertThat(article.description).isEqualTo("updated.${expected.description}")
+        assertThat(article.body).isEqualTo("updated.${expected.body}")
+        assertThat(article.updatedAt).isAfter(article.createdAt)
+      }
+  }
+
+  @Test
+  fun `update article, not found`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val updateReq = UpdateRequest(UpdateDto(description = "updated"))
+    client.put("/api/articles/not-found", updateReq)
+      .then()
+      .statusCode(404)
+  }
+
+  @Test
+  fun `update article, not author`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
+    userRepo.create(notAuthor).unsafeRunSync()
+
+    val updateReq = UpdateRequest(UpdateDto(description = "updated"))
+    client.put("/api/articles/$slug", updateReq, notAuthor.token).then().statusCode(401)
+  }
+
+  @Test
+  fun `update article requires auth`() {
+    val client = ApiClient(spec, userAuthor.token)
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val slug = TestArticles.Dragon.response.slug
+    client.post("/api/articles", req).then().statusCode(201)
+
+    val updateReq = UpdateRequest(UpdateDto(description = "updated.${req.article.description}"))
+    client.put("/api/articles/$slug", updateReq, null)
+      .then()
+      .statusCode(401)
   }
 }

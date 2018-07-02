@@ -4,12 +4,14 @@ import arrow.core.ForOption
 import arrow.core.Option
 import arrow.core.fix
 import arrow.core.getOrElse
+import arrow.core.some
 import arrow.core.toOption
 import arrow.effects.IO
 import arrow.instances.extensions
 import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ValidArticleCreation
+import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
 import io.realworld.persistence.ArticleTbl.eq
@@ -118,6 +120,42 @@ class ArticleRepository(
     IO {
       jdbcTemplate.update(sql, params)
     }
+  }
+
+  fun updateArticle(update: ValidArticleUpdate, user: User): IO<Article> {
+    return IO {
+      val row = updateArticleRow(update)
+
+      val deps = ArticleDeps()
+      deps.tagList.addAll(fetchArticleTags(row.id))
+      deps.author = fetchAuthor(row.authorId, user.some())
+
+      Article.from(row, deps)
+    }
+  }
+
+  private fun updateArticleRow(update: ValidArticleUpdate): ArticleRow = with(ArticleTbl) {
+    val sql =
+      """
+      UPDATE $table
+      SET
+        ${slug.set()},
+        ${title.set()},
+        ${description.set()},
+        ${body.set()},
+        $updated_at = CURRENT_TIMESTAMP
+      WHERE
+        ${id.eq()}
+      RETURNING *
+      """
+    val params = mapOf(
+      slug to update.slug,
+      title to update.title,
+      description to update.description,
+      body to update.body,
+      id to update.id
+    )
+    jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs (rs) })!!
   }
 
   private fun fetchArticleTags(articleId: UUID): List<String> = with(ArticleTagTbl) {

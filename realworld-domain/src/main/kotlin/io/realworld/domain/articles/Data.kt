@@ -28,6 +28,7 @@ data class ArticleUpdate(
 )
 
 data class ValidArticleUpdate(
+  val id: UUID,
   val slug: String,
   val title: String,
   val description: String,

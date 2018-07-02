@@ -1,8 +1,10 @@
 package io.realworld.articles
 
+import arrow.core.toOption
 import com.fasterxml.jackson.annotation.JsonRootName
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleCreation
+import io.realworld.domain.articles.ArticleUpdate
 import io.realworld.profiles.ProfileResponseDto
 import java.time.Instant
 import javax.validation.constraints.NotBlank
@@ -56,4 +58,17 @@ data class ArticleResponseDto(
       )
     }
   }
+}
+
+@JsonRootName("article")
+data class UpdateDto(
+  val title: String? = null,
+  val description: String? = null,
+  val body: String? = null
+) {
+  fun toDomain() = ArticleUpdate(
+    title = title.toOption(),
+    description = description.toOption(),
+    body = body.toOption()
+  )
 }

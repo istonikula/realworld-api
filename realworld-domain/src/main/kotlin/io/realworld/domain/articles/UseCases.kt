@@ -5,10 +5,14 @@ import arrow.core.Option
 import arrow.core.left
 import arrow.core.right
 import arrow.core.some
+import arrow.data.EitherT
+import arrow.data.value
 import arrow.effects.ForIO
 import arrow.effects.IO
 import arrow.effects.extensions
 import arrow.effects.fix
+import arrow.effects.monad
+import arrow.instances.ForEitherT
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 import java.util.UUID
@@ -16,10 +20,11 @@ import java.util.UUID
 data class CreateArticleCommand(val data: ArticleCreation, val user: User)
 data class DeleteArticleCommand(val slug: String, val user: User)
 data class GetArticleCommand(val slug: String, val user: Option<User>)
+data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val user: User)
 
 sealed class ArticleUpdateError {
-  object NotAllowed : ArticleUpdateError()
   object NotFound : ArticleUpdateError()
+  object NotOwner : ArticleUpdateError()
 }
 
 sealed class ArticleDeleteError {
@@ -76,6 +81,21 @@ interface DeleteArticleUseCase {
           }
         )
       }.fix()
+    }
+  }
+}
+
+interface UpdateArticleUseCase {
+  val validateUpdate: ValidateArticleUpdate
+  val updateArticle: UpdateArticle
+
+  fun UpdateArticleCommand.runUseCase(): IO<Either<ArticleUpdateError, Article>> {
+    val cmd = this
+    return ForEitherT<ForIO, ArticleUpdateError>(IO.monad()) extensions {
+      binding {
+        val validUpdate = EitherT(validateUpdate(cmd.data, cmd.slug, cmd.user)).bind()
+        EitherT(updateArticle(validUpdate, cmd.user).map { it.right() }).bind()
+      }.value().fix()
     }
   }
 }

@@ -8,9 +8,9 @@ import java.util.UUID
 
 typealias CreateArticle = (article: ValidArticleCreation, user: User) -> IO<Article>
 
-typealias ValidateArticleUpdate = (update: ArticleUpdate, user: User) ->
+typealias ValidateArticleUpdate = (update: ArticleUpdate, slug: String, user: User) ->
   IO<Either<ArticleUpdateError, ValidArticleUpdate>>
-typealias UpdateArticle = (update: ValidArticleUpdate, currentSlug: String) -> IO<Article>
+typealias UpdateArticle = (update: ValidArticleUpdate, user: User) -> IO<Article>
 
 typealias CreateUniqueSlug = (title: String) -> IO<String>
 typealias ExistsBySlug = (slug: String) -> IO<Boolean>
