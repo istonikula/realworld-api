@@ -111,11 +111,11 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }
 
   open fun existsByEmail(email: String): IO<Boolean> = UserTbl.let {
-    queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
+    jdbcTemplate.queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
   }
 
   fun existsByUsername(username: String): IO<Boolean> = UserTbl.let {
-    queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
+    jdbcTemplate.queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
   }
 
   fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean> {
@@ -188,13 +188,4 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
       jdbcTemplate.update(sql, params)
     }
   }
-
-  private fun queryIfExists(table: String, where: String, params: Map<String, Any>): IO<Boolean> =
-    IO {
-      jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM $table WHERE $where",
-        params,
-        { rs, _ -> rs.getInt("count") > 0 }
-      )!!
-    }
 }

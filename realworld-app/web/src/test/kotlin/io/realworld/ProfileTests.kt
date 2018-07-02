@@ -93,6 +93,11 @@ class ProfileTests {
   }
 
   @Test
+  fun `get profile, not found`() {
+    ApiClient(spec).get("/api/profiles/not-found").then().statusCode(404)
+  }
+
+  @Test
   fun `get profile without token`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")

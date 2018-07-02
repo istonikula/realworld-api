@@ -8,6 +8,7 @@ import org.springframework.core.NestedExceptionUtils
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 
@@ -35,6 +36,12 @@ class ErrorHandler {
 
   @ExceptionHandler(FieldError::class)
   fun fieldError(ex: FieldError) = handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(ex.toValidationError()))
+
+  @ExceptionHandler(MethodArgumentNotValidException::class)
+  fun methodArgumentNotValid(ex: MethodArgumentNotValidException) =
+    handleError(HttpStatus.UNPROCESSABLE_ENTITY, ex.bindingResult.fieldErrors.map {
+      ValidationError(type = it.code ?: "", path = it.field, message = it.defaultMessage ?: "")
+    })
 }
 
 fun handleError(
