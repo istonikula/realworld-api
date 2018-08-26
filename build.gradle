@@ -207,8 +207,9 @@ project('realworld-infra:persistence') {
   }
 }
 
-task wrapper(type: Wrapper) {
-  gradleVersion = '4.6'
+wrapper {
+  distributionType = Wrapper.DistributionType.ALL
+  gradleVersion = '4.8.1'
 }
 
 apply plugin: 'com.github.ben-manes.versions'
