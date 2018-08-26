@@ -8,6 +8,7 @@ import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.ValidUserUpdate
 import io.realworld.persistence.Dsl.eq
+import io.realworld.persistence.Dsl.insert
 import io.realworld.persistence.Dsl.set
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -120,73 +121,26 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     jdbcTemplate.queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
   }
 
-  fun hasFollower(followeeUsername: String, followerUsername: String): IO<Boolean> {
-    val u = UserTbl
-    val f = FollowTbl
-    val sql =
-      """
-      SELECT COUNT(*)
-      FROM ${f.table} f
-        JOIN ${u.table} u1 ON (u1.${u.id} = f.${f.followee})
-        JOIN ${u.table} u2 ON (u2.${u.id} = f.${f.follower})
-      WHERE
-        u1.${u.username} = :followeeUsername AND
-        u2.${u.username} = :followerUsername
-      """
-    val params = mapOf(
-      "followeeUsername" to followeeUsername,
-      "followerUsername" to followerUsername
+  fun hasFollower(followee: UUID, follower: UUID): IO<Boolean> = FollowTbl.let {
+    jdbcTemplate.queryIfExists(
+      it.table,
+      "${it.followee.eq()} AND ${it.follower.eq()}",
+      mapOf(it.followee to followee, it.follower to follower)
     )
-
-    return IO {
-      jdbcTemplate.queryForObject(
-        sql,
-        params,
-        { rs, _ -> rs.getInt("count") > 0 }
-      )!!
-    }
   }
 
-  fun addFollower(followeeUsername: String, followerUsername: String): IO<Int> {
-    val u = UserTbl
-    val f = FollowTbl
-    val sql =
-      """
-      INSERT INTO ${f.table} (
-        ${f.followee},
-        ${f.follower}
-      ) VALUES (
-        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followeeUsername),
-        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followerUsername)
-      )
-      ON CONFLICT (${f.followee}, ${f.follower}) DO NOTHING
-      """
-    val params = mapOf(
-      "followeeUsername" to followeeUsername,
-      "followerUsername" to followerUsername
-    )
-
-    return IO {
+  fun addFollower(followee: UUID, follower: UUID): IO<Int> = FollowTbl.let {
+    val sql = "${it.table.insert(it.followee, it.follower)} ON CONFLICT (${it.followee}, ${it.follower}) DO NOTHING"
+    val params = mapOf(it.followee to followee, it.follower to follower)
+    IO {
       jdbcTemplate.update(sql, params)
     }
   }
 
-  fun removeFollower(followeeUsername: String, followerUsername: String): IO<Int> {
-    val u = UserTbl
-    val f = FollowTbl
-    val sql =
-      """
-      DELETE FROM ${f.table}
-      WHERE
-        ${f.followee} = (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followeeUsername) AND
-        ${f.follower} = (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :followerUsername)
-      """
-    val params = mapOf(
-      "followeeUsername" to followeeUsername,
-      "followerUsername" to followerUsername
-    )
-
-    return IO {
+  fun removeFollower(followee: UUID, follower: UUID): IO<Int> = FollowTbl.let {
+    val sql = "DELETE FROM ${it.table} WHERE ${it.followee.eq()} AND ${it.follower.eq()}"
+    val params = mapOf(it.followee to followee, it.follower to follower)
+    IO {
       jdbcTemplate.update(sql, params)
     }
   }

@@ -1,6 +1,7 @@
 # TODO
 
 ## Pending features
+* handle tags conflict
 * comments
 * list articles
 * feed articles

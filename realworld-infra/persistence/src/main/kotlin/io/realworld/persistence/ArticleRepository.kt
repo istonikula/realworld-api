@@ -141,7 +141,7 @@ class ArticleRepository(
   }
 
   fun addFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
-    val sql = "${table.insert(article_id, user_id)} ON CONFLICT (${article_id}, ${user_id}) DO NOTHING"
+    val sql = "${table.insert(article_id, user_id)} ON CONFLICT ($article_id, $user_id) DO NOTHING"
     val params = mapOf(article_id to articleId, user_id to user.id)
     IO {
       jdbcTemplate.update(sql, params)
@@ -149,7 +149,7 @@ class ArticleRepository(
   }
 
   fun removeFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
-    val sql = "DELETE FROM ${table} WHERE ${article_id.eq()} AND ${user_id.eq()}"
+    val sql = "DELETE FROM $table WHERE ${article_id.eq()} AND ${user_id.eq()}"
     val params = mapOf(article_id to articleId, user_id to user.id)
     IO {
       jdbcTemplate.update(sql, params)
@@ -196,12 +196,12 @@ class ArticleRepository(
 
   private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =
     userRepo.findById(id).unsafeRunSync().map {
-      with(it.user) {
+      it.user.let { author ->
         Profile(
-          username = username,
-          bio = bio.toOption(),
-          image = image.toOption(),
-          following = querier.map { userRepo.hasFollower(username, it.username).unsafeRunSync() }
+          username = author.username,
+          bio = author.bio.toOption(),
+          image = author.image.toOption(),
+          following = querier.map { userRepo.hasFollower(author.id, it.id).unsafeRunSync() }
         )
       }
     }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
