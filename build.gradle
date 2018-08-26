@@ -6,7 +6,7 @@ buildscript {
     jacksonKotlinVersion = '2.9.6'
     jasyptVersion = '1.9.2'
     javaVersion = '1.8'
-    jjwtVersion = '0.9.0'
+    jjwtVersion = '0.9.1'
     kotlinVersion = '1.2.61'
     ktlintVersion = '0.27.0'
     restAssuredVersion = '3.1.0'
