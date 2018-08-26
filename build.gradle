@@ -9,7 +9,7 @@ buildscript {
     jjwtVersion = '0.9.1'
     kotlinVersion = '1.2.61'
     ktlintVersion = '0.27.0'
-    restAssuredVersion = '3.1.0'
+    restAssuredVersion = '3.1.1'
     slugifyVersion = '2.2'
     springBootVersion = '2.0.4.RELEASE'
 
