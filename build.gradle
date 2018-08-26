@@ -1,6 +1,6 @@
 buildscript {
   ext {
-    arrowVersion = '0.7.2'
+    arrowVersion = '0.7.3'
     flywayVersion = '5.1.4'
     gradleVersionsPluginVersion = '0.20.0'
     jacksonKotlinVersion = '2.9.6'
