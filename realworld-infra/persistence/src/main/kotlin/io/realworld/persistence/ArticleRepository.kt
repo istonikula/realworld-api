@@ -196,7 +196,7 @@ class ArticleRepository(
       body to update.body,
       id to update.id
     )
-    jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs (rs) })!!
+    jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
   }
 
   private fun fetchArticleTags(articleId: UUID): List<String> = with(ArticleTagTbl) {
