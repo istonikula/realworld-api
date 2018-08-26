@@ -45,7 +45,7 @@ interface ValidateArticleUpdateService {
           {
             when {
               it.author.username != user.username ->
-                ArticleUpdateError.NotOwner.left()
+                ArticleUpdateError.NotAuthor.left()
               else ->
                 ValidArticleUpdate(
                   id = it.id,

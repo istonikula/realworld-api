@@ -80,4 +80,5 @@ inline fun <reified User, reified Token> userArgumentResolver(
   )
 }
 
+class ForbiddenException : Throwable()
 class UnauthorizedException : Throwable()

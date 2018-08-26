@@ -3,6 +3,11 @@ package io.realworld.persistence
 import arrow.effects.IO
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
+object Dsl {
+  fun String.eq() = "$this = :$this"
+  fun String.set() = "$this = :$this"
+}
+
 internal fun NamedParameterJdbcTemplate.queryIfExists(
   table: String,
   where: String,

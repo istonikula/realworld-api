@@ -22,7 +22,7 @@ class RegisterUserWorkflowTests {
   )
 
   val createUser0: CreateUser = { x ->
-    User(email = x.email, token = x.token, username = x.username).liftIO()
+    User(id = UUID.randomUUID(), email = x.email, token = x.token, username = x.username).liftIO()
   }
 
   @Test
@@ -65,7 +65,7 @@ class RegisterUserWorkflowTests {
         override val createUser: CreateUser = { x ->
           IO {
             userSaved = true
-            User(email = x.email, token = x.token, username = x.username)
+            User(id = UUID.randomUUID(), email = x.email, token = x.token, username = x.username)
           }
         }
         override val validateUser = { _: UserRegistration -> IO { throw RuntimeException("BOOM!") } }

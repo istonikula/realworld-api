@@ -4,6 +4,7 @@ import arrow.core.Option
 import java.util.UUID
 
 data class User(
+  val id: UUID,
   val email: String,
   val token: String,
   val username: String,

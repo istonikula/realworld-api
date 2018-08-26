@@ -50,3 +50,12 @@ CREATE TABLE article_tags (
   CONSTRAINT fk$article_id FOREIGN KEY (article_id) REFERENCES articles ON DELETE CASCADE,
   CONSTRAINT fk$tag FOREIGN KEY (tag) REFERENCES tags ON DELETE CASCADE
 );
+
+CREATE TABLE article_favorites (
+  article_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+
+  CONSTRAINT pk$article_favorites PRIMARY KEY (article_id, user_id),
+  CONSTRAINT fk$article_id FOREIGN KEY (article_id) REFERENCES articles ON DELETE CASCADE,
+  CONSTRAINT fk$user_id FOREIGN KEY (user_id) REFERENCES users ON DELETE CASCADE
+);

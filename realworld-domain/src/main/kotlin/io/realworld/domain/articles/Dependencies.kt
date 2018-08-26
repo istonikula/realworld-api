@@ -18,3 +18,6 @@ typealias ExistsBySlug = (slug: String) -> IO<Boolean>
 typealias GetArticleBySlug = (slug: String, user: Option<User>) -> IO<Option<Article>>
 
 typealias DeleteArticle = (id: UUID) -> IO<Int>
+
+typealias AddFavorite = (articleId: UUID, user: User) -> IO<Int>
+typealias RemoveFavorite = (articleId: UUID, user: User) -> IO<Int>
