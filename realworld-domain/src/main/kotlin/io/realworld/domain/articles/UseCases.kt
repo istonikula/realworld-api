@@ -40,6 +40,10 @@ sealed class ArticleFavoriteError {
   object NotFound : ArticleFavoriteError()
 }
 
+sealed class ArticleUnfavoriteError {
+  object NotFound : ArticleUnfavoriteError()
+}
+
 interface CreateArticleUseCase {
   val createUniqueSlug: CreateUniqueSlug
   val createArticle: CreateArticle
@@ -125,6 +129,33 @@ interface FavoriteUseCase {
                 it.right()
               else -> {
                 addFavorite(it.id, cmd.user).bind()
+                getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
+              }
+            }
+          }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface UnfavoriteUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val removeFavorite: RemoveFavorite
+
+
+  fun UnfavoriteArticleCommand.runUseCase(): IO<Either<ArticleUnfavoriteError, Article>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+          { ArticleUnfavoriteError.NotFound.left() },
+          {
+            when {
+              !it.favorited ->
+                it.right()
+              else -> {
+                removeFavorite(it.id, cmd.user).bind()
                 getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
               }
             }

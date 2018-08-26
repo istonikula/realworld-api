@@ -6,6 +6,7 @@ import io.realworld.authHeader
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleDeleteError
 import io.realworld.domain.articles.ArticleFavoriteError
+import io.realworld.domain.articles.ArticleUnfavoriteError
 import io.realworld.domain.articles.ArticleUpdateError
 import io.realworld.domain.articles.CreateArticleCommand
 import io.realworld.domain.articles.CreateArticleUseCase
@@ -16,6 +17,8 @@ import io.realworld.domain.articles.FavoriteArticleCommand
 import io.realworld.domain.articles.FavoriteUseCase
 import io.realworld.domain.articles.GetArticleCommand
 import io.realworld.domain.articles.GetArticleUseCase
+import io.realworld.domain.articles.UnfavoriteArticleCommand
+import io.realworld.domain.articles.UnfavoriteUseCase
 import io.realworld.domain.articles.UpdateArticleCommand
 import io.realworld.domain.articles.UpdateArticleUseCase
 import io.realworld.domain.articles.ValidateArticleUpdate
@@ -161,6 +164,26 @@ class ArticleController(
         when (it) {
           is ArticleFavoriteError.Author -> throw ForbiddenException()
           is ArticleFavoriteError.NotFound -> ResponseEntity.notFound().build()
+        }
+      },
+      { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+    )
+  }
+
+  @DeleteMapping("/api/articles/{slug}/favorite")
+  fun unfavorite(
+    @PathVariable("slug") slug: String,
+    user: User
+  ): ResponseEntity<ArticleResponse> {
+    return object : UnfavoriteUseCase {
+      override val getArticleBySlug = articleRepo::getBySlug
+      override val removeFavorite = articleRepo::removeFavorite
+    }.run {
+      UnfavoriteArticleCommand(slug, user).runUseCase()
+    }.runWriteTx(txManager).fold(
+      {
+        when (it) {
+          is ArticleUnfavoriteError.NotFound -> ResponseEntity.notFound().build()
         }
       },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }

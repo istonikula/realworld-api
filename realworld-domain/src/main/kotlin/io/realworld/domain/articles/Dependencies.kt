@@ -20,3 +20,4 @@ typealias GetArticleBySlug = (slug: String, user: Option<User>) -> IO<Option<Art
 typealias DeleteArticle = (id: UUID) -> IO<Int>
 
 typealias AddFavorite = (articleId: UUID, user: User) -> IO<Int>
+typealias RemoveFavorite = (articleId: UUID, user: User) -> IO<Int>

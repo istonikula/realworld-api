@@ -158,6 +158,23 @@ class ArticleRepository(
     }
   }
 
+  fun removeFavorite(articleId: UUID, user: User): IO<Int> {
+    val af = ArticleFavoriteTbl
+    val u = UserTbl
+    val sql =
+      """
+      DELETE FROM ${af.table}
+      WHERE
+        ${af.article_id.eq()} AND
+        ${af.user_id} = (SELECT ${u.id} FROM ${u.table} WHERE ${u.username.eq()})
+      """
+    val params = mapOf(af.article_id to articleId, u.username to user.username)
+
+    return IO {
+      jdbcTemplate.update(sql, params)
+    }
+  }
+
   private fun updateArticleRow(update: ValidArticleUpdate): ArticleRow = with(ArticleTbl) {
     val sql =
       """

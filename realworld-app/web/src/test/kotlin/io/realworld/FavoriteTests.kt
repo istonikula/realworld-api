@@ -67,6 +67,7 @@ class FavoriteTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
+
     val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
 
     val tarzanClient = ApiClient(spec, tarzan.token)
@@ -74,10 +75,11 @@ class FavoriteTests {
       .then()
       .statusCode(200)
       .body("article.favorited", equalTo(false))
-
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
       .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
       .statusCode(200)
@@ -94,7 +96,6 @@ class FavoriteTests {
       .statusCode(200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(2))
-
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
       .statusCode(200)
@@ -103,7 +104,16 @@ class FavoriteTests {
   }
 
   @Test
-  fun `cannot favorite if author`() {
+  fun `favorite article, not found`() {
+    val tarzan = createUser("tarzan")
+    val tarzanClient = ApiClient(spec, tarzan.token)
+    tarzanClient.post<Any>("/api/articles/non-existent/favorite")
+      .then()
+      .statusCode(404)
+  }
+
+  @Test
+  fun `favorite article, author`() {
     val jane = createUser("jane")
     val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
     val janeClient = ApiClient(spec, jane.token)
@@ -113,11 +123,9 @@ class FavoriteTests {
       .statusCode(200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(0))
-
     janeClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
       .statusCode(403)
-
     janeClient.get("/api/articles/${janesArticle.slug}")
       .then()
       .statusCode(200)
@@ -136,20 +144,62 @@ class FavoriteTests {
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
       .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
       .statusCode(200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
-
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
       .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
       .statusCode(200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
+  }
+
+  @Test
+  fun `unfavorite article`() {
+    val jane = createUser("jane")
+    val tarzan = createUser("tarzan")
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    val tarzanClient = ApiClient(spec, tarzan.token)
+    tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(1))
+    tarzanClient.get("/api/articles/${janesArticle.slug}")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(1))
+    tarzanClient.delete("/api/articles/${janesArticle.slug}/favorite")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(0))
+    tarzanClient.get("/api/articles/${janesArticle.slug}")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(0))
+  }
+
+  @Test
+  fun `unfavorite article, not found`() {
+    val tarzan = createUser("tarzan")
+    val tarzanClient = ApiClient(spec, tarzan.token)
+    tarzanClient.delete("/api/articles/non-existent/favorite")
+      .then()
+      .statusCode(404)
   }
 
   private fun createUser(username: String) =
