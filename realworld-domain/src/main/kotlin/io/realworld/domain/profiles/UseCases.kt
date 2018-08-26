@@ -32,7 +32,7 @@ interface GetProfileUseCase {
               image = it.image.toOption(),
               following = current.fold(
                 { none<Boolean>() },
-                { follower -> hasFollower(cmd.username, follower.username).bind().some() }
+                { follower -> hasFollower(it.id, follower.id).bind().some() }
               )
             ).some()
           }
@@ -53,7 +53,7 @@ interface FollowUseCase {
         getUser(cmd.username).bind().fold(
           { none<Profile>() },
           {
-            addFollower(it.username, current.username).bind()
+            addFollower(it.id, cmd.current.id).bind()
             Profile(
               username = it.username,
               bio = it.bio.toOption(),
@@ -78,7 +78,7 @@ interface UnfollowUseCase {
         getUser(cmd.username).bind().fold(
           { none<Profile>() },
           {
-            removeFollower(it.username, current.username).bind()
+            removeFollower(it.id, cmd.current.id).bind()
             Profile(
               username = it.username,
               bio = it.bio.toOption(),

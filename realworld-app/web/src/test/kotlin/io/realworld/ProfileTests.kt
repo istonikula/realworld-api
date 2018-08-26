@@ -67,8 +67,8 @@ class ProfileTests {
     userRepo.create(user2).unsafeRunSync()
     userRepo.create(user3).unsafeRunSync()
 
-    userRepo.addFollower(user2.username, user1.username).unsafeRunSync()
-    userRepo.addFollower(user3.username, user1.username).unsafeRunSync()
+    userRepo.addFollower(user2.id, user1.id).unsafeRunSync()
+    userRepo.addFollower(user3.id, user1.id).unsafeRunSync()
 
     val user1Client = ApiClient(spec, user1.token)
     val user2Client = ApiClient(spec, user2.token)
@@ -104,7 +104,7 @@ class ProfileTests {
     userRepo.create(user1).unsafeRunSync()
     userRepo.create(user2).unsafeRunSync()
 
-    userRepo.addFollower(user1.username, user2.username).unsafeRunSync()
+    userRepo.addFollower(user1.id, user2.id).unsafeRunSync()
 
     ApiClient(spec).get("/api/profiles/bar")
       .then()
@@ -151,7 +151,7 @@ class ProfileTests {
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
     userRepo.create(user1).unsafeRunSync()
     userRepo.create(user2).unsafeRunSync()
-    userRepo.addFollower(user2.username, user1.username).unsafeRunSync()
+    userRepo.addFollower(user2.id, user1.id).unsafeRunSync()
 
     ApiClient(spec, user1.token).post<Any>("/api/profiles/bar/follow")
       .then()

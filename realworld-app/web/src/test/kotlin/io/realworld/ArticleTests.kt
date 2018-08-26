@@ -242,7 +242,7 @@ class ArticleTests {
       assertThat(article.author.following).isFalse()
     }
 
-    userRepo.addFollower(userAuthor.username, notAuthor.username).unsafeRunSync()
+    userRepo.addFollower(userAuthor.id, notAuthor.id).unsafeRunSync()
     client.get("/api/articles/$slug", token = notAuthor.token)
       .then()
       .toDto<ArticleResponse>().apply {

@@ -15,6 +15,7 @@ import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
 import io.realworld.persistence.Dsl.eq
+import io.realworld.persistence.Dsl.insert
 import io.realworld.persistence.Dsl.set
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -139,38 +140,18 @@ class ArticleRepository(
     }
   }
 
-  fun addFavorite(articleId: UUID, user: User): IO<Int> {
-    val af = ArticleFavoriteTbl
-    val u = UserTbl
-    val sql =
-      """
-      INSERT INTO ${af.table} (
-        ${af.article_id}, ${af.user_id}
-      ) VALUES (
-        :${af.article_id},
-        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username.eq()})
-      )
-      ON CONFLICT (${af.article_id}, ${af.user_id}) DO NOTHING
-      """
-    val params = mapOf(af.article_id to articleId, u.username to user.username)
-    return IO {
+  fun addFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
+    val sql = "${table.insert(article_id, user_id)} ON CONFLICT ($article_id, $user_id) DO NOTHING"
+    val params = mapOf(article_id to articleId, user_id to user.id)
+    IO {
       jdbcTemplate.update(sql, params)
     }
   }
 
-  fun removeFavorite(articleId: UUID, user: User): IO<Int> {
-    val af = ArticleFavoriteTbl
-    val u = UserTbl
-    val sql =
-      """
-      DELETE FROM ${af.table}
-      WHERE
-        ${af.article_id.eq()} AND
-        ${af.user_id} = (SELECT ${u.id} FROM ${u.table} WHERE ${u.username.eq()})
-      """
-    val params = mapOf(af.article_id to articleId, u.username to user.username)
-
-    return IO {
+  fun removeFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
+    val sql = "DELETE FROM $table WHERE ${article_id.eq()} AND ${user_id.eq()}"
+    val params = mapOf(article_id to articleId, user_id to user.id)
+    IO {
       jdbcTemplate.update(sql, params)
     }
   }
@@ -215,12 +196,12 @@ class ArticleRepository(
 
   private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =
     userRepo.findById(id).unsafeRunSync().map {
-      with(it.user) {
+      it.user.let { author ->
         Profile(
-          username = username,
-          bio = bio.toOption(),
-          image = image.toOption(),
-          following = querier.map { userRepo.hasFollower(username, it.username).unsafeRunSync() }
+          username = author.username,
+          bio = author.bio.toOption(),
+          image = author.image.toOption(),
+          following = querier.map { userRepo.hasFollower(author.id, it.id).unsafeRunSync() }
         )
       }
     }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
@@ -240,40 +221,26 @@ class ArticleRepository(
   }
 
   private fun insertArticleRow(article: ValidArticleCreation, user: User): ArticleRow = with(ArticleTbl) {
-    val u = UserTbl
-    val sql =
-      """
-      INSERT INTO $table (
-        $id, $slug, $title, $description, $body, $author
-      ) VALUES (
-        :$id, :$slug, :$title, :$description, :$body,
-        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username} = :authorUsername)
-      )
-      RETURNING *
-      """
+    val sql = "${table.insert(id, slug, title, description, body, author)} RETURNING *"
     val params = mapOf(
         id to article.id,
         slug to article.slug,
         title to article.title,
         description to article.description,
         body to article.body,
-        "authorUsername" to user.username
+        author to user.id
     )
-    jdbcTemplate.queryForObject(
-      sql,
-      params,
-      { rs, _ -> ArticleRow.fromRs(rs) }
-    )!!
+    jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
   }
 
   private fun insertTags(tags: List<String>) = with(TagTbl) {
-    val sql = "INSERT INTO $table ($name) VALUES (:$name) ON CONFLICT ($name) DO NOTHING"
+    val sql = "${table.insert(name)} ON CONFLICT ($name) DO NOTHING"
     val params = tags.map { mapOf(name to it) }.toTypedArray()
     jdbcTemplate.batchUpdate(sql, params)
   }
 
   private fun insertArticleTags(articleId: UUID, tags: List<String>) = with(ArticleTagTbl) {
-    val sql = "INSERT INTO $table ($article_id, $tag) VALUES (:$article_id, :$tag)" // TODO add on conflict
+    val sql = table.insert(article_id, tag) // TODO add on conflict
     val params = tags.map {
       mapOf(
         article_id to articleId,
