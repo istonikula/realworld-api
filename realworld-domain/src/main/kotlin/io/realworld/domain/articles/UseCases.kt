@@ -143,7 +143,6 @@ interface UnfavoriteUseCase {
   val getArticleBySlug: GetArticleBySlug
   val removeFavorite: RemoveFavorite
 
-
   fun UnfavoriteArticleCommand.runUseCase(): IO<Either<ArticleUnfavoriteError, Article>> {
     val cmd = this
     return ForIO extensions {

@@ -130,8 +130,8 @@ class ArticleRepository(
       val row = updateArticleRow(update)
 
       val deps = ArticleDeps()
-      // TODO favorite
-      // TODO favorites count
+      deps.favorited = isFavorited(row.id, user).unsafeRunSync()
+      deps.favoritesCount = fetchFavoritesCount(row.id)
       deps.tagList.addAll(fetchArticleTags(row.id))
       deps.author = fetchAuthor(row.authorId, user.some())
 

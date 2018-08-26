@@ -1,5 +1,6 @@
 package io.realworld
 
+import io.realworld.articles.UpdateDto
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
@@ -202,8 +203,59 @@ class FavoriteTests {
       .statusCode(404)
   }
 
+  @Test
+  fun `article update response includes favorite info`() {
+    val cheeta = createUser("cheeta")
+    val jane = createUser("jane")
+    val tarzan = createUser("tarzan")
+
+    val cheetaClient = ApiClient(spec, cheeta.token)
+    val janeClient = ApiClient(spec, jane.token)
+    val tarzanClient = ApiClient(spec, tarzan.token)
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val updateReq = UpdateRequest(UpdateDto(description = "updated.${janesArticle.description}"))
+
+    janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(0))
+
+    cheetaClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(1))
+    janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(1))
+
+    tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(true))
+      .body("article.favoritesCount", equalTo(2))
+    janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(2))
+
+    cheetaClient.delete("/api/articles/${janesArticle.slug}/favorite")
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(1))
+    janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
+      .then()
+      .statusCode(200)
+      .body("article.favorited", equalTo(false))
+      .body("article.favoritesCount", equalTo(1))
+  }
+
   private fun createUser(username: String) =
     userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()
-
-  // TODO take favorites into account in update article
 }
