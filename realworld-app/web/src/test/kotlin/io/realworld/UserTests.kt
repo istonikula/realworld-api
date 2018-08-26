@@ -181,7 +181,7 @@ class UserTests {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
-    with( LoginRequest(LoginDto(email = registered.email, password = "invalid"))) {
+    with(LoginRequest(LoginDto(email = registered.email, password = "invalid"))) {
       ApiClient(spec).post("/api/users/login", this).then().statusCode(401)
     }
   }
