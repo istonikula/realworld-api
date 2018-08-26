@@ -1,16 +1,19 @@
 package io.realworld.articles
 
+import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
-import io.realworld.UnauthorizedException
 import io.realworld.authHeader
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleDeleteError
+import io.realworld.domain.articles.ArticleFavoriteError
 import io.realworld.domain.articles.ArticleUpdateError
 import io.realworld.domain.articles.CreateArticleCommand
 import io.realworld.domain.articles.CreateArticleUseCase
 import io.realworld.domain.articles.CreateUniqueSlugService
 import io.realworld.domain.articles.DeleteArticleCommand
 import io.realworld.domain.articles.DeleteArticleUseCase
+import io.realworld.domain.articles.FavoriteArticleCommand
+import io.realworld.domain.articles.FavoriteUseCase
 import io.realworld.domain.articles.GetArticleCommand
 import io.realworld.domain.articles.GetArticleUseCase
 import io.realworld.domain.articles.UpdateArticleCommand
@@ -103,8 +106,8 @@ class ArticleController(
     }.runWriteTx(txManager).fold(
       {
         when (it) {
+          is ArticleDeleteError.NotAuthor -> throw ForbiddenException()
           is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
-          is ArticleDeleteError.NotOwner -> throw UnauthorizedException()
         }
       },
       { ResponseEntity.noContent().build() }
@@ -134,8 +137,30 @@ class ArticleController(
     }.runWriteTx(txManager).fold(
       {
         when (it) {
+          is ArticleUpdateError.NotAuthor -> throw ForbiddenException()
           is ArticleUpdateError.NotFound -> ResponseEntity.notFound().build()
-          is ArticleUpdateError.NotOwner -> throw UnauthorizedException()
+        }
+      },
+      { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+    )
+  }
+
+  @PostMapping("/api/articles/{slug}/favorite")
+  fun favorite(
+    @PathVariable("slug") slug: String,
+    user: User
+  ): ResponseEntity<ArticleResponse> {
+
+    return object : FavoriteUseCase {
+      override val getArticleBySlug = articleRepo::getBySlug
+      override val addFavorite = articleRepo::addFavorite
+    }.run {
+      FavoriteArticleCommand(slug, user).runUseCase()
+    }.runWriteTx(txManager).fold(
+      {
+        when (it) {
+          is ArticleFavoriteError.Author -> throw ForbiddenException()
+          is ArticleFavoriteError.NotFound -> ResponseEntity.notFound().build()
         }
       },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }

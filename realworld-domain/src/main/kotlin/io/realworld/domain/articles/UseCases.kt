@@ -2,6 +2,7 @@ package io.realworld.domain.articles
 
 import arrow.core.Either
 import arrow.core.Option
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import arrow.core.some
@@ -21,15 +22,22 @@ data class CreateArticleCommand(val data: ArticleCreation, val user: User)
 data class DeleteArticleCommand(val slug: String, val user: User)
 data class GetArticleCommand(val slug: String, val user: Option<User>)
 data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val user: User)
+data class FavoriteArticleCommand(val slug: String, val user: User)
+data class UnfavoriteArticleCommand(val slug: String, val user: User)
 
 sealed class ArticleUpdateError {
+  object NotAuthor : ArticleUpdateError()
   object NotFound : ArticleUpdateError()
-  object NotOwner : ArticleUpdateError()
 }
 
 sealed class ArticleDeleteError {
+  object NotAuthor : ArticleDeleteError()
   object NotFound : ArticleDeleteError()
-  object NotOwner : ArticleDeleteError()
+}
+
+sealed class ArticleFavoriteError {
+  object Author : ArticleFavoriteError()
+  object NotFound : ArticleFavoriteError()
 }
 
 interface CreateArticleUseCase {
@@ -60,9 +68,8 @@ interface CreateArticleUseCase {
 interface GetArticleUseCase {
   val getArticleBySlug: GetArticleBySlug
 
-  fun GetArticleCommand.runUseCase(): IO<Option<Article>> {
-    return getArticleBySlug(slug, user)
-  }
+  fun GetArticleCommand.runUseCase(): IO<Option<Article>> =
+    getArticleBySlug(slug, user)
 }
 
 interface DeleteArticleUseCase {
@@ -76,7 +83,7 @@ interface DeleteArticleUseCase {
         getArticleBySlug(cmd.slug, user.some()).bind().fold(
           { ArticleDeleteError.NotFound.left() },
           {
-            if (it.author.username != cmd.user.username) ArticleDeleteError.NotOwner.left()
+            if (it.author.username != cmd.user.username) ArticleDeleteError.NotAuthor.left()
             else deleteArticle(it.id).bind().right()
           }
         )
@@ -98,4 +105,36 @@ interface UpdateArticleUseCase {
       }.value().fix()
     }
   }
+}
+
+interface FavoriteUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val addFavorite: AddFavorite
+
+  fun FavoriteArticleCommand.runUseCase(): IO<Either<ArticleFavoriteError, Article>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+          { ArticleFavoriteError.NotFound.left() },
+          {
+            when {
+              it.author.username == cmd.user.username ->
+                ArticleFavoriteError.Author.left()
+              it.favorited ->
+                it.right()
+              else -> {
+                addFavorite(it.id, cmd.user).bind()
+                getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
+              }
+            }
+          }
+        )
+      }.fix()
+    }
+  }
+}
+
+private fun Option<Article>.getOrSystemError(slug: String) = this.getOrElse {
+  throw RuntimeException("System error: article '$slug' should have been found")
 }

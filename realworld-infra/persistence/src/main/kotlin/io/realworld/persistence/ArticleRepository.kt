@@ -14,7 +14,8 @@ import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
-import io.realworld.persistence.ArticleTbl.eq
+import io.realworld.persistence.Dsl.eq
+import io.realworld.persistence.Dsl.set
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
@@ -106,6 +107,8 @@ class ArticleRepository(
         val row = fetchRowBySlug(slug).bind()
 
         val deps = ArticleDeps()
+        deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
+        deps.favoritesCount = fetchFavoritesCount(row.id)
         deps.tagList.addAll(fetchArticleTags(row.id))
         deps.author = fetchAuthor(row.authorId, user)
 
@@ -127,10 +130,31 @@ class ArticleRepository(
       val row = updateArticleRow(update)
 
       val deps = ArticleDeps()
+      // TODO favorite
+      // TODO favorites count
       deps.tagList.addAll(fetchArticleTags(row.id))
       deps.author = fetchAuthor(row.authorId, user.some())
 
       Article.from(row, deps)
+    }
+  }
+
+  fun addFavorite(articleId: UUID, user: User): IO<Int> {
+    val af = ArticleFavoriteTbl
+    val u = UserTbl
+    val sql =
+      """
+      INSERT INTO ${af.table} (
+        ${af.article_id}, ${af.user_id}
+      ) VALUES (
+        :${af.article_id},
+        (SELECT ${u.id} FROM ${u.table} WHERE ${u.username.eq()})
+      )
+      ON CONFLICT (${af.article_id}, ${af.user_id}) DO NOTHING
+      """
+    val params = mapOf(af.article_id to articleId, u.username to user.username)
+    return IO {
+      jdbcTemplate.update(sql, params)
     }
   }
 
@@ -184,6 +208,20 @@ class ArticleRepository(
       }
     }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
 
+  private fun fetchFavoritesCount(articleId: UUID): Long = with(ArticleFavoriteTbl) {
+    val sql = "SELECT COUNT(*) FROM $table WHERE ${article_id.eq()}"
+    val params = mapOf(article_id to articleId)
+    jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
+  }
+
+  private fun isFavorited(articleId: UUID, user: User): IO<Boolean> = with(ArticleFavoriteTbl) {
+    jdbcTemplate.queryIfExists(
+      table,
+      "${article_id.eq()} AND ${user_id.eq()}",
+      mapOf(article_id to articleId, user_id to user.id)
+    )
+  }
+
   private fun insertArticleRow(article: ValidArticleCreation, user: User): ArticleRow = with(ArticleTbl) {
     val u = UserTbl
     val sql =
@@ -218,7 +256,7 @@ class ArticleRepository(
   }
 
   private fun insertArticleTags(articleId: UUID, tags: List<String>) = with(ArticleTagTbl) {
-    val sql = "INSERT INTO $table ($article_id, $tag) VALUES (:$article_id, :$tag)"
+    val sql = "INSERT INTO $table ($article_id, $tag) VALUES (:$article_id, :$tag)" // TODO add on conflict
     val params = tags.map {
       mapOf(
         article_id to articleId,

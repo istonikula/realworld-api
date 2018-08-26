@@ -1,11 +1,6 @@
 package io.realworld.persistence
 
-interface BaseTbl {
-  fun String.eq() = "$this = :$this"
-  fun String.set() = "$this = :$this"
-}
-
-object UserTbl : BaseTbl {
+object UserTbl {
   const val table = "users"
   const val id = "id"
   const val email = "email"
@@ -16,13 +11,13 @@ object UserTbl : BaseTbl {
   const val image = "image"
 }
 
-object FollowTbl : BaseTbl {
+object FollowTbl {
   const val table = "follows"
   const val followee = "followee"
   const val follower = "follower"
 }
 
-object ArticleTbl : BaseTbl {
+object ArticleTbl {
   const val table = "articles"
   const val id = "id"
   const val slug = "slug"
@@ -34,13 +29,19 @@ object ArticleTbl : BaseTbl {
   const val updated_at = "updated_at"
 }
 
-object TagTbl : BaseTbl {
+object TagTbl {
   const val table = "tags"
   const val name = "name"
 }
 
-object ArticleTagTbl : BaseTbl {
+object ArticleTagTbl {
   const val table = "article_tags"
   const val article_id = "article_id"
   const val tag = "tag"
+}
+
+object ArticleFavoriteTbl {
+  const val table = "article_favorites"
+  const val article_id = "article_id"
+  const val user_id = "user_id"
 }

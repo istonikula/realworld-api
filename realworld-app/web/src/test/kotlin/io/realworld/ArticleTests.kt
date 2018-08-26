@@ -283,7 +283,7 @@ class ArticleTests {
   }
 
   @Test
-  fun `delete by slug, not owner`() {
+  fun `delete by slug, not author`() {
     val client = ApiClient(spec, userAuthor.token)
     val req = CreationRequest(TestArticles.Dragon.creation)
     val slug = TestArticles.Dragon.response.slug
@@ -292,7 +292,7 @@ class ArticleTests {
     val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
     userRepo.create(notAuthor).unsafeRunSync()
 
-    client.delete("/api/articles/$slug", notAuthor.token).then().statusCode(401)
+    client.delete("/api/articles/$slug", notAuthor.token).then().statusCode(403)
   }
 
   @Test
@@ -430,7 +430,7 @@ class ArticleTests {
     userRepo.create(notAuthor).unsafeRunSync()
 
     val updateReq = UpdateRequest(UpdateDto(description = "updated"))
-    client.put("/api/articles/$slug", updateReq, notAuthor.token).then().statusCode(401)
+    client.put("/api/articles/$slug", updateReq, notAuthor.token).then().statusCode(403)
   }
 
   @Test

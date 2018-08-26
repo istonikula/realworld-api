@@ -31,6 +31,9 @@ class ErrorHandler {
     }
   }
 
+  @ExceptionHandler(ForbiddenException::class)
+  fun forbidden() = handleError(HttpStatus.FORBIDDEN)
+
   @ExceptionHandler(UnauthorizedException::class)
   fun unauthorized() = handleError(HttpStatus.UNAUTHORIZED)
 

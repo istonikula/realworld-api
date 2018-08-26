@@ -3,6 +3,7 @@ package io.realworld
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
+import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.ValidUserRegistration
@@ -43,6 +44,15 @@ class ApiClient(val spec: RequestSpecification, val defaultToken: String? = null
 }
 
 class FixtureFactory(val auth: Auth) {
+  fun validTestArticleCreation() = ValidArticleCreation(
+    id = UUID.randomUUID(),
+    slug = "how-to-train-your-dragon",
+    title = "How to train your dragon",
+    description = "Ever wonder how?",
+    body = "You have to believe",
+    tagList = listOf("reactjs", "angularjs", "dragons")
+  )
+
   fun validTestUserRegistration(username: String, email: String): ValidUserRegistration {
     val id = UUID.randomUUID()
     return ValidUserRegistration(

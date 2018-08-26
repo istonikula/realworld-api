@@ -7,7 +7,8 @@ import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.ValidUserUpdate
-import io.realworld.persistence.UserTbl.eq
+import io.realworld.persistence.Dsl.eq
+import io.realworld.persistence.Dsl.set
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
@@ -17,6 +18,7 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
 
   fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     User(
+      id = UUID.fromString(rs.getString(id)),
       email = rs.getString(email),
       token = rs.getString(token),
       username = rs.getString(username),
