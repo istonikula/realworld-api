@@ -240,7 +240,7 @@ class ArticleRepository(
   }
 
   private fun insertArticleTags(articleId: UUID, tags: List<String>) = with(ArticleTagTbl) {
-    val sql = table.insert(article_id, tag) // TODO add on conflict
+    val sql = table.insert(article_id, tag)
     val params = tags.map {
       mapOf(
         article_id to articleId,
