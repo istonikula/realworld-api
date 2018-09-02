@@ -4,6 +4,7 @@ import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.articles.Article
+import io.realworld.domain.articles.ArticleCommentDeleteError
 import io.realworld.domain.articles.ArticleCommentError
 import io.realworld.domain.articles.ArticleDeleteError
 import io.realworld.domain.articles.ArticleFavoriteError
@@ -17,6 +18,8 @@ import io.realworld.domain.articles.CreateArticleUseCase
 import io.realworld.domain.articles.CreateUniqueSlugService
 import io.realworld.domain.articles.DeleteArticleCommand
 import io.realworld.domain.articles.DeleteArticleUseCase
+import io.realworld.domain.articles.DeleteCommentCommand
+import io.realworld.domain.articles.DeleteCommentUseCase
 import io.realworld.domain.articles.FavoriteArticleCommand
 import io.realworld.domain.articles.FavoriteUseCase
 import io.realworld.domain.articles.GetArticleCommand
@@ -226,6 +229,30 @@ class ArticleController(
         }
       },
       { ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.fromDomain(it)) }
+    )
+  }
+
+  @DeleteMapping("/api/articles/{slug}/comments/{id}")
+  fun deleteComment(
+    @PathVariable("slug") slug: String,
+    @PathVariable("id") commentId: Long,
+    user: User
+  ): ResponseEntity<Void> {
+    return object : DeleteCommentUseCase {
+      override val getArticleBySlug = articleRepo::getBySlug
+      override val deleteComment = articleRepo::deleteComment
+      override val getComment = articleRepo::getComment
+    }.run {
+      DeleteCommentCommand(slug, commentId, user).runUseCase()
+    }.runWriteTx(txManager).fold(
+      {
+        when (it) {
+          is ArticleCommentDeleteError.ArticleNotFound -> ResponseEntity.notFound().build()
+          is ArticleCommentDeleteError.CommentNotFound -> ResponseEntity.notFound().build()
+          is ArticleCommentDeleteError.NotAuthor -> ResponseEntity.status(403).build()
+        }
+      },
+      { ResponseEntity.noContent().build() }
     )
   }
 }

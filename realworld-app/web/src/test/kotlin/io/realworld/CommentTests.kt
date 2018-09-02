@@ -1,6 +1,7 @@
 package io.realworld
 
 import io.realworld.articles.CommentDto
+import io.realworld.articles.CommentResponse
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
@@ -23,6 +24,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.jdbc.JdbcTestUtils
 
 data class CommentRequest(val comment: CommentDto)
+
+object TestComments {
+  object Jacobian {
+    val req = CommentRequest(CommentDto("It takes a Jacobian"))
+  }
+}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(SpringExtension::class)
@@ -72,9 +79,7 @@ class CommentTests {
     val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
-    val req = CommentRequest(CommentDto("It takes a Jacobian"))
-
-    cheetaClient.post("/api/articles/${janesArticle.slug}/comments", req)
+    cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
       .statusCode(201)
   }
@@ -83,8 +88,7 @@ class CommentTests {
   fun `comment article, not found`() {
     val cheeta = createUser("cheeta")
     val cheetaClient = ApiClient(spec, cheeta.token)
-    val req = CommentRequest(CommentDto("It takes a Jacobian"))
-    cheetaClient.post("/api/articles/non-existent/comments", req)
+    cheetaClient.post("/api/articles/non-existent/comments", TestComments.Jacobian.req)
       .then()
       .statusCode(404)
   }
@@ -96,9 +100,7 @@ class CommentTests {
     val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
 
     val janeClient = ApiClient(spec, jane.token)
-    val req = CommentRequest(CommentDto("It takes a Jacobian"))
-
-    janeClient.post("/api/articles/${janesArticle.slug}/comments", req)
+    janeClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
       .statusCode(201)
   }
@@ -112,16 +114,101 @@ class CommentTests {
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
-    var req = CommentRequest(CommentDto("It takes a Jacobian"))
-    cheetaClient.post("/api/articles/${janesArticle.slug}/comments", req)
+    cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
       .statusCode(201)
 
-    req = CommentRequest(CommentDto("... or a chimpanzee"))
+    val req = CommentRequest(CommentDto("... or a chimpanzee"))
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", req)
       .then()
       .statusCode(201)
   }
+
+  @Test
+  fun `comment article requires auth`() {
+    val jane = createUser("jane")
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    ApiClient(spec).post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
+      .then()
+      .statusCode(401)
+  }
+
+  @Test
+  fun `delete comment`() {
+    val cheeta = createUser("cheeta")
+    val jane = createUser("jane")
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    val cheetaClient = ApiClient(spec, cheeta.token)
+
+    val commentId = cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
+      .then()
+      .statusCode(201)
+      .toDto<CommentResponse>()
+      .comment.id
+
+    cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/${commentId}")
+      .then()
+      .statusCode(204)
+  }
+
+  @Test
+  fun `delete comment, article not found`() {
+    val cheeta = createUser("cheeta")
+    val jane = createUser("jane")
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    val cheetaClient = ApiClient(spec, cheeta.token)
+
+    val commentId = cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
+      .then()
+      .statusCode(201)
+      .toDto<CommentResponse>()
+      .comment.id
+
+    cheetaClient.delete("/api/articles/not-found/comments/$commentId")
+      .then()
+      .statusCode(404)
+  }
+
+  @Test
+  fun `delete comment, comment not found`() {
+    val cheeta = createUser("cheeta")
+    val jane = createUser("jane")
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    val cheetaClient = ApiClient(spec, cheeta.token)
+    cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/${Long.MAX_VALUE}")
+      .then()
+      .statusCode(404)
+  }
+
+  @Test
+  fun `delete comment, not comment author`() {
+    val cheeta = createUser("cheeta")
+    val jane = createUser("jane")
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    val janeClient = ApiClient(spec, jane.token)
+    val cheetaClient = ApiClient(spec, cheeta.token)
+
+    val commentId = cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
+      .then()
+      .statusCode(201)
+      .toDto<CommentResponse>()
+      .comment.id
+
+    janeClient.delete("/api/articles/${janesArticle.slug}/comments/${commentId}")
+      .then()
+      .statusCode(403)
+  }
+
+  // TODO should article author be allowed to delete any comment?
 
   private fun createUser(username: String) =
     userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()

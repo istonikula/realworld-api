@@ -185,10 +185,28 @@ class ArticleRepository(
     }
   }
 
+  fun getComment(commentId: Long, user: User): IO<Option<Comment>> = IO {
+    ForOption extensions {
+      binding {
+        val row = fetchCommentRowById(commentId).bind()
+        val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
+        Comment.from(row, deps)
+      }.fix()
+    }
+  }
+
   fun addComment(articleId: UUID, comment: String, user: User): IO<Comment> = IO {
     val row = insertCommentRow(articleId, comment, user)
     val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
     Comment.from(row, deps)
+  }
+
+  fun deleteComment(commentId: Long): IO<Int> = with(ArticleCommentTbl) {
+    val sql = "DELETE FROM $table WHERE ${id.eq()}"
+    val params = mapOf(id to commentId)
+    IO {
+      jdbcTemplate.update(sql, params)
+    }
   }
 
   private fun insertCommentRow(articleId: UUID, comment: String, user: User) = with(ArticleCommentTbl) {
@@ -199,6 +217,14 @@ class ArticleRepository(
       article_id to articleId
     )
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> CommentRow.fromRs(rs) })!!
+  }
+
+  private fun fetchCommentRowById(commentId: Long) = with(ArticleCommentTbl) {
+    val sql = "SELECT * FROM $table WHERE ${id.eq()}"
+    val params = mapOf(id to commentId)
+    DataAccessUtils.singleResult(
+      jdbcTemplate.query(sql, params, { rs, _ -> CommentRow.fromRs(rs) })
+    ).toOption()
   }
 
   private fun updateArticleRow(update: ValidArticleUpdate): ArticleRow = with(ArticleTbl) {

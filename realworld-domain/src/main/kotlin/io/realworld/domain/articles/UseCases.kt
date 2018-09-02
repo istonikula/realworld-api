@@ -25,6 +25,7 @@ data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val u
 data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
 data class CommentArticleCommand(val slug: String, val comment: String, val user: User)
+data class DeleteCommentCommand(val slug: String, val commentId: Long, val user: User)
 
 sealed class ArticleUpdateError {
   object NotAuthor : ArticleUpdateError()
@@ -47,6 +48,12 @@ sealed class ArticleUnfavoriteError {
 
 sealed class ArticleCommentError {
   object NotFound : ArticleCommentError()
+}
+
+sealed class ArticleCommentDeleteError {
+  object ArticleNotFound : ArticleCommentDeleteError()
+  object CommentNotFound : ArticleCommentDeleteError()
+  object NotAuthor : ArticleCommentDeleteError()
 }
 
 interface CreateArticleUseCase {
@@ -181,6 +188,35 @@ interface CommentUseCase {
         getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
           { ArticleCommentError.NotFound.left() },
           { addComment(it.id, cmd.comment, cmd.user).bind().right() }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface DeleteCommentUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val getComment: GetComment
+  val deleteComment: DeleteComment
+
+  fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+          { ArticleCommentDeleteError.ArticleNotFound.left() },
+          {
+            val comment = getComment(cmd.commentId, cmd.user).bind()
+            comment.fold(
+              { ArticleCommentDeleteError.CommentNotFound.left() },
+              {
+                if (it.author.username != cmd.user.username)
+                  ArticleCommentDeleteError.NotAuthor.left()
+                else
+                  deleteComment(cmd.commentId).bind().right()
+              }
+            )
+          }
         )
       }.fix()
     }
