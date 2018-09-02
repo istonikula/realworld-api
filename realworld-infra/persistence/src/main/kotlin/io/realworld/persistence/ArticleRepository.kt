@@ -10,6 +10,7 @@ import arrow.effects.IO
 import arrow.instances.extensions
 import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
+import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.profiles.Profile
@@ -23,7 +24,7 @@ import java.sql.ResultSet
 import java.time.Instant
 import java.util.UUID
 
-data class ArticleRow(
+private data class ArticleRow(
   val id: UUID,
   val slug: String,
   val title: String,
@@ -49,7 +50,7 @@ data class ArticleRow(
   }
 }
 
-data class ArticleDeps(
+private data class ArticleDeps(
   val tagList: MutableList<String> = mutableListOf(),
   var author: Profile? = null,
   var favorited: Boolean = false,
@@ -71,31 +72,61 @@ private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article
   author = deps.author!!
 )
 
+private data class CommentRow(
+  val id: Long,
+  val createdAt: Instant,
+  val updatedAt: Instant,
+  val body: String,
+  val authorId: UUID
+) {
+  companion object {
+    fun fromRs(rs: ResultSet) = with(ArticleCommentTbl) {
+      CommentRow(
+        id = rs.getLong(id),
+        createdAt = rs.getTimestamp(ArticleTbl.created_at).toInstant(),
+        updatedAt = rs.getTimestamp(ArticleTbl.updated_at).toInstant(),
+        body = rs.getString(body),
+        authorId = UUID.fromString(rs.getString(author))
+      )
+    }
+  }
+}
+
+private data class CommentDeps(
+  val author: Profile
+)
+
+private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment(
+  id = row.id,
+  createdAt = row.createdAt,
+  updatedAt = row.updatedAt,
+  body = row.body,
+  author = deps.author
+)
+
 class ArticleRepository(
   val jdbcTemplate: NamedParameterJdbcTemplate,
   val userRepo: UserRepository
 ) {
 
-  fun create(article: ValidArticleCreation, user: User): IO<Article> {
-    return IO {
-      val row = insertArticleRow(article, user)
+  fun create(article: ValidArticleCreation, user: User): IO<Article> = IO {
+    val row = insertArticleRow(article, user)
 
-      val deps = ArticleDeps()
-      deps.author = Profile(
-        username = user.username,
-        bio = user.bio.toOption(),
-        image = user.image.toOption(),
-        following = false.toOption()
-      )
+    val deps = ArticleDeps()
+    deps.author = Profile(
+      username = user.username,
+      bio = user.bio.toOption(),
+      image = user.image.toOption(),
+      following = false.toOption()
+    )
 
-      if (article.tagList.isNotEmpty()) {
-        insertTags(article.tagList)
-        insertArticleTags(article.id, article.tagList)
-        deps.tagList.addAll(article.tagList)
-      }
-
-      Article.from(row, deps)
+    if (article.tagList.isNotEmpty()) {
+      insertTags(article.tagList)
+      insertArticleTags(article.id, article.tagList)
+      deps.tagList.addAll(article.tagList)
     }
+
+    Article.from(row, deps)
   }
 
   fun existsBySlug(slug: String): IO<Boolean> = ArticleTbl.let {
@@ -126,18 +157,16 @@ class ArticleRepository(
     }
   }
 
-  fun updateArticle(update: ValidArticleUpdate, user: User): IO<Article> {
-    return IO {
-      val row = updateArticleRow(update)
+  fun updateArticle(update: ValidArticleUpdate, user: User): IO<Article> = IO {
+    val row = updateArticleRow(update)
 
-      val deps = ArticleDeps()
-      deps.favorited = isFavorited(row.id, user).unsafeRunSync()
-      deps.favoritesCount = fetchFavoritesCount(row.id)
-      deps.tagList.addAll(fetchArticleTags(row.id))
-      deps.author = fetchAuthor(row.authorId, user.some())
+    val deps = ArticleDeps()
+    deps.favorited = isFavorited(row.id, user).unsafeRunSync()
+    deps.favoritesCount = fetchFavoritesCount(row.id)
+    deps.tagList.addAll(fetchArticleTags(row.id))
+    deps.author = fetchAuthor(row.authorId, user.some())
 
-      Article.from(row, deps)
-    }
+    Article.from(row, deps)
   }
 
   fun addFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
@@ -154,6 +183,22 @@ class ArticleRepository(
     IO {
       jdbcTemplate.update(sql, params)
     }
+  }
+
+  fun addComment(articleId: UUID, comment: String, user: User): IO<Comment> = IO {
+    val row = insertCommentRow(articleId, comment, user)
+    val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
+    Comment.from(row, deps)
+  }
+
+  private fun insertCommentRow(articleId: UUID, comment: String, user: User) = with(ArticleCommentTbl) {
+    val sql = "${table.insert(body, author, article_id)} RETURNING *"
+    val params = mapOf(
+      body to comment,
+      author to user.id,
+      article_id to articleId
+    )
+    jdbcTemplate.queryForObject(sql, params, { rs, _ -> CommentRow.fromRs(rs) })!!
   }
 
   private fun updateArticleRow(update: ValidArticleUpdate): ArticleRow = with(ArticleTbl) {

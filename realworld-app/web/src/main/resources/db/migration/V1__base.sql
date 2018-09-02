@@ -59,3 +59,18 @@ CREATE TABLE article_favorites (
   CONSTRAINT fk$article_id FOREIGN KEY (article_id) REFERENCES articles ON DELETE CASCADE,
   CONSTRAINT fk$user_id FOREIGN KEY (user_id) REFERENCES users ON DELETE CASCADE
 );
+
+-- NOTE: for acticle scoped comment ids, separate counter table having row for each article would work.
+-- Details:
+-- https://dba.stackexchange.com/questions/93296/how-can-i-implement-a-sequence-for-each-foreign-key-value
+CREATE TABLE article_comments (
+  id BIGSERIAL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  body TEXT NOT NULL,
+  author UUID NOT NULL,
+  article_id UUID NOT NULL,
+
+  CONSTRAINT pk$article_comments PRIMARY KEY (id),
+  CONSTRAINT fk$article_id FOREIGN KEY (article_id) REFERENCES articles ON DELETE CASCADE
+);

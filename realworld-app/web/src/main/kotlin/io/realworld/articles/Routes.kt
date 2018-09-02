@@ -4,10 +4,14 @@ import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.articles.Article
+import io.realworld.domain.articles.ArticleCommentError
 import io.realworld.domain.articles.ArticleDeleteError
 import io.realworld.domain.articles.ArticleFavoriteError
 import io.realworld.domain.articles.ArticleUnfavoriteError
 import io.realworld.domain.articles.ArticleUpdateError
+import io.realworld.domain.articles.Comment
+import io.realworld.domain.articles.CommentArticleCommand
+import io.realworld.domain.articles.CommentUseCase
 import io.realworld.domain.articles.CreateArticleCommand
 import io.realworld.domain.articles.CreateArticleUseCase
 import io.realworld.domain.articles.CreateUniqueSlugService
@@ -45,6 +49,20 @@ import javax.validation.Valid
 data class ArticleResponse(val article: ArticleResponseDto) {
   companion object {
     fun fromDomain(domain: Article) = ArticleResponse(ArticleResponseDto.fromDomain(domain))
+  }
+}
+
+data class CommentResponse(val comment: CommentResponseDto) {
+  companion object {
+    fun fromDomain(domain: Comment) = CommentResponse(CommentResponseDto.fromDomain(domain))
+  }
+}
+
+data class CommentsResponse(val comments: List<CommentResponseDto>) {
+  companion object {
+    fun fromDomain(domain: List<Comment>) = CommentsResponse(
+      domain.map { CommentResponseDto.fromDomain(it) }
+    )
   }
 }
 
@@ -187,6 +205,27 @@ class ArticleController(
         }
       },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+    )
+  }
+
+  @PostMapping("/api/articles/{slug}/comments")
+  fun comment(
+    @PathVariable("slug") slug: String,
+    @Valid @RequestBody comment: CommentDto,
+    user: User
+  ): ResponseEntity<CommentResponse> {
+    return object : CommentUseCase {
+      override val getArticleBySlug = articleRepo::getBySlug
+      override val addComment = articleRepo::addComment
+    }.run {
+      CommentArticleCommand(slug, comment.body, user).runUsecase()
+    }.runWriteTx(txManager).fold(
+      {
+        when (it) {
+          is ArticleCommentError.NotFound -> ResponseEntity.notFound().build()
+        }
+      },
+      { ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.fromDomain(it)) }
     )
   }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonRootName
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleCreation
 import io.realworld.domain.articles.ArticleUpdate
+import io.realworld.domain.articles.Comment
 import io.realworld.profiles.ProfileResponseDto
 import java.time.Instant
 import javax.validation.constraints.NotBlank
@@ -71,4 +72,27 @@ data class UpdateDto(
     description = description.toOption(),
     body = body.toOption()
   )
+}
+
+@JsonRootName("comment")
+data class CommentDto(val body: String)
+
+data class CommentResponseDto(
+  val id: Long,
+  val createdAt: Instant,
+  val updatedAt: Instant,
+  val body: String,
+  val author: ProfileResponseDto
+) {
+  companion object {
+    fun fromDomain(domain: Comment) = with(domain) {
+      CommentResponseDto(
+        id = id,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        body = body,
+        author = ProfileResponseDto.fromDomain(author)
+      )
+    }
+  }
 }
