@@ -21,3 +21,8 @@ typealias DeleteArticle = (id: UUID) -> IO<Int>
 
 typealias AddFavorite = (articleId: UUID, user: User) -> IO<Int>
 typealias RemoveFavorite = (articleId: UUID, user: User) -> IO<Int>
+
+typealias AddComment = (articleId: UUID, comment: String, user: User) -> IO<Comment>
+typealias DeleteComment = (id: Long) -> IO<Int>
+typealias GetComment = (id: Long, user: User) -> IO<Option<Comment>>
+typealias GetComments = (articleId: UUID, user: Option<User>) -> IO<List<Comment>>

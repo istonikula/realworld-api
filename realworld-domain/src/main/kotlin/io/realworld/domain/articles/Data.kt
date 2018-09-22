@@ -48,3 +48,11 @@ data class Article(
   val createdAt: Instant,
   val updatedAt: Instant
 ) { companion object }
+
+data class Comment(
+  val id: Long,
+  val createdAt: Instant,
+  val updatedAt: Instant,
+  val body: String,
+  val author: Profile
+) { companion object }

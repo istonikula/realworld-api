@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.none
 import arrow.core.right
 import arrow.core.some
 import arrow.data.EitherT
@@ -24,6 +25,9 @@ data class GetArticleCommand(val slug: String, val user: Option<User>)
 data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val user: User)
 data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
+data class CommentArticleCommand(val slug: String, val comment: String, val user: User)
+data class DeleteCommentCommand(val slug: String, val commentId: Long, val user: User)
+data class GetCommentsCommand(val slug: String, val user: Option<User>)
 
 sealed class ArticleUpdateError {
   object NotAuthor : ArticleUpdateError()
@@ -42,6 +46,16 @@ sealed class ArticleFavoriteError {
 
 sealed class ArticleUnfavoriteError {
   object NotFound : ArticleUnfavoriteError()
+}
+
+sealed class ArticleCommentError {
+  object NotFound : ArticleCommentError()
+}
+
+sealed class ArticleCommentDeleteError {
+  object ArticleNotFound : ArticleCommentDeleteError()
+  object CommentNotFound : ArticleCommentDeleteError()
+  object NotAuthor : ArticleCommentDeleteError()
 }
 
 interface CreateArticleUseCase {
@@ -159,6 +173,69 @@ interface UnfavoriteUseCase {
               }
             }
           }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface CommentUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val addComment: AddComment
+
+  fun CommentArticleCommand.runUsecase(): IO<Either<ArticleCommentError, Comment>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+          { ArticleCommentError.NotFound.left() },
+          { addComment(it.id, cmd.comment, cmd.user).bind().right() }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface DeleteCommentUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val getComment: GetComment
+  val deleteComment: DeleteComment
+
+  fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+          { ArticleCommentDeleteError.ArticleNotFound.left() },
+          {
+            val comment = getComment(cmd.commentId, cmd.user).bind()
+            comment.fold(
+              { ArticleCommentDeleteError.CommentNotFound.left() },
+              {
+                if (it.author.username != cmd.user.username)
+                  ArticleCommentDeleteError.NotAuthor.left()
+                else
+                  deleteComment(cmd.commentId).bind().right()
+              }
+            )
+          }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface GetCommentsUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val getComments: GetComments
+
+  fun GetCommentsCommand.runUseCase(): IO<Option<List<Comment>>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user).bind().fold(
+          { none<List<Comment>>() },
+          { getComments(it.id, cmd.user).bind().some() }
         )
       }.fix()
     }

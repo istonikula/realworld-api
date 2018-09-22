@@ -19,8 +19,9 @@ references:
       - image: circleci/openjdk:8-jdk
       - image: postgres:9.6-alpine
         environment:
-          POSTGRES_USER: realworld
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: secret
+          POSTGRES_DB: realworld
 
   repo_cache_key: &repo_cache_key
     v1-repo-{{ .Branch }}-{{ .Revision }}
@@ -49,6 +50,9 @@ jobs:
           paths:
             - .
       - *restore_deps
+      - run: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get install postgresql-client
+      - run: psql -U postgres -h localhost -p 5432 -c "CREATE USER realworld WITH PASSWORD 'secret';"
       - run: ./gradlew --no-daemon flywayMigrate
       - run: ./gradlew --no-daemon clean build
       - save_cache:
