@@ -24,6 +24,8 @@ import io.realworld.domain.articles.FavoriteArticleCommand
 import io.realworld.domain.articles.FavoriteUseCase
 import io.realworld.domain.articles.GetArticleCommand
 import io.realworld.domain.articles.GetArticleUseCase
+import io.realworld.domain.articles.GetCommentsCommand
+import io.realworld.domain.articles.GetCommentsUseCase
 import io.realworld.domain.articles.UnfavoriteArticleCommand
 import io.realworld.domain.articles.UnfavoriteUseCase
 import io.realworld.domain.articles.UpdateArticleCommand
@@ -208,6 +210,29 @@ class ArticleController(
         }
       },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+    )
+  }
+
+  @GetMapping("/api/articles/{slug}/comments")
+  fun getComments(
+    @PathVariable("slug") slug: String,
+    webRequest: NativeWebRequest
+  ): ResponseEntity<CommentsResponse> {
+
+    val user = JwtTokenResolver(auth::parse)(
+      webRequest.authHeader()
+    ).toOption().flatMap {
+      userRepo.findById(it.id).unsafeRunSync().map { it.user }
+    }
+
+    return object : GetCommentsUseCase {
+      override val getArticleBySlug = articleRepo::getBySlug
+      override val getComments = articleRepo::getComments
+    }.run {
+      GetCommentsCommand(slug, user).runUseCase()
+    }.runReadTx(txManager).fold(
+      { ResponseEntity.notFound().build() },
+      { ResponseEntity.ok(CommentsResponse.fromDomain(it)) }
     )
   }
 

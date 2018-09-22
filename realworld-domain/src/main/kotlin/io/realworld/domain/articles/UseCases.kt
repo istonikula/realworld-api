@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.none
 import arrow.core.right
 import arrow.core.some
 import arrow.data.EitherT
@@ -26,6 +27,7 @@ data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
 data class CommentArticleCommand(val slug: String, val comment: String, val user: User)
 data class DeleteCommentCommand(val slug: String, val commentId: Long, val user: User)
+data class GetCommentsCommand(val slug: String, val user: Option<User>)
 
 sealed class ArticleUpdateError {
   object NotAuthor : ArticleUpdateError()
@@ -217,6 +219,23 @@ interface DeleteCommentUseCase {
               }
             )
           }
+        )
+      }.fix()
+    }
+  }
+}
+
+interface GetCommentsUseCase {
+  val getArticleBySlug: GetArticleBySlug
+  val getComments: GetComments
+
+  fun GetCommentsCommand.runUseCase(): IO<Option<List<Comment>>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        getArticleBySlug(cmd.slug, cmd.user).bind().fold(
+          { none<List<Comment>>() },
+          { getComments(it.id, cmd.user).bind().some() }
         )
       }.fix()
     }

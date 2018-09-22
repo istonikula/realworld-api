@@ -1,7 +1,6 @@
 # TODO
 
 ## Pending features
-* comments
 * list articles
 * feed articles
 * list all tags

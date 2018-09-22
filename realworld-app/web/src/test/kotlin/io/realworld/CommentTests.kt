@@ -11,6 +11,7 @@ import io.restassured.filter.log.RequestLoggingFilter
 import io.restassured.filter.log.ResponseLoggingFilter
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
+import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -149,7 +150,7 @@ class CommentTests {
       .toDto<CommentResponse>()
       .comment.id
 
-    cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/${commentId}")
+    cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/$commentId")
       .then()
       .statusCode(204)
   }
@@ -203,14 +204,59 @@ class CommentTests {
       .toDto<CommentResponse>()
       .comment.id
 
-    janeClient.delete("/api/articles/${janesArticle.slug}/comments/${commentId}")
+    janeClient.delete("/api/articles/${janesArticle.slug}/comments/$commentId")
       .then()
       .statusCode(403)
   }
 
   // TODO should article author be allowed to delete any comment?
 
+  @Test
+  fun `get comments`() {
+    val cheeta = createUser("cheeta")
+    val jane = createUser("jane")
+    val tarzan = createUser("tarzan")
+
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+
+    val tarzanClient = ApiClient(spec, tarzan.token)
+    tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
+      .then()
+      .statusCode(200)
+      .body("comments.isEmpty()", equalTo(true))
+
+    val cheetaClient = ApiClient(spec, cheeta.token)
+    cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
+      .then()
+      .statusCode(201)
+
+    tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
+      .then()
+      .statusCode(200)
+      .body("comments[0].author.username", equalTo("cheeta"))
+      .body("comments[0].author.following", equalTo(false))
+
+    tarzanClient.post<Any>("/api/profiles/cheeta/follow")
+      .then()
+      .statusCode(200)
+
+    tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
+      .then()
+      .statusCode(200)
+      .body("comments[0].author.username", equalTo("cheeta"))
+      .body("comments[0].author.following", equalTo(true))
+
+    tarzanClient.get("/api/articles/${janesArticle.slug}/comments", null)
+      .then()
+      .statusCode(200)
+      .body("comments[0].author.username", equalTo("cheeta"))
+      .body("comments[0].author.following", equalTo(null))
+
+    tarzanClient.get("/api/articles/not-found/comments")
+      .then()
+      .statusCode(404)
+  }
+
   private fun createUser(username: String) =
     userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()
-
 }

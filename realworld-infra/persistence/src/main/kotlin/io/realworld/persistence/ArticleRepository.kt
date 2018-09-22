@@ -209,6 +209,16 @@ class ArticleRepository(
     }
   }
 
+  fun getComments(articleId: UUID, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
+    val sql = "SELECT * from $table WHERE ${article_id.eq()}"
+    val params = mapOf(article_id to articleId)
+    IO {
+      jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }.map {
+        Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user)))
+      }
+    }
+  }
+
   private fun insertCommentRow(articleId: UUID, comment: String, user: User) = with(ArticleCommentTbl) {
     val sql = "${table.insert(body, author, article_id)} RETURNING *"
     val params = mapOf(
