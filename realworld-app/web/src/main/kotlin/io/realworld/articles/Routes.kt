@@ -51,6 +51,14 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.context.request.NativeWebRequest
 import javax.validation.Valid
 
+data class ArticlesResponse(val articles: List<ArticleResponseDto>) {
+  companion object {
+    fun fromDomain(domain: List<Article>) = ArticlesResponse(
+      domain.map { ArticleResponseDto.fromDomain(it) }
+    )
+  }
+}
+
 data class ArticleResponse(val article: ArticleResponseDto) {
   companion object {
     fun fromDomain(domain: Article) = ArticleResponse(ArticleResponseDto.fromDomain(domain))
@@ -95,6 +103,13 @@ class ArticleController(
     }.runWriteTx(txManager).let {
       ResponseEntity.status(HttpStatus.CREATED).body(ArticleResponse.fromDomain(it))
     }
+  }
+
+  @GetMapping("/api/articles")
+  fun listArticles(
+    filter: ArticleFilter
+  ): ResponseEntity<ArticlesResponse> {
+    return ResponseEntity.ok(ArticlesResponse.fromDomain(listOf()))
   }
 
   @GetMapping("/api/articles/{slug}")
