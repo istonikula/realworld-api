@@ -8,6 +8,7 @@ import io.realworld.domain.articles.ArticleCommentDeleteError
 import io.realworld.domain.articles.ArticleCommentError
 import io.realworld.domain.articles.ArticleDeleteError
 import io.realworld.domain.articles.ArticleFavoriteError
+import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleUnfavoriteError
 import io.realworld.domain.articles.ArticleUpdateError
 import io.realworld.domain.articles.Comment
@@ -24,6 +25,8 @@ import io.realworld.domain.articles.FavoriteArticleCommand
 import io.realworld.domain.articles.FavoriteUseCase
 import io.realworld.domain.articles.GetArticleCommand
 import io.realworld.domain.articles.GetArticleUseCase
+import io.realworld.domain.articles.GetArticlesCommand
+import io.realworld.domain.articles.GetArticlesUseCase
 import io.realworld.domain.articles.GetCommentsCommand
 import io.realworld.domain.articles.GetCommentsUseCase
 import io.realworld.domain.articles.UnfavoriteArticleCommand
@@ -51,10 +54,14 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.context.request.NativeWebRequest
 import javax.validation.Valid
 
-data class ArticlesResponse(val articles: List<ArticleResponseDto>) {
+data class ArticlesResponse(
+  val articles: List<ArticleResponseDto>,
+  val articlesCount: Long
+) {
   companion object {
-    fun fromDomain(domain: List<Article>) = ArticlesResponse(
-      domain.map { ArticleResponseDto.fromDomain(it) }
+    fun fromDomain(domain: Pair<List<Article>, Long>) = ArticlesResponse(
+      domain.first.map { ArticleResponseDto.fromDomain(it) },
+      domain.second
     )
   }
 }
@@ -107,9 +114,24 @@ class ArticleController(
 
   @GetMapping("/api/articles")
   fun listArticles(
-    filter: ArticleFilter
+    filter: ArticleFilter,
+    webRequest: NativeWebRequest
   ): ResponseEntity<ArticlesResponse> {
-    return ResponseEntity.ok(ArticlesResponse.fromDomain(listOf()))
+
+    val user = JwtTokenResolver(auth::parse)(
+      webRequest.authHeader()
+    ).toOption().flatMap {
+      userRepo.findById(it.id).unsafeRunSync().map { it.user }
+    }
+
+    return object : GetArticlesUseCase {
+      override val getArticles = articleRepo::getArticles
+      override val getArticlesCount = articleRepo::getArticlesCount
+    }.run {
+        GetArticlesCommand(filter, user).runUseCase()
+    }.runReadTx(txManager).let {
+      ResponseEntity.ok(ArticlesResponse.fromDomain(it))
+    }
   }
 
   @GetMapping("/api/articles/{slug}")

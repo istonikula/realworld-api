@@ -10,6 +10,7 @@ import arrow.effects.IO
 import arrow.instances.extensions
 import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
+import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
@@ -219,6 +220,23 @@ class ArticleRepository(
     }
   }
 
+  fun getArticles(filter: ArticleFilter, user: Option<User>): IO<List<Article>> = IO {
+    val rows = fetchArticleRows(filter)
+    // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
+    rows.map { row ->
+        val deps = ArticleDeps()
+        deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
+        deps.favoritesCount = fetchFavoritesCount(row.id)
+        deps.tagList.addAll(fetchArticleTags(row.id))
+        deps.author = fetchAuthor(row.authorId, user)
+        Article.from(row, deps)
+    }
+  }
+
+  fun getArticlesCount(filter: ArticleFilter, user: Option<User>): IO<Long> = IO {
+    fetchArticleRowCount(filter)
+  }
+
   private fun insertCommentRow(articleId: UUID, comment: String, user: User) = with(ArticleCommentTbl) {
     val sql = "${table.insert(body, author, article_id)} RETURNING *"
     val params = mapOf(
@@ -273,6 +291,18 @@ class ArticleRepository(
     DataAccessUtils.singleResult(
       jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
     ).toOption()
+  }
+
+  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> = ArticleTbl.let {
+    val sql = "SELECT * FROM ${it.table} ORDER BY ${it.updated_at} DESC LIMIT :limit OFFSET :offset"
+    val params = mapOf("limit" to filter.limit, "offset" to filter.offset)
+    jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+  }
+
+  private fun fetchArticleRowCount(filter: ArticleFilter): Long = ArticleTbl.let {
+    val sql = "SELECT count(*) FROM ${it.table}"
+    val params = emptyMap<String, Any>()
+    jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
   }
 
   private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =

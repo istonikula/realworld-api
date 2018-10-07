@@ -56,3 +56,8 @@ data class Comment(
   val body: String,
   val author: Profile
 ) { companion object }
+
+data class ArticleFilter(
+  val limit: Int = 20,
+  val offset: Int = 0
+)

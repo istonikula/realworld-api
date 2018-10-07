@@ -445,4 +445,14 @@ class ArticleTests {
       .then()
       .statusCode(401)
   }
+
+  @Test
+  fun `list articles`() {
+    val client = ApiClient(spec, userAuthor.token)
+
+    val req = CreationRequest(TestArticles.Dragon.creation)
+    val slug = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+
+    client.get("/api/articles", null).then().statusCode(200)
+  }
 }

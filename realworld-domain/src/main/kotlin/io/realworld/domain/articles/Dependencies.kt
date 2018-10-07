@@ -16,6 +16,8 @@ typealias CreateUniqueSlug = (title: String) -> IO<String>
 typealias ExistsBySlug = (slug: String) -> IO<Boolean>
 
 typealias GetArticleBySlug = (slug: String, user: Option<User>) -> IO<Option<Article>>
+typealias GetArticles = (filter: ArticleFilter, user: Option<User>) -> IO<List<Article>>
+typealias GetArticlesCount = (filter: ArticleFilter, user: Option<User>) -> IO<Long>
 
 typealias DeleteArticle = (id: UUID) -> IO<Int>
 
