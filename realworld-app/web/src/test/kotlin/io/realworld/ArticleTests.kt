@@ -2,11 +2,11 @@ package io.realworld
 
 import io.realworld.articles.ArticleResponse
 import io.realworld.articles.ArticleResponseDto
+import io.realworld.articles.ArticlesResponse
 import io.realworld.articles.CreationDto
 import io.realworld.articles.UpdateDto
 import io.realworld.domain.articles.slugify
 import io.realworld.domain.common.Auth
-import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.profiles.ProfileResponseDto
@@ -33,19 +33,25 @@ import java.time.Instant
 data class CreationRequest(val article: CreationDto)
 data class UpdateRequest(val article: UpdateDto)
 
+interface TestUser {
+  val email: String
+  val username: String
+}
+
 object TestUsers {
-  object Author {
-    val email = "foo@realworld.io"
-    val username = "foo"
+  object Jane : TestUser {
+    override val username = "jane"
+    override val email = "$username@realworld.io"
   }
 
-  object NonAuthor {
-    val email = "bar@realworld.io"
-    val username = "bar"
+  object Cheeta : TestUser {
+    override val username = "cheeta"
+    override val email = "$username@realworld.io"
   }
 }
 
 object TestArticles {
+  // TODO add more articles
   object Dragon {
     val creation = CreationDto(
       title = "How to train your dragon",
@@ -54,7 +60,7 @@ object TestArticles {
       tagList = listOf("reactjs", "angularjs", "dragons")
     )
 
-    val response = ArticleResponseDto(
+    fun response(user: TestUser) = ArticleResponseDto(
       slug = "how-to-train-your-dragon",
       title = creation.title,
       description = creation.description,
@@ -63,7 +69,7 @@ object TestArticles {
       favorited = false,
       favoritesCount = 0,
       author = ProfileResponseDto(
-        username = TestUsers.Author.username,
+        username = user.username,
         following = false
       ),
       createdAt = Instant.now(),
@@ -90,14 +96,11 @@ class ArticleTests {
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory
-  lateinit var userAuthor: ValidUserRegistration
 
   @BeforeEach
   fun init() {
     spec = initSpec()
     fixtures = FixtureFactory(auth)
-    userAuthor = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
-    userRepo.create(userAuthor).unsafeRunSync()
   }
 
   fun initSpec() = RequestSpecBuilder()
@@ -114,10 +117,10 @@ class ArticleTests {
 
   @Test
   fun `create article`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
 
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val expected = TestArticles.Dragon.response
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
 
     client.post("/api/articles", req)
       .then()
@@ -138,7 +141,7 @@ class ArticleTests {
 
   @Test
   fun `create article without tags`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
 
     val req = CreationRequest(TestArticles.Dragon.creation.copy(tagList = listOf()))
 
@@ -162,7 +165,7 @@ class ArticleTests {
 
   @Test
   fun `creation of multiple articles with same title results in unique slugs`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
 
     val slug1 = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
@@ -177,7 +180,7 @@ class ArticleTests {
 
   @Test
   fun `create requires title, description and body`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
 
     val req = CreationRequest(TestArticles.Dragon.creation)
 
@@ -217,12 +220,12 @@ class ArticleTests {
 
   @Test
   fun `get by slug`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val janeClient = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val expected = TestArticles.Dragon.response
-    val slug = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
+    val slug = janeClient.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
 
-    client.get("/api/articles/$slug", token = null)
+    janeClient.get("/api/articles/$slug", token = null)
       .then()
       .toDto<ArticleResponse>().apply {
       assertThat(article).isEqualToIgnoringGivenFields(expected,
@@ -231,9 +234,8 @@ class ArticleTests {
       assertThat(article.author.following).isNull()
     }
 
-    val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
-    userRepo.create(notAuthor).unsafeRunSync()
-    client.get("/api/articles/$slug", token = notAuthor.token)
+    val cheetaClient = ApiClient(spec, createUser(TestUsers.Cheeta).token)
+    cheetaClient.get("/api/articles/$slug")
       .then()
       .toDto<ArticleResponse>().apply {
       assertThat(article).isEqualToIgnoringGivenFields(expected,
@@ -242,8 +244,8 @@ class ArticleTests {
       assertThat(article.author.following).isFalse()
     }
 
-    userRepo.addFollower(userAuthor.id, notAuthor.id).unsafeRunSync()
-    client.get("/api/articles/$slug", token = notAuthor.token)
+    cheetaClient.post<Any>("/api/profiles/${TestUsers.Jane.username}/follow")
+    cheetaClient.get("/api/articles/$slug")
       .then()
       .toDto<ArticleResponse>().apply {
         assertThat(article).isEqualToIgnoringGivenFields(expected,
@@ -255,7 +257,7 @@ class ArticleTests {
 
   @Test
   fun `get by slug, not found`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
     client.post("/api/articles", req).then().statusCode(201)
 
@@ -264,9 +266,9 @@ class ArticleTests {
 
   @Test
   fun `delete by slug`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val slug = TestArticles.Dragon.response.slug
+    val slug = TestArticles.Dragon.response(TestUsers.Jane).slug
     client.post("/api/articles", req).then().statusCode(201)
 
     client.delete("/api/articles/$slug").then().statusCode(204)
@@ -275,7 +277,7 @@ class ArticleTests {
 
   @Test
   fun `delete by slug, not found`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
     client.post("/api/articles", req).then().statusCode(201)
 
@@ -284,22 +286,20 @@ class ArticleTests {
 
   @Test
   fun `delete by slug, not author`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val janeClient = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val slug = TestArticles.Dragon.response.slug
-    client.post("/api/articles", req).then().statusCode(201)
+    val slug = TestArticles.Dragon.response(TestUsers.Jane).slug
+    janeClient.post("/api/articles", req).then().statusCode(201)
 
-    val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
-    userRepo.create(notAuthor).unsafeRunSync()
-
-    client.delete("/api/articles/$slug", notAuthor.token).then().statusCode(403)
+    val cheetaClient = ApiClient(spec, createUser(TestUsers.Cheeta).token)
+    cheetaClient.delete("/api/articles/$slug").then().statusCode(403)
   }
 
   @Test
   fun `delete by slug requires auth`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val slug = TestArticles.Dragon.response.slug
+    val slug = TestArticles.Dragon.response(TestUsers.Jane).slug
     client.post("/api/articles", req).then().statusCode(201)
 
     client.delete("/api/articles/$slug", token = null).then().statusCode(401)
@@ -308,10 +308,10 @@ class ArticleTests {
 
   @Test
   fun `update article title`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val expected = TestArticles.Dragon.response
-    val slug = TestArticles.Dragon.response.slug
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
+    val slug = expected.slug
     client.post("/api/articles", req).then().statusCode(201)
 
     val updateReq = UpdateRequest(UpdateDto(title = "updated.${req.article.title}"))
@@ -333,10 +333,10 @@ class ArticleTests {
 
   @Test
   fun `update article description`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val expected = TestArticles.Dragon.response
-    val slug = TestArticles.Dragon.response.slug
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
+    val slug = expected.slug
     client.post("/api/articles", req).then().statusCode(201)
 
     val updateReq = UpdateRequest(UpdateDto(description = "updated.${req.article.description}"))
@@ -356,10 +356,10 @@ class ArticleTests {
 
   @Test
   fun `update article body`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val expected = TestArticles.Dragon.response
-    val slug = TestArticles.Dragon.response.slug
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
+    val slug = expected.slug
     client.post("/api/articles", req).then().statusCode(201)
 
     val updateReq = UpdateRequest(UpdateDto(body = "updated.${req.article.body}"))
@@ -379,10 +379,10 @@ class ArticleTests {
 
   @Test
   fun `update article title, description and body`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val expected = TestArticles.Dragon.response
-    val slug = TestArticles.Dragon.response.slug
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
+    val slug = expected.slug
     client.post("/api/articles", req).then().statusCode(201)
 
     val updateReq = UpdateRequest(UpdateDto(
@@ -412,7 +412,7 @@ class ArticleTests {
 
   @Test
   fun `update article, not found`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val updateReq = UpdateRequest(UpdateDto(description = "updated"))
     client.put("/api/articles/not-found", updateReq)
       .then()
@@ -421,23 +421,21 @@ class ArticleTests {
 
   @Test
   fun `update article, not author`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val janeClient = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val slug = TestArticles.Dragon.response.slug
-    client.post("/api/articles", req).then().statusCode(201)
+    val slug = TestArticles.Dragon.response(TestUsers.Jane).slug
+    janeClient.post("/api/articles", req).then().statusCode(201)
 
-    val notAuthor = with(TestUsers.NonAuthor) { fixtures.validTestUserRegistration(username, email) }
-    userRepo.create(notAuthor).unsafeRunSync()
-
+    val cheetaClient = ApiClient(spec, createUser(TestUsers.Cheeta).token)
     val updateReq = UpdateRequest(UpdateDto(description = "updated"))
-    client.put("/api/articles/$slug", updateReq, notAuthor.token).then().statusCode(403)
+    cheetaClient.put("/api/articles/$slug", updateReq).then().statusCode(403)
   }
 
   @Test
   fun `update article requires auth`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val client = ApiClient(spec, createUser(TestUsers.Jane).token)
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val slug = TestArticles.Dragon.response.slug
+    val slug = TestArticles.Dragon.response(TestUsers.Jane).slug
     client.post("/api/articles", req).then().statusCode(201)
 
     val updateReq = UpdateRequest(UpdateDto(description = "updated.${req.article.description}"))
@@ -448,11 +446,51 @@ class ArticleTests {
 
   @Test
   fun `list articles`() {
-    val client = ApiClient(spec, userAuthor.token)
+    val cheeta = createUser(TestUsers.Cheeta)
+    val jane = createUser(TestUsers.Jane)
+
+    val cheetaClient = ApiClient(spec, cheeta.token)
+    val janeClient = ApiClient(spec, jane.token)
 
     val req = CreationRequest(TestArticles.Dragon.creation)
-    val slug = client.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
+    val expected = TestArticles.Dragon.response(TestUsers.Jane)
+    val slug = janeClient.post("/api/articles", req).then().toDto<ArticleResponse>().article.slug
 
-    client.get("/api/articles", null).then().statusCode(200)
+    cheetaClient.get("/api/articles", null)
+      .then()
+      .statusCode(200)
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+        assertThat(articles[0]).isEqualToIgnoringGivenFields(expected,
+          "author", "createdAt", "updatedAt")
+        assertThat(articles[0].author).isEqualTo(expected.author.copy(following = null))
+      }
+
+    cheetaClient.get("/api/articles")
+      .then()
+      .statusCode(200)
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+        assertThat(articles[0]).isEqualToIgnoringGivenFields(expected,
+          "author", "createdAt", "updatedAt")
+        assertThat(articles[0].author).isEqualTo(expected.author.copy(following = false))
+      }
+
+    cheetaClient.post<Any>("/api/articles/${slug}/favorite").then().statusCode(200)
+    cheetaClient.post<Any>("/api/profiles/${jane.username}/follow").then().statusCode(200)
+
+    cheetaClient.get("/api/articles")
+      .then()
+      .statusCode(200)
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+        assertThat(articles[0]).isEqualToIgnoringGivenFields(expected.copy(favorited = true, favoritesCount = 1L),
+          "author", "createdAt", "updatedAt")
+        assertThat(articles[0].author).isEqualTo(expected.author.copy(following = true))
+      }
   }
+
+  private fun createUser(user: TestUser) =
+    userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)).unsafeRunSync()
 }
+
