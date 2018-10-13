@@ -1,17 +1,17 @@
 buildscript {
   ext {
     arrowVersion = '0.7.3'
-    flywayVersion = '5.1.4'
+    flywayVersion = '5.2.0'
     gradleVersionsPluginVersion = '0.20.0'
-    jacksonKotlinVersion = '2.9.6'
+    jacksonKotlinVersion = '2.9.7'
     jasyptVersion = '1.9.2'
     javaVersion = '1.8'
     jjwtVersion = '0.9.1'
-    kotlinVersion = '1.2.61'
-    ktlintVersion = '0.27.0'
+    kotlinVersion = '1.2.71'
+    ktlintVersion = '0.29.0'
     restAssuredVersion = '3.1.1'
     slugifyVersion = '2.2'
-    springBootVersion = '2.0.4.RELEASE'
+    springBootVersion = '2.0.5.RELEASE'
 
     libs = [
             arrow_core          : "io.arrow-kt:arrow-core:${arrowVersion}",
@@ -209,7 +209,7 @@ project('realworld-infra:persistence') {
 
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
-  gradleVersion = '4.8.1'
+  gradleVersion = '4.10.2'
 }
 
 apply plugin: 'com.github.ben-manes.versions'
