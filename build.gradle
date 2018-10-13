@@ -209,7 +209,7 @@ project('realworld-infra:persistence') {
 
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
-  gradleVersion = '4.8.1'
+  gradleVersion = '4.10.2'
 }
 
 apply plugin: 'com.github.ben-manes.versions'
