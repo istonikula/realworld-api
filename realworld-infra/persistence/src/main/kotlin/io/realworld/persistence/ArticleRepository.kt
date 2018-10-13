@@ -293,15 +293,104 @@ class ArticleRepository(
     ).toOption()
   }
 
-  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> = ArticleTbl.let {
-    val sql = "SELECT * FROM ${it.table} ORDER BY ${it.updated_at} DESC LIMIT :limit OFFSET :offset"
-    val params = mapOf("limit" to filter.limit, "offset" to filter.offset)
-    jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> {
+    val a = ArticleTbl
+    val u = UserTbl
+    val t = ArticleTagTbl
+    val f = ArticleFavoriteTbl
+
+    val joins = mutableListOf<String>()
+    if (filter.author != null) {
+      joins += "${u.table} u ON (u.${u.id} = a.${a.author})"
+    }
+    if (filter.tag != null) {
+      joins += "${t.table} t ON (t.${t.article_id} = a.${a.id})"
+    }
+    if (filter.favorited != null) {
+      joins += "${f.table} f ON (f.${f.article_id} = a.${a.id})"
+    }
+
+    val wheres = mutableListOf<String>()
+    if (filter.author != null) {
+      wheres += "u.${u.username} = :author"
+    }
+    if (filter.tag != null) {
+      wheres += "t.${t.tag} = :tag"
+    }
+    if (filter.favorited != null) {
+      wheres += "f.${f.user_id} = (SELECT ${u.id} from ${u.table} WHERE ${u.username} = :favorited)"
+    }
+
+    val joinsSql = if (joins.isEmpty()) "" else joins.joinToString(prefix = "JOIN ", separator = " JOIN ")
+    val wheresSql = if (wheres.isEmpty()) "" else wheres.joinToString(prefix = "WHERE ", separator = " AND ")
+
+    val sql =
+      "SELECT a.* FROM ${a.table} a ${joinsSql} ${wheresSql} ORDER BY ${a.updated_at} DESC LIMIT :limit OFFSET :offset"
+
+    val params = mutableMapOf<String, Any>(
+      "limit" to filter.limit,
+      "offset" to filter.offset
+    ).apply {
+      if (filter.author != null) {
+        put("author", filter.author!!)
+      }
+      if (filter.tag != null) {
+        put("tag", filter.tag!!)
+      }
+      if (filter.favorited != null) {
+        put("favorited", filter.favorited!!)
+      }
+    }
+
+    return jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
   }
 
   private fun fetchArticleRowCount(filter: ArticleFilter): Long = ArticleTbl.let {
-    val sql = "SELECT count(*) FROM ${it.table}"
-    val params = emptyMap<String, Any>()
+    val a = ArticleTbl
+    val u = UserTbl
+    val t = ArticleTagTbl
+    val f = ArticleFavoriteTbl
+
+    val joins = mutableListOf<String>()
+    if (filter.author != null) {
+      joins += "${u.table} u ON (u.${u.id} = a.${a.author})"
+    }
+    if (filter.tag != null) {
+      joins += "${t.table} t ON (t.${t.article_id} = a.${a.id})"
+    }
+    if (filter.favorited != null) {
+      joins += "${f.table} f ON (f.${f.article_id} = a.${a.id})"
+    }
+
+    val wheres = mutableListOf<String>()
+    if (filter.author != null) {
+      wheres += "u.${u.username} = :author"
+    }
+    if (filter.tag != null) {
+      wheres += "t.${t.tag} = :tag"
+    }
+    if (filter.favorited != null) {
+      wheres += "f.${f.user_id} = (SELECT ${u.id} from ${u.table} WHERE ${u.username} = :favorited)"
+    }
+
+    val joinsSql = if (joins.isEmpty()) "" else joins.joinToString(prefix = "JOIN ", separator = " JOIN ")
+    val wheresSql = if (wheres.isEmpty()) "" else wheres.joinToString(prefix = "WHERE ", separator = " AND ")
+
+    val sql =
+      "SELECT count(a.*) FROM ${a.table} a ${joinsSql} ${wheresSql}"
+
+    val params = mutableMapOf<String, Any>().apply {
+      if (filter.author != null) {
+        put("author", filter.author!!)
+      }
+      if (filter.tag != null) {
+        put("tag", filter.tag!!)
+      }
+      if (filter.favorited != null) {
+        put("favorited", filter.favorited!!)
+      }
+    }
+
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
   }
 

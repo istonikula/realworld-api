@@ -128,7 +128,7 @@ class ArticleController(
       override val getArticles = articleRepo::getArticles
       override val getArticlesCount = articleRepo::getArticlesCount
     }.run {
-        GetArticlesCommand(filter, user).runUseCase()
+      GetArticlesCommand(filter, user).runUseCase()
     }.runReadTx(txManager).let {
       ResponseEntity.ok(ArticlesResponse.fromDomain(it))
     }
