@@ -16,6 +16,9 @@ import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
+import io.realworld.persistence.ArticleTbl.description
+import io.realworld.persistence.ArticleTbl.slug
+import io.realworld.persistence.ArticleTbl.title
 import io.realworld.persistence.Dsl.eq
 import io.realworld.persistence.Dsl.insert
 import io.realworld.persistence.Dsl.set
@@ -293,59 +296,30 @@ class ArticleRepository(
     ).toOption()
   }
 
-  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> {
-    val a = ArticleTbl
-    val u = UserTbl
-    val t = ArticleTagTbl
-    val f = ArticleFavoriteTbl
-
-    val joins = mutableListOf<String>()
-    if (filter.author != null) {
-      joins += "${u.table} u ON (u.${u.id} = a.${a.author})"
+  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> = with(ArticleTbl) {
+    val queryParts = filter.toQueryParts()
+    val sql = """
+      SELECT a.* FROM ${table} a ${queryParts.joinsSql} ${queryParts.wheresSql}
+      ORDER BY ${updated_at}
+      DESC LIMIT :limit
+      OFFSET :offset
+    """
+    val params = queryParts.params.apply {
+      put("limit", filter.limit)
+      put("offset", filter.offset)
     }
-    if (filter.tag != null) {
-      joins += "${t.table} t ON (t.${t.article_id} = a.${a.id})"
-    }
-    if (filter.favorited != null) {
-      joins += "${f.table} f ON (f.${f.article_id} = a.${a.id})"
-    }
-
-    val wheres = mutableListOf<String>()
-    if (filter.author != null) {
-      wheres += "u.${u.username} = :author"
-    }
-    if (filter.tag != null) {
-      wheres += "t.${t.tag} = :tag"
-    }
-    if (filter.favorited != null) {
-      wheres += "f.${f.user_id} = (SELECT ${u.id} from ${u.table} WHERE ${u.username} = :favorited)"
-    }
-
-    val joinsSql = if (joins.isEmpty()) "" else joins.joinToString(prefix = "JOIN ", separator = " JOIN ")
-    val wheresSql = if (wheres.isEmpty()) "" else wheres.joinToString(prefix = "WHERE ", separator = " AND ")
-
-    val sql =
-      "SELECT a.* FROM ${a.table} a ${joinsSql} ${wheresSql} ORDER BY ${a.updated_at} DESC LIMIT :limit OFFSET :offset"
-
-    val params = mutableMapOf<String, Any>(
-      "limit" to filter.limit,
-      "offset" to filter.offset
-    ).apply {
-      if (filter.author != null) {
-        put("author", filter.author!!)
-      }
-      if (filter.tag != null) {
-        put("tag", filter.tag!!)
-      }
-      if (filter.favorited != null) {
-        put("favorited", filter.favorited!!)
-      }
-    }
-
-    return jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+    jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
   }
 
-  private fun fetchArticleRowCount(filter: ArticleFilter): Long = ArticleTbl.let {
+  private fun fetchArticleRowCount(filter: ArticleFilter): Long = with(ArticleTbl) {
+    val queryParts = filter.toQueryParts()
+    val sql = "SELECT count(a.*) FROM ${table} a ${queryParts.joinsSql} ${queryParts.wheresSql}"
+    jdbcTemplate.queryForObject(sql, queryParts.params, { rs, _ -> rs.getLong("count") })!!
+  }
+
+  private data class ArticlesQueryParts(val joinsSql: String, val wheresSql: String, val params: MutableMap<String, Any>)
+  private fun ArticleFilter.toQueryParts(): ArticlesQueryParts {
+    val filter = this
     val a = ArticleTbl
     val u = UserTbl
     val t = ArticleTagTbl
@@ -375,9 +349,6 @@ class ArticleRepository(
 
     val joinsSql = if (joins.isEmpty()) "" else joins.joinToString(prefix = "JOIN ", separator = " JOIN ")
     val wheresSql = if (wheres.isEmpty()) "" else wheres.joinToString(prefix = "WHERE ", separator = " AND ")
-
-    val sql =
-      "SELECT count(a.*) FROM ${a.table} a ${joinsSql} ${wheresSql}"
 
     val params = mutableMapOf<String, Any>().apply {
       if (filter.author != null) {
@@ -391,7 +362,7 @@ class ArticleRepository(
       }
     }
 
-    jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
+    return ArticlesQueryParts(joinsSql, wheresSql, params)
   }
 
   private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =
