@@ -590,7 +590,7 @@ class ArticleTests {
         assertThat(articles[3].author).isEqualTo(dragonExpected.author.copy(following = false))
       }
 
-    cheetaClient.post<Any>("/api/articles/${dragonSlug}/favorite").then().statusCode(200)
+    cheetaClient.post<Any>("/api/articles/$dragonSlug/favorite").then().statusCode(200)
     cheetaClient.post<Any>("/api/profiles/${jane.username}/follow").then().statusCode(200)
 
     cheetaClient.get("/api/articles")
@@ -701,7 +701,9 @@ class ArticleTests {
       }
 
     // by author, tag and favorited
-    cheetaClient.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}")
+    cheetaClient.get(
+      "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
+    )
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(1))
@@ -712,8 +714,10 @@ class ArticleTests {
           "author", "createdAt", "updatedAt")
         assertThat(articles[0].author).isEqualTo(dragonExpected.author.copy(following = true))
       }
-    cheetaClient.delete("/api/articles/${dragonSlug}/favorite").then().statusCode(200)
-    cheetaClient.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}")
+    cheetaClient.delete("/api/articles/$dragonSlug/favorite").then().statusCode(200)
+    cheetaClient.get(
+      "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
+    )
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(0))
@@ -725,4 +729,3 @@ class ArticleTests {
   private fun createUser(user: TestUser) =
     userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)).unsafeRunSync()
 }
-

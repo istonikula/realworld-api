@@ -299,8 +299,8 @@ class ArticleRepository(
   private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> = with(ArticleTbl) {
     val queryParts = filter.toQueryParts()
     val sql = """
-      SELECT a.* FROM ${table} a ${queryParts.joinsSql} ${queryParts.wheresSql}
-      ORDER BY ${updated_at}
+      SELECT a.* FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}
+      ORDER BY $updated_at
       DESC LIMIT :limit
       OFFSET :offset
     """
@@ -313,11 +313,15 @@ class ArticleRepository(
 
   private fun fetchArticleRowCount(filter: ArticleFilter): Long = with(ArticleTbl) {
     val queryParts = filter.toQueryParts()
-    val sql = "SELECT count(a.*) FROM ${table} a ${queryParts.joinsSql} ${queryParts.wheresSql}"
+    val sql = "SELECT count(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
     jdbcTemplate.queryForObject(sql, queryParts.params, { rs, _ -> rs.getLong("count") })!!
   }
 
-  private data class ArticlesQueryParts(val joinsSql: String, val wheresSql: String, val params: MutableMap<String, Any>)
+  private data class ArticlesQueryParts(
+    val joinsSql: String,
+    val wheresSql: String,
+    val params: MutableMap<String, Any>
+  )
   private fun ArticleFilter.toQueryParts(): ArticlesQueryParts {
     val filter = this
     val a = ArticleTbl
