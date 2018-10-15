@@ -16,9 +16,6 @@ import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
-import io.realworld.persistence.ArticleTbl.description
-import io.realworld.persistence.ArticleTbl.slug
-import io.realworld.persistence.ArticleTbl.title
 import io.realworld.persistence.Dsl.eq
 import io.realworld.persistence.Dsl.insert
 import io.realworld.persistence.Dsl.set
@@ -236,7 +233,7 @@ class ArticleRepository(
     }
   }
 
-  fun getArticlesCount(filter: ArticleFilter, user: Option<User>): IO<Long> = IO {
+  fun getArticlesCount(filter: ArticleFilter): IO<Long> = IO {
     fetchArticleRowCount(filter)
   }
 

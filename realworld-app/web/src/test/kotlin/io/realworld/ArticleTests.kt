@@ -50,6 +50,14 @@ object TestUsers {
   }
 }
 
+data class ArticleSpec(
+  val req: CreationDto,
+  val resp: ArticleResponseDto
+)
+fun dragonSpec(author: String) = ArticleSpec(TestArticles.Dragon.creation, TestArticles.Dragon.response2(author))
+fun angularSpec(author: String) = ArticleSpec(TestArticles.Angular.creation, TestArticles.Angular.response2(author))
+fun elmSpec(author: String) = ArticleSpec(TestArticles.Elm.creation, TestArticles.Elm.response2(author))
+fun reactSpec(author: String) = ArticleSpec(TestArticles.React.creation, TestArticles.React.response2(author))
 object TestArticles {
   object Dragon {
     val creation = CreationDto(
@@ -59,7 +67,8 @@ object TestArticles {
       tagList = listOf("reactjs", "angularjs", "dragons")
     )
 
-    fun response(user: TestUser) = ArticleResponseDto(
+    fun response(user: TestUser) = response2(user.username)
+    fun response2(author: String) = ArticleResponseDto(
       slug = "how-to-train-your-dragon",
       title = creation.title,
       description = creation.description,
@@ -68,7 +77,7 @@ object TestArticles {
       favorited = false,
       favoritesCount = 0,
       author = ProfileResponseDto(
-        username = user.username,
+        username = author,
         following = false
       ),
       createdAt = Instant.now(),
@@ -84,7 +93,8 @@ object TestArticles {
       tagList = listOf("angularjs", "101")
     )
 
-    fun response(user: TestUser) = ArticleResponseDto(
+    fun response(user: TestUser) = response2(user.username)
+    fun response2(username: String) = ArticleResponseDto(
       slug = "angular-101",
       title = creation.title,
       description = creation.description,
@@ -93,7 +103,7 @@ object TestArticles {
       favorited = false,
       favoritesCount = 0,
       author = ProfileResponseDto(
-        username = user.username,
+        username = username,
         following = false
       ),
       createdAt = Instant.now(),
@@ -109,7 +119,8 @@ object TestArticles {
       tagList = listOf("reactjs", "101")
     )
 
-    fun response(user: TestUser) = ArticleResponseDto(
+    fun response(user: TestUser) = response2(user.username)
+    fun response2(username: String) = ArticleResponseDto(
       slug = "react-101",
       title = creation.title,
       description = creation.description,
@@ -118,7 +129,7 @@ object TestArticles {
       favorited = false,
       favoritesCount = 0,
       author = ProfileResponseDto(
-        username = user.username,
+        username = username,
         following = false
       ),
       createdAt = Instant.now(),
@@ -134,7 +145,8 @@ object TestArticles {
       tagList = listOf("Elm", "NoExceptions")
     )
 
-    fun response(user: TestUser) = ArticleResponseDto(
+    fun response(user: TestUser) = response2(user.username)
+    fun response2(username: String) = ArticleResponseDto(
       slug = "elm",
       title = creation.title,
       description = creation.description,
@@ -143,7 +155,7 @@ object TestArticles {
       favorited = false,
       favoritesCount = 0,
       author = ProfileResponseDto(
-        username = user.username,
+        username = username,
         following = false
       ),
       createdAt = Instant.now(),
@@ -520,105 +532,82 @@ class ArticleTests {
 
   @Test
   fun `list articles`() {
-    val cheeta = createUser(TestUsers.Cheeta)
-    val jane = createUser(TestUsers.Jane)
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
 
-    val cheetaClient = ApiClient(spec, cheeta.token)
-    val janeClient = ApiClient(spec, jane.token)
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    val react = createArticle(jane, reactSpec(jane.user.username))
+    val angular = createArticle(jane, angularSpec(jane.user.username))
+    val elm = createArticle(jane, elmSpec(jane.user.username))
 
-    val dragonReq = CreationRequest(TestArticles.Dragon.creation)
-    val dragonExpected = TestArticles.Dragon.response(TestUsers.Jane)
-    val dragonSlug = janeClient.post("/api/articles", dragonReq).then().toDto<ArticleResponse>().article.slug
-
-    val reactReq = CreationRequest(TestArticles.React.creation)
-    val reactExpected = TestArticles.React.response(TestUsers.Jane)
-    val reactSlug = janeClient.post("/api/articles", reactReq).then().toDto<ArticleResponse>().article.slug
-
-    val angularReq = CreationRequest(TestArticles.Angular.creation)
-    val angularExpected = TestArticles.Angular.response(TestUsers.Jane)
-    val angularSlug = janeClient.post("/api/articles", angularReq).then().toDto<ArticleResponse>().article.slug
-
-    val elmReq = CreationRequest(TestArticles.Elm.creation)
-    val elmExpected = TestArticles.Elm.response(TestUsers.Jane)
-    val elmSlug = janeClient.post("/api/articles", elmReq).then().toDto<ArticleResponse>().article.slug
-
-    cheetaClient.get("/api/articles", null)
+    cheeta.api.get("/api/articles", null)
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(elmExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(elmExpected.author.copy(following = null))
-
-        assertThat(articles[1]).isEqualToIgnoringGivenFields(angularExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[1].author).isEqualTo(angularExpected.author.copy(following = null))
-
-        assertThat(articles[2]).isEqualToIgnoringGivenFields(reactExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[2].author).isEqualTo(reactExpected.author.copy(following = null))
-
-        assertThat(articles[3]).isEqualToIgnoringGivenFields(dragonExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[3].author).isEqualTo(dragonExpected.author.copy(following = null))
+        articles[0].assert(elm.expected, following = null)
+        articles[1].assert(angular.expected, following = null)
+        articles[2].assert(react.expected, following = null)
+        articles[3].assert(dragon.expected, following = null)
       }
 
-    cheetaClient.get("/api/articles")
+    cheeta.api.get("/api/articles")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(elmExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(elmExpected.author.copy(following = false))
-
-        assertThat(articles[1]).isEqualToIgnoringGivenFields(angularExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[1].author).isEqualTo(angularExpected.author.copy(following = false))
-
-        assertThat(articles[2]).isEqualToIgnoringGivenFields(reactExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[2].author).isEqualTo(reactExpected.author.copy(following = false))
-
-        assertThat(articles[3]).isEqualToIgnoringGivenFields(dragonExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[3].author).isEqualTo(dragonExpected.author.copy(following = false))
+        articles[0].assert(elm.expected)
+        articles[1].assert(angular.expected)
+        articles[2].assert(react.expected)
+        articles[3].assert(dragon.expected)
       }
 
-    cheetaClient.post<Any>("/api/articles/$dragonSlug/favorite").then().statusCode(200)
-    cheetaClient.post<Any>("/api/profiles/${jane.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
 
-    cheetaClient.get("/api/articles")
+    cheeta.api.get("/api/articles")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(elmExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(elmExpected.author.copy(following = true))
-
-        assertThat(articles[1]).isEqualToIgnoringGivenFields(angularExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[1].author).isEqualTo(angularExpected.author.copy(following = true))
-
-        assertThat(articles[2]).isEqualToIgnoringGivenFields(reactExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[2].author).isEqualTo(reactExpected.author.copy(following = true))
-
-        assertThat(articles[3]).isEqualToIgnoringGivenFields(dragonExpected.copy(favorited = true, favoritesCount = 1L),
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[3].author).isEqualTo(dragonExpected.author.copy(following = true))
+        articles[0].assert(elm.expected)
+        articles[1].assert(angular.expected)
+        articles[2].assert(react.expected)
+        articles[3].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    // by author
-    cheetaClient.get("/api/articles?author=${TestUsers.Cheeta.username}")
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get("/api/articles")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(4)
+
+        articles[0].assert(elm.expected, following = true)
+        articles[1].assert(angular.expected, following = true)
+        articles[2].assert(react.expected, following = true)
+        articles[3].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
+  }
+
+  @Test
+  fun `list articles, by author`() {
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    val react = createArticle(jane, reactSpec(jane.user.username))
+    val angular = createArticle(jane, angularSpec(jane.user.username))
+    val elm = createArticle(jane, elmSpec(jane.user.username))
+
+    cheeta.api.get("/api/articles?author=${TestUsers.Cheeta.username}")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(0))
@@ -626,32 +615,61 @@ class ArticleTests {
         assertThat(articles.size).isEqualTo(0)
       }
 
-    cheetaClient.get("/api/articles?author=${TestUsers.Jane.username}")
+    cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(elmExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(elmExpected.author.copy(following = true))
-
-        assertThat(articles[1]).isEqualToIgnoringGivenFields(angularExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[1].author).isEqualTo(angularExpected.author.copy(following = true))
-
-        assertThat(articles[2]).isEqualToIgnoringGivenFields(reactExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[2].author).isEqualTo(reactExpected.author.copy(following = true))
-
-        assertThat(articles[3]).isEqualToIgnoringGivenFields(dragonExpected.copy(favorited = true, favoritesCount = 1L),
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[3].author).isEqualTo(dragonExpected.author.copy(following = true))
+        articles[0].assert(elm.expected)
+        articles[1].assert(angular.expected)
+        articles[2].assert(react.expected)
+        articles[3].assert(dragon.expected)
       }
 
-    // by tag
-    cheetaClient.get("/api/articles?tag=foo")
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+
+    cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(4)
+
+        articles[0].assert(elm.expected)
+        articles[1].assert(angular.expected)
+        articles[2].assert(react.expected)
+        articles[3].assert(dragon.expected, favorited = true, favoritesCount = 1L)
+      }
+
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(4)
+
+        articles[0].assert(elm.expected, following = true)
+        articles[1].assert(angular.expected, following = true)
+        articles[2].assert(react.expected, following = true)
+        articles[3].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
+  }
+
+  @Test
+  fun `list articles, by tag`() {
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    val react = createArticle(jane, reactSpec(jane.user.username))
+    createArticle(jane, angularSpec(jane.user.username))
+    createArticle(jane, elmSpec(jane.user.username))
+
+    cheeta.api.get("/api/articles?tag=foo")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(0))
@@ -659,63 +677,130 @@ class ArticleTests {
         assertThat(articles.size).isEqualTo(0)
       }
 
-    cheetaClient.get("/api/articles?tag=dragons")
+    cheeta.api.get("/api/articles?tag=dragons")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(dragonExpected.copy(favorited = true, favoritesCount = 1L),
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(dragonExpected.author.copy(following = true))
+        articles[0].assert(dragon.expected)
       }
 
-    cheetaClient.get("/api/articles?tag=reactjs")
+    cheeta.api.get("/api/articles?tag=reactjs")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(2))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(reactExpected,
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(reactExpected.author.copy(following = true))
-
-        assertThat(articles[1]).isEqualToIgnoringGivenFields(dragonExpected.copy(favorited = true, favoritesCount = 1L),
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[1].author).isEqualTo(dragonExpected.author.copy(following = true))
+        articles[0].assert(react.expected)
+        articles[1].assert(dragon.expected)
       }
 
-    // by author and tag
-    cheetaClient.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+
+    cheeta.api.get("/api/articles?tag=dragons")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(dragonExpected.copy(favorited = true, favoritesCount = 1L),
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(dragonExpected.author.copy(following = true))
+        articles[0].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    // by author, tag and favorited
-    cheetaClient.get(
-      "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
-    )
+    cheeta.api.get("/api/articles?tag=reactjs")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(2))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(2)
+
+        articles[0].assert(react.expected)
+        articles[1].assert(dragon.expected, favorited = true, favoritesCount = 1L)
+      }
+
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get("/api/articles?tag=dragons")
       .then()
       .statusCode(200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
 
-        assertThat(articles[0]).isEqualToIgnoringGivenFields(dragonExpected.copy(favorited = true, favoritesCount = 1L),
-          "author", "createdAt", "updatedAt")
-        assertThat(articles[0].author).isEqualTo(dragonExpected.author.copy(following = true))
+        articles[0].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
       }
-    cheetaClient.delete("/api/articles/$dragonSlug/favorite").then().statusCode(200)
-    cheetaClient.get(
+
+    cheeta.api.get("/api/articles?tag=reactjs")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(2))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(2)
+
+        articles[0].assert(react.expected, following = true)
+        articles[1].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
+  }
+
+  @Test
+  fun `list articles, by author and tag`() {
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    createArticle(jane, reactSpec(jane.user.username))
+    createArticle(jane, angularSpec(jane.user.username))
+    createArticle(jane, elmSpec(jane.user.username))
+
+    cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(1))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+
+        articles[0].assert(dragon.expected)
+      }
+
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+
+    cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(1))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+
+        articles[0].assert(dragon.expected, favorited = true, favoritesCount = 1L)
+      }
+
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(1))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+
+        articles[0].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
+  }
+
+  @Test
+  fun `list articles, by author, tag and favorited`() {
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    createArticle(jane, reactSpec(jane.user.username))
+    createArticle(jane, angularSpec(jane.user.username))
+    createArticle(jane, elmSpec(jane.user.username))
+
+    cheeta.api.get(
       "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
     )
       .then()
@@ -724,8 +809,63 @@ class ArticleTests {
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(0)
       }
+
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+
+    cheeta.api.get(
+      "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
+    )
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(1))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+
+        articles[0].assert(dragon.expected, favorited = true, favoritesCount = 1L)
+      }
+
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get(
+      "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
+    )
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(1))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(1)
+
+        articles[0].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
   }
 
   private fun createUser(user: TestUser) =
     userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)).unsafeRunSync()
+}
+
+private data class ArticleFixture(
+  val expected: ArticleResponseDto,
+  val slug: String
+)
+
+private fun createArticle(
+  userClient: UserClient,
+  articleSpec: ArticleSpec
+) = CreationRequest(articleSpec.req).let {
+  ArticleFixture(
+    articleSpec.resp,
+    userClient.api.post("/api/articles", it).then().toDto<ArticleResponse>().article.slug
+  )
+}
+
+fun ArticleResponseDto.assert(
+  expected: ArticleResponseDto,
+  following: Boolean? = false,
+  favorited: Boolean = false,
+  favoritesCount: Long = 0L
+) {
+  assertThat(this).isEqualToIgnoringGivenFields(expected.copy(favorited = favorited, favoritesCount = favoritesCount),
+    "author", "tagList", "createdAt", "updatedAt")
+  assertThat(this.author).isEqualTo(expected.author.copy(following = following))
+  assertThat(this.tagList).containsExactlyInAnyOrder(*expected.tagList.toTypedArray())
 }

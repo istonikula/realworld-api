@@ -119,7 +119,7 @@ interface GetArticlesUseCase {
     val cmd = this
     return ForIO extensions {
       binding {
-        val count = getArticlesCount(cmd.filter, cmd.user).bind()
+        val count = getArticlesCount(cmd.filter).bind()
         if (count == 0L)
           Pair(listOf(), 0L)
         else {
