@@ -224,12 +224,12 @@ class ArticleRepository(
     val rows = fetchArticleRows(filter)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
     rows.map { row ->
-        val deps = ArticleDeps()
-        deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
-        deps.favoritesCount = fetchFavoritesCount(row.id)
-        deps.tagList.addAll(fetchArticleTags(row.id))
-        deps.author = fetchAuthor(row.authorId, user)
-        Article.from(row, deps)
+      val deps = ArticleDeps()
+      deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
+      deps.favoritesCount = fetchFavoritesCount(row.id)
+      deps.tagList.addAll(fetchArticleTags(row.id))
+      deps.author = fetchAuthor(row.authorId, user)
+      Article.from(row, deps)
     }
   }
 
@@ -310,7 +310,7 @@ class ArticleRepository(
 
   private fun fetchArticleRowCount(filter: ArticleFilter): Long = with(ArticleTbl) {
     val queryParts = filter.toQueryParts()
-    val sql = "SELECT count(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
+    val sql = "SELECT COUNT(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
     jdbcTemplate.queryForObject(sql, queryParts.params, { rs, _ -> rs.getLong("count") })!!
   }
 

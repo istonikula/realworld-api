@@ -541,6 +541,51 @@ class ArticleTests {
   }
 
   @Test
+  fun `list articles, offset and limit`() {
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    val react = createArticle(jane, reactSpec(jane.user.username))
+    val angular = createArticle(jane, angularSpec(jane.user.username))
+    val elm = createArticle(jane, elmSpec(jane.user.username))
+
+    cheeta.api.get("/api/articles?limit=2")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(2)
+
+        articles[0].assert(elm.expected)
+        articles[1].assert(angular.expected)
+      }
+
+    cheeta.api.get("/api/articles?limit=2&offset=1")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(2)
+
+        articles[0].assert(angular.expected)
+        articles[1].assert(react.expected)
+      }
+
+    cheeta.api.get("/api/articles?offset=1")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(3)
+
+        articles[0].assert(angular.expected)
+        articles[1].assert(react.expected)
+        articles[2].assert(dragon.expected)
+      }
+  }
+
+  @Test
   fun `list articles, by author`() {
     val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
     val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
