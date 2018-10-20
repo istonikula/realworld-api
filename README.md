@@ -5,7 +5,7 @@ This is a [realworld](http://realworld.io) api example app featuring
 
 # Goals
 * experiment __functional__ Kotlin __backend__ programming using [Arrow](http://arrow-kt.io)
-* implement [realworld](http://realworld.oi) api 
+* implement [realworld](http://realworld.io) api 
 [spec](http://github.com/gothinkster/realworld/tree/master/api) in order to cover non-trivial use cases
 * production grade [rest api](http://en.wikipedia.org/wiki/Representational_state_transfer) with strong integration 
 test suite to enable easy refactoring
