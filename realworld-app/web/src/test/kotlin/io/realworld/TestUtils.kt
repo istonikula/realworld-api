@@ -44,7 +44,9 @@ class ApiClient(val spec: RequestSpecification, val defaultToken: String? = null
     } else this
 }
 
-class UserClient(val user: User, val api: ApiClient)
+class UserClient(val user: User, val api: ApiClient) {
+  companion object
+}
 
 class FixtureFactory(val auth: Auth) {
   fun validTestArticleCreation() = ValidArticleCreation(
