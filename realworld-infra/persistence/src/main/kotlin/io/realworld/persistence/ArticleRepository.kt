@@ -10,6 +10,7 @@ import arrow.effects.IO
 import arrow.instances.extensions
 import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
+import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
@@ -219,6 +220,23 @@ class ArticleRepository(
     }
   }
 
+  fun getArticles(filter: ArticleFilter, user: Option<User>): IO<List<Article>> = IO {
+    val rows = fetchArticleRows(filter)
+    // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
+    rows.map { row ->
+      val deps = ArticleDeps()
+      deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
+      deps.favoritesCount = fetchFavoritesCount(row.id)
+      deps.tagList.addAll(fetchArticleTags(row.id))
+      deps.author = fetchAuthor(row.authorId, user)
+      Article.from(row, deps)
+    }
+  }
+
+  fun getArticlesCount(filter: ArticleFilter): IO<Long> = IO {
+    fetchArticleRowCount(filter)
+  }
+
   private fun insertCommentRow(articleId: UUID, comment: String, user: User) = with(ArticleCommentTbl) {
     val sql = "${table.insert(body, author, article_id)} RETURNING *"
     val params = mapOf(
@@ -273,6 +291,79 @@ class ArticleRepository(
     DataAccessUtils.singleResult(
       jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
     ).toOption()
+  }
+
+  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> = with(ArticleTbl) {
+    val queryParts = filter.toQueryParts()
+    val sql = """
+      SELECT a.* FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}
+      ORDER BY $updated_at
+      DESC LIMIT :limit
+      OFFSET :offset
+    """
+    val params = queryParts.params.apply {
+      put("limit", filter.limit)
+      put("offset", filter.offset)
+    }
+    jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+  }
+
+  private fun fetchArticleRowCount(filter: ArticleFilter): Long = with(ArticleTbl) {
+    val queryParts = filter.toQueryParts()
+    val sql = "SELECT COUNT(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
+    jdbcTemplate.queryForObject(sql, queryParts.params, { rs, _ -> rs.getLong("count") })!!
+  }
+
+  private data class ArticlesQueryParts(
+    val joinsSql: String,
+    val wheresSql: String,
+    val params: MutableMap<String, Any>
+  )
+  private fun ArticleFilter.toQueryParts(): ArticlesQueryParts {
+    val filter = this
+    val a = ArticleTbl
+    val u = UserTbl
+    val t = ArticleTagTbl
+    val f = ArticleFavoriteTbl
+
+    val joins = mutableListOf<String>()
+    if (filter.author != null) {
+      joins += "${u.table} u ON (u.${u.id} = a.${a.author})"
+    }
+    if (filter.tag != null) {
+      joins += "${t.table} t ON (t.${t.article_id} = a.${a.id})"
+    }
+    if (filter.favorited != null) {
+      joins += "${f.table} f ON (f.${f.article_id} = a.${a.id})"
+    }
+
+    val wheres = mutableListOf<String>()
+    if (filter.author != null) {
+      wheres += "u.${u.username} = :author"
+    }
+    if (filter.tag != null) {
+      wheres += "t.${t.tag} = :tag"
+    }
+    if (filter.favorited != null) {
+      wheres += "f.${f.user_id} = (SELECT ${u.id} from ${u.table} WHERE ${u.username} = :favorited)"
+    }
+
+    val joinsSql = if (joins.isEmpty()) "" else joins.joinToString(prefix = "JOIN ", separator = " JOIN ")
+    val wheresSql = if (wheres.isEmpty()) "" else wheres.joinToString(prefix = "WHERE ", separator = " AND ")
+
+    val params = mutableMapOf<String, Any>().apply {
+      if (filter.author != null) {
+        put("author", filter.author!!)
+      }
+      if (filter.tag != null) {
+        put("tag", filter.tag!!)
+      }
+      if (filter.favorited != null) {
+        put("favorited", filter.favorited!!)
+      }
+    }
+
+    return ArticlesQueryParts(joinsSql, wheresSql, params)
   }
 
   private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =

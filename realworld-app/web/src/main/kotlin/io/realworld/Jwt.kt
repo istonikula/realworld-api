@@ -31,7 +31,7 @@ class JwtTokenResolver<T>(val parseToken: ParseToken<T>) : ResolveToken<T> {
   }
 
   companion object {
-    val TOKEN_PREFIX = "Token "
+    const val TOKEN_PREFIX = "Token "
   }
 }
 

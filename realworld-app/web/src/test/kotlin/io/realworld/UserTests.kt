@@ -65,7 +65,7 @@ class UserTests {
     .addFilter(ResponseLoggingFilter())
     .build()
 
-  object TestUser {
+  private object TestUser {
     val email = "foo@bar.com"
     val username = "foo"
     val password = "plain"

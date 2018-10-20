@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
+import io.realworld.domain.users.User
 import io.realworld.domain.users.ValidUserRegistration
 import io.restassured.RestAssured
 import io.restassured.response.ValidatableResponse
@@ -41,6 +42,10 @@ class ApiClient(val spec: RequestSpecification, val defaultToken: String? = null
     if (body != null) {
       this.body(body)
     } else this
+}
+
+class UserClient(val user: User, val api: ApiClient) {
+  companion object
 }
 
 class FixtureFactory(val auth: Auth) {

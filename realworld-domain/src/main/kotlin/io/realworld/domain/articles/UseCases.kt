@@ -22,6 +22,7 @@ import java.util.UUID
 data class CreateArticleCommand(val data: ArticleCreation, val user: User)
 data class DeleteArticleCommand(val slug: String, val user: User)
 data class GetArticleCommand(val slug: String, val user: Option<User>)
+data class GetArticlesCommand(val filter: ArticleFilter, val user: Option<User>)
 data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val user: User)
 data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
@@ -105,6 +106,26 @@ interface DeleteArticleUseCase {
             else deleteArticle(it.id).bind().right()
           }
         )
+      }.fix()
+    }
+  }
+}
+
+interface GetArticlesUseCase {
+  val getArticles: GetArticles
+  val getArticlesCount: GetArticlesCount
+
+  fun GetArticlesCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        val count = getArticlesCount(cmd.filter).bind()
+        if (count == 0L)
+          Pair(listOf(), 0L)
+        else {
+          val articles = getArticles(cmd.filter, cmd.user).bind()
+          Pair(articles, count)
+        }
       }.fix()
     }
   }
