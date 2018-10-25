@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.realworld.domain.articles.ValidArticleCreation
+import io.realworld.domain.articles.articleId
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
@@ -50,7 +51,7 @@ class UserClient(val user: User, val api: ApiClient) {
 
 class FixtureFactory(val auth: Auth) {
   fun validTestArticleCreation() = ValidArticleCreation(
-    id = UUID.randomUUID(),
+    id = UUID.randomUUID().articleId(),
     slug = "how-to-train-your-dragon",
     title = "How to train your dragon",
     description = "Ever wonder how?",

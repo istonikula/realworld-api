@@ -70,7 +70,7 @@ interface CreateArticleUseCase {
         val slug = createUniqueSlug(cmd.data.title).bind()
         createArticle(
           ValidArticleCreation(
-            id = UUID.randomUUID(),
+            id = UUID.randomUUID().articleId(),
             slug = slug,
             title = cmd.data.title,
             description = cmd.data.description,

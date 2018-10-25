@@ -11,9 +11,11 @@ import arrow.instances.extensions
 import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
+import io.realworld.domain.articles.ArticleId
 import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
+import io.realworld.domain.articles.articleId
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
 import io.realworld.persistence.Dsl.eq
@@ -59,7 +61,7 @@ private data class ArticleDeps(
 )
 
 private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article(
-  id = row.id,
+  id = row.id.articleId(),
   slug = row.slug,
   title = row.title,
   description = row.description,
@@ -150,9 +152,9 @@ class ArticleRepository(
     }
   }
 
-  fun deleteArticle(articleId: UUID): IO<Int> = with(ArticleTbl) {
+  fun deleteArticle(articleId: ArticleId): IO<Int> = with(ArticleTbl) {
     val sql = "DELETE FROM $table WHERE ${id.eq()}"
-    val params = mapOf(id to articleId)
+    val params = mapOf(id to articleId.value)
     IO {
       jdbcTemplate.update(sql, params)
     }
@@ -170,17 +172,17 @@ class ArticleRepository(
     Article.from(row, deps)
   }
 
-  fun addFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
+  fun addFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
     val sql = "${table.insert(article_id, user_id)} ON CONFLICT ($article_id, $user_id) DO NOTHING"
-    val params = mapOf(article_id to articleId, user_id to user.id)
+    val params = mapOf(article_id to articleId.value, user_id to user.id)
     IO {
       jdbcTemplate.update(sql, params)
     }
   }
 
-  fun removeFavorite(articleId: UUID, user: User): IO<Int> = with(ArticleFavoriteTbl) {
+  fun removeFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
     val sql = "DELETE FROM $table WHERE ${article_id.eq()} AND ${user_id.eq()}"
-    val params = mapOf(article_id to articleId, user_id to user.id)
+    val params = mapOf(article_id to articleId.value, user_id to user.id)
     IO {
       jdbcTemplate.update(sql, params)
     }
@@ -196,7 +198,7 @@ class ArticleRepository(
     }
   }
 
-  fun addComment(articleId: UUID, comment: String, user: User): IO<Comment> = IO {
+  fun addComment(articleId: ArticleId, comment: String, user: User): IO<Comment> = IO {
     val row = insertCommentRow(articleId, comment, user)
     val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
     Comment.from(row, deps)
@@ -210,9 +212,9 @@ class ArticleRepository(
     }
   }
 
-  fun getComments(articleId: UUID, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
+  fun getComments(articleId: ArticleId, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
     val sql = "SELECT * from $table WHERE ${article_id.eq()}"
-    val params = mapOf(article_id to articleId)
+    val params = mapOf(article_id to articleId.value)
     IO {
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }.map {
         Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user)))
@@ -237,12 +239,12 @@ class ArticleRepository(
     fetchArticleRowCount(filter)
   }
 
-  private fun insertCommentRow(articleId: UUID, comment: String, user: User) = with(ArticleCommentTbl) {
+  private fun insertCommentRow(articleId: ArticleId, comment: String, user: User) = with(ArticleCommentTbl) {
     val sql = "${table.insert(body, author, article_id)} RETURNING *"
     val params = mapOf(
       body to comment,
       author to user.id,
-      article_id to articleId
+      article_id to articleId.value
     )
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> CommentRow.fromRs(rs) })!!
   }
@@ -274,7 +276,7 @@ class ArticleRepository(
       title to update.title,
       description to update.description,
       body to update.body,
-      id to update.id
+      id to update.id.value
     )
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
   }
@@ -395,7 +397,7 @@ class ArticleRepository(
   private fun insertArticleRow(article: ValidArticleCreation, user: User): ArticleRow = with(ArticleTbl) {
     val sql = "${table.insert(id, slug, title, description, body, author)} RETURNING *"
     val params = mapOf(
-        id to article.id,
+        id to article.id.value,
         slug to article.slug,
         title to article.title,
         description to article.description,
@@ -411,11 +413,11 @@ class ArticleRepository(
     jdbcTemplate.batchUpdate(sql, params)
   }
 
-  private fun insertArticleTags(articleId: UUID, tags: List<String>) = with(ArticleTagTbl) {
+  private fun insertArticleTags(articleId: ArticleId, tags: List<String>) = with(ArticleTagTbl) {
     val sql = table.insert(article_id, tag)
     val params = tags.map {
       mapOf(
-        article_id to articleId,
+        article_id to articleId.value,
         tag to it
       )
     }.toTypedArray()
