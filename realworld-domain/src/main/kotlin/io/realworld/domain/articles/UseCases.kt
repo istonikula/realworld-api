@@ -23,6 +23,7 @@ data class CreateArticleCommand(val data: ArticleCreation, val user: User)
 data class DeleteArticleCommand(val slug: String, val user: User)
 data class GetArticleCommand(val slug: String, val user: Option<User>)
 data class GetArticlesCommand(val filter: ArticleFilter, val user: Option<User>)
+data class GetFeedsCommand(val filter: FeedFilter, val user: User)
 data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val user: User)
 data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
@@ -125,6 +126,26 @@ interface GetArticlesUseCase {
         else {
           val articles = getArticles(cmd.filter, cmd.user).bind()
           Pair(articles, count)
+        }
+      }.fix()
+    }
+  }
+}
+
+interface GetFeedsUsecase {
+  val getFeeds: GetFeeds
+  val getFeedsCount: GetFeedsCount
+
+  fun GetFeedsCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
+    val cmd = this
+    return ForIO extensions {
+      binding {
+        val count = getFeedsCount(cmd.user).bind()
+        if (count == 0L)
+          Pair(listOf(), 0L)
+        else {
+          val feeds = getFeeds(cmd.filter, cmd.user).bind()
+          Pair(feeds, count)
         }
       }.fix()
     }

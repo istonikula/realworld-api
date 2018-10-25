@@ -13,6 +13,7 @@ import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
 import io.realworld.domain.articles.Comment
+import io.realworld.domain.articles.FeedFilter
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.articles.articleId
@@ -142,14 +143,7 @@ class ArticleRepository(
     ForOption extensions {
       binding {
         val row = fetchRowBySlug(slug).bind()
-
-        val deps = ArticleDeps()
-        deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
-        deps.favoritesCount = fetchFavoritesCount(row.id)
-        deps.tagList.addAll(fetchArticleTags(row.id))
-        deps.author = fetchAuthor(row.authorId, user)
-
-        Article.from(row, deps)
+        Article.from(row, loadArticleDeps(row, user))
       }.fix()
     }
   }
@@ -164,14 +158,7 @@ class ArticleRepository(
 
   fun updateArticle(update: ValidArticleUpdate, user: User): IO<Article> = IO {
     val row = updateArticleRow(update)
-
-    val deps = ArticleDeps()
-    deps.favorited = isFavorited(row.id, user).unsafeRunSync()
-    deps.favoritesCount = fetchFavoritesCount(row.id)
-    deps.tagList.addAll(fetchArticleTags(row.id))
-    deps.author = fetchAuthor(row.authorId, user.some())
-
-    Article.from(row, deps)
+    Article.from(row, loadArticleDeps(row, user.some()))
   }
 
   fun addFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
@@ -225,21 +212,32 @@ class ArticleRepository(
   }
 
   fun getArticles(filter: ArticleFilter, user: Option<User>): IO<List<Article>> = IO {
-    val rows = fetchArticleRows(filter)
+    val rows = fetchArticleRows(filter.toQueryParts(), filter.limit, filter.offset)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
-    rows.map { row ->
-      val deps = ArticleDeps()
-      deps.favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
-      deps.favoritesCount = fetchFavoritesCount(row.id)
-      deps.tagList.addAll(fetchArticleTags(row.id))
-      deps.author = fetchAuthor(row.authorId, user)
-      Article.from(row, deps)
-    }
+    rows.map { row -> Article.from(row, loadArticleDeps(row, user)) }
   }
 
   fun getArticlesCount(filter: ArticleFilter): IO<Long> = IO {
-    fetchArticleRowCount(filter)
+    fetchArticleRowCount(filter.toQueryParts())
   }
+
+  fun getFeeds(filter: FeedFilter, user: User): IO<List<Article>> = IO {
+    val rows = fetchArticleRows(user.toFeedsQueryParts(), filter.limit, filter.offset)
+    // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
+    rows.map { row -> Article.from(row, loadArticleDeps(row, user.some())) }
+  }
+
+  fun getFeedsCount(user: User): IO<Long> = IO {
+    fetchArticleRowCount(user.toFeedsQueryParts())
+  }
+
+  private fun loadArticleDeps(row: ArticleRow, user: Option<User>): ArticleDeps =
+    ArticleDeps().apply {
+      favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
+      favoritesCount = fetchFavoritesCount(row.id)
+      tagList.addAll(fetchArticleTags(row.id))
+      author = fetchAuthor(row.authorId, user)
+    }
 
   private fun insertCommentRow(articleId: ArticleId, comment: String, user: User) = with(ArticleCommentTbl) {
     val sql = "${table.insert(body, author, article_id)} RETURNING *"
@@ -297,23 +295,25 @@ class ArticleRepository(
     ).toOption()
   }
 
-  private fun fetchArticleRows(filter: ArticleFilter): List<ArticleRow> = with(ArticleTbl) {
-    val queryParts = filter.toQueryParts()
+  private fun fetchArticleRows(
+    queryParts: ArticlesQueryParts,
+    limit: Int,
+    offset: Int
+  ): List<ArticleRow> = with(ArticleTbl) {
     val sql = """
       SELECT a.* FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}
-      ORDER BY $updated_at
-      DESC LIMIT :limit
+      ORDER BY $updated_at DESC
+      LIMIT :limit
       OFFSET :offset
     """
     val params = queryParts.params.apply {
-      put("limit", filter.limit)
-      put("offset", filter.offset)
+      put("limit", limit)
+      put("offset", offset)
     }
     jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
   }
 
-  private fun fetchArticleRowCount(filter: ArticleFilter): Long = with(ArticleTbl) {
-    val queryParts = filter.toQueryParts()
+  private fun fetchArticleRowCount(queryParts: ArticlesQueryParts): Long = with(ArticleTbl) {
     val sql = "SELECT COUNT(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
     jdbcTemplate.queryForObject(sql, queryParts.params, { rs, _ -> rs.getLong("count") })!!
   }
@@ -368,6 +368,15 @@ class ArticleRepository(
     }
 
     return ArticlesQueryParts(joinsSql, wheresSql, params)
+  }
+  private fun User.toFeedsQueryParts(): ArticlesQueryParts {
+    val a = ArticleTbl
+    val f = FollowTbl
+    return ArticlesQueryParts(
+      "JOIN ${f.table} f ON (f.${f.followee} = a.${a.author})",
+      "WHERE f.${f.follower} = :follower",
+      mutableMapOf("follower" to this.id.value)
+    )
   }
 
   private fun fetchAuthor(id: UserId, querier: Option<User>): Profile =
