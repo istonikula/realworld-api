@@ -28,7 +28,7 @@ interface ValidateUserService {
           existsByUsername(cmd.username).bind() ->
             UserRegistrationError.UsernameAlreadyTaken.left()
           else -> {
-            val id = UUID.randomUUID()
+            val id = UUID.randomUUID().userId()
             ValidUserRegistration(
               id = id,
               email = email,

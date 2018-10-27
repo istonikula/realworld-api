@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.realworld.domain.articles.ValidArticleCreation
+import io.realworld.domain.articles.articleId
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
 import io.realworld.domain.users.ValidUserRegistration
+import io.realworld.domain.users.userId
 import io.restassured.RestAssured
 import io.restassured.response.ValidatableResponse
 import io.restassured.specification.RequestSpecification
@@ -50,7 +52,7 @@ class UserClient(val user: User, val api: ApiClient) {
 
 class FixtureFactory(val auth: Auth) {
   fun validTestArticleCreation() = ValidArticleCreation(
-    id = UUID.randomUUID(),
+    id = UUID.randomUUID().articleId(),
     slug = "how-to-train-your-dragon",
     title = "How to train your dragon",
     description = "Ever wonder how?",
@@ -59,7 +61,7 @@ class FixtureFactory(val auth: Auth) {
   )
 
   fun validTestUserRegistration(username: String, email: String): ValidUserRegistration {
-    val id = UUID.randomUUID()
+    val id = UUID.randomUUID().userId()
     return ValidUserRegistration(
       id = id,
       username = username,

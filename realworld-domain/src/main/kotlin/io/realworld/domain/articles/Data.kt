@@ -5,6 +5,10 @@ import io.realworld.domain.profiles.Profile
 import java.time.Instant
 import java.util.UUID
 
+// TODO replace with inline class when kotlin 1.3 comes out
+data class ArticleId(val value: UUID)
+fun UUID.articleId() = ArticleId(this)
+
 data class ArticleCreation(
   val title: String,
   val description: String,
@@ -13,7 +17,7 @@ data class ArticleCreation(
 )
 
 data class ValidArticleCreation(
-  val id: UUID,
+  val id: ArticleId,
   val slug: String,
   val title: String,
   val description: String,
@@ -28,7 +32,7 @@ data class ArticleUpdate(
 )
 
 data class ValidArticleUpdate(
-  val id: UUID,
+  val id: ArticleId,
   val slug: String,
   val title: String,
   val description: String,
@@ -36,7 +40,7 @@ data class ValidArticleUpdate(
 )
 
 data class Article(
-  val id: UUID,
+  val id: ArticleId,
   val slug: String,
   val title: String,
   val description: String,

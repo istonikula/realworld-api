@@ -5,8 +5,10 @@ import arrow.core.toOption
 import arrow.effects.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
+import io.realworld.domain.users.UserId
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.ValidUserUpdate
+import io.realworld.domain.users.userId
 import io.realworld.persistence.Dsl.eq
 import io.realworld.persistence.Dsl.insert
 import io.realworld.persistence.Dsl.set
@@ -19,7 +21,7 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
 
   fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     User(
-      id = UUID.fromString(rs.getString(id)),
+      id = UUID.fromString(rs.getString(id)).userId(),
       email = rs.getString(email),
       token = rs.getString(token),
       username = rs.getString(username),
@@ -45,7 +47,7 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }
     val params = with(UserTbl) {
       mapOf(
-        id to user.id,
+        id to user.id.value,
         email to user.email,
         token to user.token,
         username to user.username,
@@ -80,12 +82,12 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }
   }
 
-  fun findById(id: UUID): IO<Option<UserAndPassword>> =
+  fun findById(id: UserId): IO<Option<UserAndPassword>> =
     IO {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
           "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
-          mapOf(UserTbl.id to id),
+          mapOf(UserTbl.id to id.value),
           { rs, _ -> UserAndPassword.fromRs(rs) }
         )
       ).toOption()
@@ -121,25 +123,25 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     jdbcTemplate.queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
   }
 
-  fun hasFollower(followee: UUID, follower: UUID): IO<Boolean> = FollowTbl.let {
+  fun hasFollower(followee: UserId, follower: UserId): IO<Boolean> = FollowTbl.let {
     jdbcTemplate.queryIfExists(
       it.table,
       "${it.followee.eq()} AND ${it.follower.eq()}",
-      mapOf(it.followee to followee, it.follower to follower)
+      mapOf(it.followee to followee.value, it.follower to follower.value)
     )
   }
 
-  fun addFollower(followee: UUID, follower: UUID): IO<Int> = FollowTbl.let {
+  fun addFollower(followee: UserId, follower: UserId): IO<Int> = FollowTbl.let {
     val sql = "${it.table.insert(it.followee, it.follower)} ON CONFLICT (${it.followee}, ${it.follower}) DO NOTHING"
-    val params = mapOf(it.followee to followee, it.follower to follower)
+    val params = mapOf(it.followee to followee.value, it.follower to follower.value)
     IO {
       jdbcTemplate.update(sql, params)
     }
   }
 
-  fun removeFollower(followee: UUID, follower: UUID): IO<Int> = FollowTbl.let {
+  fun removeFollower(followee: UserId, follower: UserId): IO<Int> = FollowTbl.let {
     val sql = "DELETE FROM ${it.table} WHERE ${it.followee.eq()} AND ${it.follower.eq()}"
-    val params = mapOf(it.followee to followee, it.follower to follower)
+    val params = mapOf(it.followee to followee.value, it.follower to follower.value)
     IO {
       jdbcTemplate.update(sql, params)
     }
