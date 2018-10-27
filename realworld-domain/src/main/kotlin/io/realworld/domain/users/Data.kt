@@ -3,8 +3,12 @@ package io.realworld.domain.users
 import arrow.core.Option
 import java.util.UUID
 
+// TODO replace with inline class when kotlin 1.3 comes out
+data class UserId(val value: UUID)
+fun UUID.userId() = UserId(this)
+
 data class User(
-  val id: UUID,
+  val id: UserId,
   val email: String,
   val token: String,
   val username: String,
@@ -15,7 +19,7 @@ data class User(
 data class UserRegistration(val username: String, val email: String, val password: String)
 
 data class ValidUserRegistration(
-  val id: UUID,
+  val id: UserId,
   val email: String,
   val token: String,
   val username: String,

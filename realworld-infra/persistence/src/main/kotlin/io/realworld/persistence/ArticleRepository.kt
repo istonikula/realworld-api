@@ -18,6 +18,8 @@ import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.articles.articleId
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
+import io.realworld.domain.users.UserId
+import io.realworld.domain.users.userId
 import io.realworld.persistence.Dsl.eq
 import io.realworld.persistence.Dsl.insert
 import io.realworld.persistence.Dsl.set
@@ -28,24 +30,24 @@ import java.time.Instant
 import java.util.UUID
 
 private data class ArticleRow(
-  val id: UUID,
+  val id: ArticleId,
   val slug: String,
   val title: String,
   val description: String,
   val body: String,
-  val authorId: UUID,
+  val authorId: UserId,
   val createdAt: Instant,
   val updatedAt: Instant
 ) {
   companion object {
     fun fromRs(rs: ResultSet) = with(ArticleTbl) {
       ArticleRow(
-        id = UUID.fromString(rs.getString(id)),
+        id = UUID.fromString(rs.getString(id)).articleId(),
         slug = rs.getString(slug),
         title = rs.getString(title),
         description = rs.getString(description),
         body = rs.getString(body),
-        authorId = UUID.fromString(rs.getString(author)),
+        authorId = UUID.fromString(rs.getString(author)).userId(),
         createdAt = rs.getTimestamp(created_at).toInstant(),
         updatedAt = rs.getTimestamp(updated_at).toInstant()
       )
@@ -61,7 +63,7 @@ private data class ArticleDeps(
 )
 
 private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article(
-  id = row.id.articleId(),
+  id = row.id,
   slug = row.slug,
   title = row.title,
   description = row.description,
@@ -80,7 +82,7 @@ private data class CommentRow(
   val createdAt: Instant,
   val updatedAt: Instant,
   val body: String,
-  val authorId: UUID
+  val authorId: UserId
 ) {
   companion object {
     fun fromRs(rs: ResultSet) = with(ArticleCommentTbl) {
@@ -89,7 +91,7 @@ private data class CommentRow(
         createdAt = rs.getTimestamp(ArticleTbl.created_at).toInstant(),
         updatedAt = rs.getTimestamp(ArticleTbl.updated_at).toInstant(),
         body = rs.getString(body),
-        authorId = UUID.fromString(rs.getString(author))
+        authorId = UUID.fromString(rs.getString(author)).userId()
       )
     }
   }
@@ -174,7 +176,7 @@ class ArticleRepository(
 
   fun addFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
     val sql = "${table.insert(article_id, user_id)} ON CONFLICT ($article_id, $user_id) DO NOTHING"
-    val params = mapOf(article_id to articleId.value, user_id to user.id)
+    val params = mapOf(article_id to articleId.value, user_id to user.id.value)
     IO {
       jdbcTemplate.update(sql, params)
     }
@@ -182,7 +184,7 @@ class ArticleRepository(
 
   fun removeFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
     val sql = "DELETE FROM $table WHERE ${article_id.eq()} AND ${user_id.eq()}"
-    val params = mapOf(article_id to articleId.value, user_id to user.id)
+    val params = mapOf(article_id to articleId.value, user_id to user.id.value)
     IO {
       jdbcTemplate.update(sql, params)
     }
@@ -243,7 +245,7 @@ class ArticleRepository(
     val sql = "${table.insert(body, author, article_id)} RETURNING *"
     val params = mapOf(
       body to comment,
-      author to user.id,
+      author to user.id.value,
       article_id to articleId.value
     )
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> CommentRow.fromRs(rs) })!!
@@ -281,9 +283,9 @@ class ArticleRepository(
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
   }
 
-  private fun fetchArticleTags(articleId: UUID): List<String> = with(ArticleTagTbl) {
+  private fun fetchArticleTags(articleId: ArticleId): List<String> = with(ArticleTagTbl) {
     val sql = "SELECT $tag FROM $table WHERE ${article_id.eq()}"
-    val params = mapOf(article_id to articleId)
+    val params = mapOf(article_id to articleId.value)
     jdbcTemplate.query(sql, params, { rs, _ -> rs.getString(tag) })
   }
 
@@ -368,7 +370,7 @@ class ArticleRepository(
     return ArticlesQueryParts(joinsSql, wheresSql, params)
   }
 
-  private fun fetchAuthor(id: UUID, querier: Option<User>): Profile =
+  private fun fetchAuthor(id: UserId, querier: Option<User>): Profile =
     userRepo.findById(id).unsafeRunSync().map {
       it.user.let { author ->
         Profile(
@@ -380,17 +382,17 @@ class ArticleRepository(
       }
     }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
 
-  private fun fetchFavoritesCount(articleId: UUID): Long = with(ArticleFavoriteTbl) {
+  private fun fetchFavoritesCount(articleId: ArticleId): Long = with(ArticleFavoriteTbl) {
     val sql = "SELECT COUNT(*) FROM $table WHERE ${article_id.eq()}"
-    val params = mapOf(article_id to articleId)
+    val params = mapOf(article_id to articleId.value)
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
   }
 
-  private fun isFavorited(articleId: UUID, user: User): IO<Boolean> = with(ArticleFavoriteTbl) {
+  private fun isFavorited(articleId: ArticleId, user: User): IO<Boolean> = with(ArticleFavoriteTbl) {
     jdbcTemplate.queryIfExists(
       table,
       "${article_id.eq()} AND ${user_id.eq()}",
-      mapOf(article_id to articleId, user_id to user.id)
+      mapOf(article_id to articleId.value, user_id to user.id.value)
     )
   }
 
@@ -402,7 +404,7 @@ class ArticleRepository(
         title to article.title,
         description to article.description,
         body to article.body,
-        author to user.id
+        author to user.id.value
     )
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
   }

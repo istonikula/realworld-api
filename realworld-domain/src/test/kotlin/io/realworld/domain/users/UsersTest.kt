@@ -1,3 +1,4 @@
+// ktlint-disable filename
 package io.realworld.domain.users
 
 import arrow.core.right
@@ -22,7 +23,7 @@ class RegisterUserWorkflowTests {
   )
 
   val createUser0: CreateUser = { x ->
-    User(id = UUID.randomUUID(), email = x.email, token = x.token, username = x.username).liftIO()
+    User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username).liftIO()
   }
 
   @Test
@@ -65,7 +66,7 @@ class RegisterUserWorkflowTests {
         override val createUser: CreateUser = { x ->
           IO {
             userSaved = true
-            User(id = UUID.randomUUID(), email = x.email, token = x.token, username = x.username)
+            User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username)
           }
         }
         override val validateUser = { _: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
@@ -78,7 +79,7 @@ class RegisterUserWorkflowTests {
     RegisterUserCommand(input).runUseCase()
   }
 
-  private fun UserRegistration.autovalid() = UUID.randomUUID().let {
+  private fun UserRegistration.autovalid() = UUID.randomUUID().userId().let {
     ValidUserRegistration(
       id = it,
       username = username,
@@ -88,5 +89,3 @@ class RegisterUserWorkflowTests {
     )
   }
 }
-
-private interface KtlintDisableFilenameRule

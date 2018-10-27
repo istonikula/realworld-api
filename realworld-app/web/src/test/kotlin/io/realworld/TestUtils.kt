@@ -9,6 +9,7 @@ import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
 import io.realworld.domain.users.ValidUserRegistration
+import io.realworld.domain.users.userId
 import io.restassured.RestAssured
 import io.restassured.response.ValidatableResponse
 import io.restassured.specification.RequestSpecification
@@ -60,7 +61,7 @@ class FixtureFactory(val auth: Auth) {
   )
 
   fun validTestUserRegistration(username: String, email: String): ValidUserRegistration {
-    val id = UUID.randomUUID()
+    val id = UUID.randomUUID().userId()
     return ValidUserRegistration(
       id = id,
       username = username,
