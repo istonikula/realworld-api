@@ -3,6 +3,8 @@
 This is a [realworld](http://realworld.io) api example app featuring 
 [Arrow](http://arrow-kt.io), [Kotlin](http://kotlinlang.org) and [Spring Boot](http://spring.io/projects/spring-boot). 
 
+__NOTE__: not yet feature complete, see [TODOs](TODO.md).
+
 # Goals
 * experiment __functional__ Kotlin __backend__ programming using [Arrow](http://arrow-kt.io)
 * implement [realworld](http://realworld.io) api 
@@ -23,4 +25,3 @@ test suite to enable easy refactoring
 # Prior art
 * [Simple Inversion of Control in Kotlin without Dependency Injection Frameworks](https://bit.ly/2q2ccUg) 
   | [Part 2](https://bit.ly/2PJkn3d)
-
