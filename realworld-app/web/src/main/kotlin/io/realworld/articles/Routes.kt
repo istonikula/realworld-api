@@ -32,6 +32,8 @@ import io.realworld.domain.articles.GetCommentsCommand
 import io.realworld.domain.articles.GetCommentsUseCase
 import io.realworld.domain.articles.GetFeedsCommand
 import io.realworld.domain.articles.GetFeedsUsecase
+import io.realworld.domain.articles.GetTagsCommand
+import io.realworld.domain.articles.GetTagsUseCase
 import io.realworld.domain.articles.UnfavoriteArticleCommand
 import io.realworld.domain.articles.UnfavoriteUseCase
 import io.realworld.domain.articles.UpdateArticleCommand
@@ -88,6 +90,8 @@ data class CommentsResponse(val comments: List<CommentResponseDto>) {
     )
   }
 }
+
+data class TagsResponse(val tags: Set<String>)
 
 @RestController
 class ArticleController(
@@ -334,5 +338,16 @@ class ArticleController(
       },
       { ResponseEntity.noContent().build() }
     )
+  }
+
+  @GetMapping("/api/tags")
+  fun getTags(): ResponseEntity<TagsResponse> {
+    return object : GetTagsUseCase {
+      override val getTags = articleRepo::getTags
+    }.run {
+      GetTagsCommand.runUseCase()
+    }.runReadTx(txManager).let {
+      ResponseEntity.ok(TagsResponse(it))
+    }
   }
 }

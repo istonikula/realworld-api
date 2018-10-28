@@ -30,6 +30,7 @@ data class UnfavoriteArticleCommand(val slug: String, val user: User)
 data class CommentArticleCommand(val slug: String, val comment: String, val user: User)
 data class DeleteCommentCommand(val slug: String, val commentId: Long, val user: User)
 data class GetCommentsCommand(val slug: String, val user: Option<User>)
+object GetTagsCommand
 
 sealed class ArticleUpdateError {
   object NotAuthor : ArticleUpdateError()
@@ -282,6 +283,12 @@ interface GetCommentsUseCase {
       }.fix()
     }
   }
+}
+
+interface GetTagsUseCase {
+  val getTags: GetTags
+
+  fun GetTagsCommand.runUseCase(): IO<Set<String>> = getTags()
 }
 
 private fun Option<Article>.getOrSystemError(slug: String) = this.getOrElse {

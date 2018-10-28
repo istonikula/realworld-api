@@ -4,9 +4,11 @@ import io.realworld.articles.ArticleResponse
 import io.realworld.articles.ArticleResponseDto
 import io.realworld.articles.ArticlesResponse
 import io.realworld.articles.CreationDto
+import io.realworld.articles.TagsResponse
 import io.realworld.articles.UpdateDto
 import io.realworld.domain.articles.slugify
 import io.realworld.domain.common.Auth
+import io.realworld.persistence.TagTbl
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.profiles.ProfileResponseDto
@@ -912,6 +914,37 @@ class ArticleTests {
         articles[0].assert(angular.expected, following = true, favorited = true, favoritesCount = 2L)
         articles[1].assert(react.expected, following = true)
       }
+  }
+
+  @Test
+  fun `get tags`() {
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+    val johnDoe = ApiClient(spec)
+
+    JdbcTestUtils.deleteFromTables(jdbcTemplate, TagTbl.table)
+    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
+      assertThat(tags.size).isEqualTo(0)
+    }
+
+    createArticle(jane, dragonSpec(jane.user.username))
+    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
+      assertThat(tags).containsExactlyInAnyOrder("angularjs", "dragons", "reactjs")
+    }
+
+    JdbcTestUtils.deleteFromTables(jdbcTemplate, TagTbl.table)
+    createArticle(jane, angularSpec(jane.user.username))
+    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
+      assertThat(tags).containsExactlyInAnyOrder("101", "angularjs")
+    }
+
+    JdbcTestUtils.deleteFromTables(jdbcTemplate, TagTbl.table)
+    createArticle(jane, angularSpec(jane.user.username))
+    createArticle(jane, dragonSpec(jane.user.username))
+    createArticle(jane, elmSpec(jane.user.username))
+    createArticle(jane, reactSpec(jane.user.username))
+    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
+      assertThat(tags).containsExactlyInAnyOrder("101", "angularjs", "dragons", "Elm", "NoExceptions", "reactjs")
+    }
   }
 
   private fun createUser(user: TestUser) =

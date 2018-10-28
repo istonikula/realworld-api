@@ -231,6 +231,12 @@ class ArticleRepository(
     fetchArticleRowCount(user.toFeedsQueryParts())
   }
 
+  fun getTags(): IO<Set<String>> = with(TagTbl) {
+    IO {
+      jdbcTemplate.query("SELECT $name FROM $table") { rs, _ -> rs.getString(name) }.toSet()
+    }
+  }
+
   private fun loadArticleDeps(row: ArticleRow, user: Option<User>): ArticleDeps =
     ArticleDeps().apply {
       favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
