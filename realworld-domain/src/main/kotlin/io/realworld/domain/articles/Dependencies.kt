@@ -29,3 +29,5 @@ typealias AddComment = (ArticleId, comment: String, User) -> IO<Comment>
 typealias DeleteComment = (id: Long) -> IO<Int>
 typealias GetComment = (id: Long, User) -> IO<Option<Comment>>
 typealias GetComments = (ArticleId, Option<User>) -> IO<List<Comment>>
+
+typealias GetTags = () -> IO<Set<String>>
