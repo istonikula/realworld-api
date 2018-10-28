@@ -68,3 +68,8 @@ data class ArticleFilter(
   val tag: String?, // TODO tags
   val favorited: String?
 )
+
+data class FeedFilter(
+  val limit: Int = 20,
+  val offset: Int = 0
+)

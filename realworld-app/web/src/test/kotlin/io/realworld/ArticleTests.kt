@@ -48,6 +48,11 @@ object TestUsers {
     override val username = "cheeta"
     override val email = "$username@realworld.io"
   }
+
+  object Tarzan : TestUser {
+    override val username = "tarzan"
+    override val email = "$username@realworld.io"
+  }
 }
 
 data class ArticleSpec(
@@ -824,6 +829,88 @@ class ArticleTests {
         assertThat(articles.size).isEqualTo(1)
 
         articles[0].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
+  }
+
+  @Test
+  fun `feed articles`() {
+    val cheeta = createUser(TestUsers.Cheeta).let { UserClient(it, ApiClient(spec, it.token)) }
+    val jane = createUser(TestUsers.Jane).let { UserClient(it, ApiClient(spec, it.token)) }
+    val tarzan = createUser(TestUsers.Tarzan).let { UserClient(it, ApiClient(spec, it.token)) }
+
+    val dragon = createArticle(jane, dragonSpec(jane.user.username))
+    val react = createArticle(jane, reactSpec(jane.user.username))
+
+    val angular = createArticle(tarzan, angularSpec(tarzan.user.username))
+    val elm = createArticle(tarzan, elmSpec(tarzan.user.username))
+
+    cheeta.api.get("/api/articles/feed", null)
+      .then()
+      .statusCode(401)
+
+    cheeta.api.get("/api/articles/feed")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(0))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(0)
+      }
+
+    cheeta.api.post<Any>("/api/profiles/${tarzan.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get("/api/articles/feed")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(2))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(2)
+
+        articles[0].assert(elm.expected, following = true)
+        articles[1].assert(angular.expected, following = true)
+      }
+
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+
+    cheeta.api.get("/api/articles/feed")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(4)
+
+        articles[0].assert(elm.expected, following = true)
+        articles[1].assert(angular.expected, following = true)
+        articles[2].assert(react.expected, following = true)
+        articles[3].assert(dragon.expected, following = true)
+      }
+
+    cheeta.api.post<Any>("/api/articles/${angular.slug}/favorite").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+
+    cheeta.api.get("/api/articles/feed")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(4)
+
+        articles[0].assert(elm.expected, following = true)
+        articles[1].assert(angular.expected, following = true, favorited = true, favoritesCount = 1L)
+        articles[2].assert(react.expected, following = true)
+        articles[3].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
+      }
+
+    jane.api.post<Any>("/api/articles/${angular.slug}/favorite").then().statusCode(200)
+
+    cheeta.api.get("/api/articles/feed?limit=2&offset=1")
+      .then()
+      .statusCode(200)
+      .body("articlesCount", Matchers.equalTo(4))
+      .toDto<ArticlesResponse>().apply {
+        assertThat(articles.size).isEqualTo(2)
+
+        articles[0].assert(angular.expected, following = true, favorited = true, favoritesCount = 2L)
+        articles[1].assert(react.expected, following = true)
       }
   }
 

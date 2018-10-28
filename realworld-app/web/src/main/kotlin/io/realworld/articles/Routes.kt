@@ -23,12 +23,15 @@ import io.realworld.domain.articles.DeleteCommentCommand
 import io.realworld.domain.articles.DeleteCommentUseCase
 import io.realworld.domain.articles.FavoriteArticleCommand
 import io.realworld.domain.articles.FavoriteUseCase
+import io.realworld.domain.articles.FeedFilter
 import io.realworld.domain.articles.GetArticleCommand
 import io.realworld.domain.articles.GetArticleUseCase
 import io.realworld.domain.articles.GetArticlesCommand
 import io.realworld.domain.articles.GetArticlesUseCase
 import io.realworld.domain.articles.GetCommentsCommand
 import io.realworld.domain.articles.GetCommentsUseCase
+import io.realworld.domain.articles.GetFeedsCommand
+import io.realworld.domain.articles.GetFeedsUsecase
 import io.realworld.domain.articles.UnfavoriteArticleCommand
 import io.realworld.domain.articles.UnfavoriteUseCase
 import io.realworld.domain.articles.UpdateArticleCommand
@@ -129,6 +132,21 @@ class ArticleController(
       override val getArticlesCount = articleRepo::getArticlesCount
     }.run {
       GetArticlesCommand(filter, user).runUseCase()
+    }.runReadTx(txManager).let {
+      ResponseEntity.ok(ArticlesResponse.fromDomain(it))
+    }
+  }
+
+  @GetMapping("/api/articles/feed")
+  fun articlesFeed(
+    filter: FeedFilter,
+    user: User
+  ): ResponseEntity<ArticlesResponse> {
+    return object : GetFeedsUsecase {
+      override val getFeeds = articleRepo::getFeeds
+      override val getFeedsCount = articleRepo::getFeedsCount
+    }.run {
+      GetFeedsCommand(filter, user).runUseCase()
     }.runReadTx(txManager).let {
       ResponseEntity.ok(ArticlesResponse.fromDomain(it))
     }

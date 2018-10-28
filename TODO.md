@@ -1,7 +1,6 @@
 # TODO
 
 ## Pending features
-* feed articles
 * list all tags
 * CORS: see spec first paragraph, check impl ideas from parkandride
 * docs

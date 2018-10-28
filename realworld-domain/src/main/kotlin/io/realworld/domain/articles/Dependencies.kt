@@ -17,6 +17,8 @@ typealias ExistsBySlug = (slug: String) -> IO<Boolean>
 typealias GetArticleBySlug = (slug: String, Option<User>) -> IO<Option<Article>>
 typealias GetArticles = (ArticleFilter, Option<User>) -> IO<List<Article>>
 typealias GetArticlesCount = (ArticleFilter) -> IO<Long>
+typealias GetFeeds = (FeedFilter, User) -> IO<List<Article>>
+typealias GetFeedsCount = (user: User) -> IO<Long>
 
 typealias DeleteArticle = (ArticleId) -> IO<Int>
 
