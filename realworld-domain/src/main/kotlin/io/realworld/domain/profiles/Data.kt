@@ -1,3 +1,4 @@
+// ktlint-disable filename
 package io.realworld.domain.profiles
 
 import arrow.core.Option
@@ -8,5 +9,3 @@ data class Profile(
   val image: Option<String>,
   val following: Option<Boolean>
 ) { companion object }
-
-private interface ktlintDisableFilenameRule
