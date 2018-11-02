@@ -86,7 +86,6 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
       jvmTarget = javaVersion
     }
   }
-  kotlin { experimental { coroutines 'enable' } }
 
   repositories {
     mavenCentral()
