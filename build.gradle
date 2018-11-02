@@ -76,13 +76,13 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   sourceCompatibility = javaVersion
   compileKotlin {
     kotlinOptions {
-      freeCompilerArgs = ["-Xjsr305=strict"]
+      freeCompilerArgs = ["-Xjsr305=strict", "-XXLanguage:+InlineClasses"]
       jvmTarget = javaVersion
     }
   }
   compileTestKotlin {
     kotlinOptions {
-      freeCompilerArgs = ["-Xjsr305=strict"]
+      freeCompilerArgs = ["-Xjsr305=strict", "-XXLanguage:+InlineClasses"]
       jvmTarget = javaVersion
     }
   }
