@@ -11,7 +11,7 @@ buildscript {
     ktlintVersion = '0.29.0'
     restAssuredVersion = '3.2.0'
     slugifyVersion = '2.2'
-    springBootVersion = '2.0.6.RELEASE'
+    springBootVersion = '2.1.0.RELEASE'
 
     libs = [
             arrow_core          : "io.arrow-kt:arrow-core:${arrowVersion}",
