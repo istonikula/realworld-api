@@ -5,13 +5,14 @@ buildscript {
     gradleVersionsPluginVersion = '0.20.0'
     jacksonKotlinVersion = '2.9.7'
     jasyptVersion = '1.9.2'
+    jaxbVersion = '2.2.11'
     javaVersion = '1.8'
     jjwtVersion = '0.9.1'
     kotlinVersion = '1.3.0'
     ktlintVersion = '0.29.0'
     restAssuredVersion = '3.2.0'
     slugifyVersion = '2.2'
-    springBootVersion = '2.0.6.RELEASE'
+    springBootVersion = '2.1.0.RELEASE'
 
     libs = [
             arrow_core          : "io.arrow-kt:arrow-core:${arrowVersion}",
@@ -23,6 +24,7 @@ buildscript {
             arrow_typeclasses   : "io.arrow-kt:arrow-typeclasses:${arrowVersion}",
             jackson_kotlin      : "com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonKotlinVersion}",
             jasypt              : "org.jasypt:jasypt:${jasyptVersion}",
+            jaxb                : "javax.xml.bind:jaxb-api:${jaxbVersion}",
             jjwt                : "io.jsonwebtoken:jjwt:${jjwtVersion}",
             junit_jupiter_api   : "org.junit.jupiter:junit-jupiter-api",
             junit_jupiter_engine: "org.junit.jupiter:junit-jupiter-engine",
@@ -132,6 +134,8 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
     compile libs.arrow_data
     compile libs.arrow_syntax
     compile libs.arrow_effects
+
+    runtime libs.jaxb
 
     testCompile(starters.test) {
       exclude group: 'junit', module: 'junit'
