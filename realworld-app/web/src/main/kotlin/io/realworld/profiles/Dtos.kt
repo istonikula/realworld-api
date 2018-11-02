@@ -1,3 +1,4 @@
+// ktlint-disable filename
 package io.realworld.profiles
 
 import io.realworld.domain.profiles.Profile
@@ -19,5 +20,3 @@ data class ProfileResponseDto(
     }
   }
 }
-
-private interface KtlintDisableFilenameRule
