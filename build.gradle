@@ -1,6 +1,6 @@
 buildscript {
   ext {
-    arrowVersion = '0.7.3'
+    arrowVersion = '0.8.0'
     flywayVersion = '5.2.1'
     gradleVersionsPluginVersion = '0.20.0'
     jacksonKotlinVersion = '2.9.7'
@@ -15,26 +15,27 @@ buildscript {
     springBootVersion = '2.1.0.RELEASE'
 
     libs = [
-            arrow_core          : "io.arrow-kt:arrow-core:${arrowVersion}",
-            arrow_effects       : "io.arrow-kt:arrow-effects:${arrowVersion}",
-            arrow_instances_core: "io.arrow-kt:arrow-instances-core:${arrowVersion}",
-            arrow_instances_data: "io.arrow-kt:arrow-instances-data:${arrowVersion}",
-            arrow_data          : "io.arrow-kt:arrow-data:${arrowVersion}",
-            arrow_syntax        : "io.arrow-kt:arrow-syntax:${arrowVersion}",
-            arrow_typeclasses   : "io.arrow-kt:arrow-typeclasses:${arrowVersion}",
-            jackson_kotlin      : "com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonKotlinVersion}",
-            jasypt              : "org.jasypt:jasypt:${jasyptVersion}",
-            jaxb                : "javax.xml.bind:jaxb-api:${jaxbVersion}",
-            jjwt                : "io.jsonwebtoken:jjwt:${jjwtVersion}",
-            junit_jupiter_api   : "org.junit.jupiter:junit-jupiter-api",
-            junit_jupiter_engine: "org.junit.jupiter:junit-jupiter-engine",
-            kotlin_reflect      : "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}",
-            kotlin_std          : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}",
-            ktlint              : "com.github.shyiko:ktlint:${ktlintVersion}",
-            postgresql          : "org.postgresql:postgresql",
-            restassured         : "io.rest-assured:rest-assured:${restAssuredVersion}",
-            slugify             : "com.github.slugify:slugify:${slugifyVersion}",
-            spring_boot_devtools: "org.springframework.boot:spring-boot-devtools"
+            arrow_core             : "io.arrow-kt:arrow-core:${arrowVersion}",
+            arrow_effects          : "io.arrow-kt:arrow-effects:${arrowVersion}",
+            arrow_effects_instances: "io.arrow-kt:arrow-effects-instances:${arrowVersion}",
+            arrow_instances_core   : "io.arrow-kt:arrow-instances-core:${arrowVersion}",
+            arrow_instances_data   : "io.arrow-kt:arrow-instances-data:${arrowVersion}",
+            arrow_data             : "io.arrow-kt:arrow-data:${arrowVersion}",
+            arrow_syntax           : "io.arrow-kt:arrow-syntax:${arrowVersion}",
+            arrow_typeclasses      : "io.arrow-kt:arrow-typeclasses:${arrowVersion}",
+            jackson_kotlin         : "com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonKotlinVersion}",
+            jasypt                 : "org.jasypt:jasypt:${jasyptVersion}",
+            jaxb                   : "javax.xml.bind:jaxb-api:${jaxbVersion}",
+            jjwt                   : "io.jsonwebtoken:jjwt:${jjwtVersion}",
+            junit_jupiter_api      : "org.junit.jupiter:junit-jupiter-api",
+            junit_jupiter_engine   : "org.junit.jupiter:junit-jupiter-engine",
+            kotlin_reflect         : "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}",
+            kotlin_std             : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlinVersion}",
+            ktlint                 : "com.github.shyiko:ktlint:${ktlintVersion}",
+            postgresql             : "org.postgresql:postgresql",
+            restassured            : "io.rest-assured:rest-assured:${restAssuredVersion}",
+            slugify                : "com.github.slugify:slugify:${slugifyVersion}",
+            spring_boot_devtools   : "org.springframework.boot:spring-boot-devtools"
     ]
 
     starters = [
@@ -134,6 +135,7 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
     compile libs.arrow_data
     compile libs.arrow_syntax
     compile libs.arrow_effects
+    compile libs.arrow_effects_instances
 
     runtime libs.jaxb
 

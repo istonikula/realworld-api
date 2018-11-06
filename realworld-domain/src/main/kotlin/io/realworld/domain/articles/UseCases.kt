@@ -11,10 +11,9 @@ import arrow.data.EitherT
 import arrow.data.value
 import arrow.effects.ForIO
 import arrow.effects.IO
-import arrow.effects.extensions
 import arrow.effects.fix
-import arrow.effects.monad
-import arrow.instances.ForEitherT
+import arrow.effects.instances.io.monad.monad
+import arrow.instances.monad
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 import java.util.UUID
@@ -67,22 +66,20 @@ interface CreateArticleUseCase {
 
   fun CreateArticleCommand.runUseCase(): IO<Article> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        val slug = createUniqueSlug(cmd.data.title).bind()
-        createArticle(
-          ValidArticleCreation(
-            id = UUID.randomUUID().articleId(),
-            slug = slug,
-            title = cmd.data.title,
-            description = cmd.data.description,
-            body = cmd.data.body,
-            tagList = cmd.data.tagList
-          ),
-          cmd.user
-        ).bind()
-      }.fix()
-    }
+    return IO.monad().binding {
+      val slug = createUniqueSlug(cmd.data.title).bind()
+      createArticle(
+        ValidArticleCreation(
+          id = UUID.randomUUID().articleId(),
+          slug = slug,
+          title = cmd.data.title,
+          description = cmd.data.description,
+          body = cmd.data.body,
+          tagList = cmd.data.tagList
+        ),
+        cmd.user
+      ).bind()
+    }.fix()
   }
 }
 
@@ -99,17 +96,15 @@ interface DeleteArticleUseCase {
 
   fun DeleteArticleCommand.runUseCase(): IO<Either<ArticleDeleteError, Int>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getArticleBySlug(cmd.slug, user.some()).bind().fold(
-          { ArticleDeleteError.NotFound.left() },
-          {
-            if (it.author.username != cmd.user.username) ArticleDeleteError.NotAuthor.left()
-            else deleteArticle(it.id).bind().right()
-          }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getArticleBySlug(cmd.slug, user.some()).bind().fold(
+        { ArticleDeleteError.NotFound.left() },
+        {
+          if (it.author.username != cmd.user.username) ArticleDeleteError.NotAuthor.left()
+          else deleteArticle(it.id).bind().right()
+        }
+      )
+    }.fix()
   }
 }
 
@@ -119,17 +114,15 @@ interface GetArticlesUseCase {
 
   fun GetArticlesCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        val count = getArticlesCount(cmd.filter).bind()
-        if (count == 0L)
-          Pair(listOf(), 0L)
-        else {
-          val articles = getArticles(cmd.filter, cmd.user).bind()
-          Pair(articles, count)
-        }
-      }.fix()
-    }
+    return IO.monad().binding {
+      val count = getArticlesCount(cmd.filter).bind()
+      if (count == 0L)
+        Pair(listOf(), 0L)
+      else {
+        val articles = getArticles(cmd.filter, cmd.user).bind()
+        Pair(articles, count)
+      }
+    }.fix()
   }
 }
 
@@ -139,17 +132,15 @@ interface GetFeedsUsecase {
 
   fun GetFeedsCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        val count = getFeedsCount(cmd.user).bind()
-        if (count == 0L)
-          Pair(listOf(), 0L)
-        else {
-          val feeds = getFeeds(cmd.filter, cmd.user).bind()
-          Pair(feeds, count)
-        }
-      }.fix()
-    }
+    return IO.monad().binding {
+      val count = getFeedsCount(cmd.user).bind()
+      if (count == 0L)
+        Pair(listOf(), 0L)
+      else {
+        val feeds = getFeeds(cmd.filter, cmd.user).bind()
+        Pair(feeds, count)
+      }
+    }.fix()
   }
 }
 
@@ -159,12 +150,10 @@ interface UpdateArticleUseCase {
 
   fun UpdateArticleCommand.runUseCase(): IO<Either<ArticleUpdateError, Article>> {
     val cmd = this
-    return ForEitherT<ForIO, ArticleUpdateError>(IO.monad()) extensions {
-      binding {
-        val validUpdate = EitherT(validateUpdate(cmd.data, cmd.slug, cmd.user)).bind()
-        EitherT(updateArticle(validUpdate, cmd.user).map { it.right() }).bind()
-      }.value().fix()
-    }
+    return EitherT.monad<ForIO, ArticleUpdateError>(IO.monad()).binding {
+      val validUpdate = EitherT(validateUpdate(cmd.data, cmd.slug, cmd.user)).bind()
+      EitherT(updateArticle(validUpdate, cmd.user).map { it.right() }).bind()
+    }.value().fix()
   }
 }
 
@@ -174,25 +163,23 @@ interface FavoriteUseCase {
 
   fun FavoriteArticleCommand.runUseCase(): IO<Either<ArticleFavoriteError, Article>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
-          { ArticleFavoriteError.NotFound.left() },
-          {
-            when {
-              it.author.username == cmd.user.username ->
-                ArticleFavoriteError.Author.left()
-              it.favorited ->
-                it.right()
-              else -> {
-                addFavorite(it.id, cmd.user).bind()
-                getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
-              }
+    return IO.monad().binding {
+      getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+        { ArticleFavoriteError.NotFound.left() },
+        {
+          when {
+            it.author.username == cmd.user.username ->
+              ArticleFavoriteError.Author.left()
+            it.favorited ->
+              it.right()
+            else -> {
+              addFavorite(it.id, cmd.user).bind()
+              getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
             }
           }
-        )
-      }.fix()
-    }
+        }
+      )
+    }.fix()
   }
 }
 
@@ -202,23 +189,21 @@ interface UnfavoriteUseCase {
 
   fun UnfavoriteArticleCommand.runUseCase(): IO<Either<ArticleUnfavoriteError, Article>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
-          { ArticleUnfavoriteError.NotFound.left() },
-          {
-            when {
-              !it.favorited ->
-                it.right()
-              else -> {
-                removeFavorite(it.id, cmd.user).bind()
-                getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
-              }
+    return IO.monad().binding {
+      getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+        { ArticleUnfavoriteError.NotFound.left() },
+        {
+          when {
+            !it.favorited ->
+              it.right()
+            else -> {
+              removeFavorite(it.id, cmd.user).bind()
+              getArticleBySlug(cmd.slug, cmd.user.some()).bind().getOrSystemError(cmd.slug).right()
             }
           }
-        )
-      }.fix()
-    }
+        }
+      )
+    }.fix()
   }
 }
 
@@ -228,14 +213,12 @@ interface CommentUseCase {
 
   fun CommentArticleCommand.runUsecase(): IO<Either<ArticleCommentError, Comment>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
-          { ArticleCommentError.NotFound.left() },
-          { addComment(it.id, cmd.comment, cmd.user).bind().right() }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+        { ArticleCommentError.NotFound.left() },
+        { addComment(it.id, cmd.comment, cmd.user).bind().right() }
+      )
+    }.fix()
   }
 }
 
@@ -246,25 +229,23 @@ interface DeleteCommentUseCase {
 
   fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
-          { ArticleCommentDeleteError.ArticleNotFound.left() },
-          {
-            val comment = getComment(cmd.commentId, cmd.user).bind()
-            comment.fold(
-              { ArticleCommentDeleteError.CommentNotFound.left() },
-              {
-                if (it.author.username != cmd.user.username)
-                  ArticleCommentDeleteError.NotAuthor.left()
-                else
-                  deleteComment(cmd.commentId).bind().right()
-              }
-            )
-          }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
+        { ArticleCommentDeleteError.ArticleNotFound.left() },
+        {
+          val comment = getComment(cmd.commentId, cmd.user).bind()
+          comment.fold(
+            { ArticleCommentDeleteError.CommentNotFound.left() },
+            {
+              if (it.author.username != cmd.user.username)
+                ArticleCommentDeleteError.NotAuthor.left()
+              else
+                deleteComment(cmd.commentId).bind().right()
+            }
+          )
+        }
+      )
+    }.fix()
   }
 }
 
@@ -274,14 +255,12 @@ interface GetCommentsUseCase {
 
   fun GetCommentsCommand.runUseCase(): IO<Option<List<Comment>>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getArticleBySlug(cmd.slug, cmd.user).bind().fold(
-          { none<List<Comment>>() },
-          { getComments(it.id, cmd.user).bind().some() }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getArticleBySlug(cmd.slug, cmd.user).bind().fold(
+        { none<List<Comment>>() },
+        { getComments(it.id, cmd.user).bind().some() }
+      )
+    }.fix()
   }
 }
 
