@@ -4,10 +4,9 @@ import arrow.core.Option
 import arrow.core.none
 import arrow.core.some
 import arrow.core.toOption
-import arrow.effects.ForIO
 import arrow.effects.IO
-import arrow.effects.extensions
 import arrow.effects.fix
+import arrow.effects.instances.io.monad.monad
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 
@@ -21,24 +20,22 @@ interface GetProfileUseCase {
 
   fun GetProfileCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getUser(cmd.username).bind().fold(
-          { none<Profile>() },
-          {
-            Profile(
-              username = it.username,
-              bio = it.bio.toOption(),
-              image = it.image.toOption(),
-              following = current.fold(
-                { none<Boolean>() },
-                { follower -> hasFollower(it.id, follower.id).bind().some() }
-              )
-            ).some()
-          }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getUser(cmd.username).bind().fold(
+        { none<Profile>() },
+        {
+          Profile(
+            username = it.username,
+            bio = it.bio.toOption(),
+            image = it.image.toOption(),
+            following = current.fold(
+              { none<Boolean>() },
+              { follower -> hasFollower(it.id, follower.id).bind().some() }
+            )
+          ).some()
+        }
+      )
+    }.fix()
   }
 }
 
@@ -48,22 +45,20 @@ interface FollowUseCase {
 
   fun FollowCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getUser(cmd.username).bind().fold(
-          { none<Profile>() },
-          {
-            addFollower(it.id, cmd.current.id).bind()
-            Profile(
-              username = it.username,
-              bio = it.bio.toOption(),
-              image = it.image.toOption(),
-              following = true.some()
-            ).some()
-          }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getUser(cmd.username).bind().fold(
+        { none<Profile>() },
+        {
+          addFollower(it.id, cmd.current.id).bind()
+          Profile(
+            username = it.username,
+            bio = it.bio.toOption(),
+            image = it.image.toOption(),
+            following = true.some()
+          ).some()
+        }
+      )
+    }.fix()
   }
 }
 
@@ -73,21 +68,19 @@ interface UnfollowUseCase {
 
   fun UnfollowCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return ForIO extensions {
-      binding {
-        getUser(cmd.username).bind().fold(
-          { none<Profile>() },
-          {
-            removeFollower(it.id, cmd.current.id).bind()
-            Profile(
-              username = it.username,
-              bio = it.bio.toOption(),
-              image = it.image.toOption(),
-              following = false.some()
-            ).some()
-          }
-        )
-      }.fix()
-    }
+    return IO.monad().binding {
+      getUser(cmd.username).bind().fold(
+        { none<Profile>() },
+        {
+          removeFollower(it.id, cmd.current.id).bind()
+          Profile(
+            username = it.username,
+            bio = it.bio.toOption(),
+            image = it.image.toOption(),
+            following = false.some()
+          ).some()
+        }
+      )
+    }.fix()
   }
 }
