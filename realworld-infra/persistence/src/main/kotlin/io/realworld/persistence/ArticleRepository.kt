@@ -140,12 +140,7 @@ class ArticleRepository(
   }
 
   fun getBySlug(slug: String, user: Option<User>): IO<Option<Article>> = IO {
-    ForOption extensions {
-      binding {
-        val row = fetchRowBySlug(slug).bind()
-        Article.from(row, loadArticleDeps(row, user))
-      }.fix()
-    }
+    fetchRowBySlug(slug).map { Article.from(it, loadArticleDeps(it, user)) }
   }
 
   fun deleteArticle(articleId: ArticleId): IO<Int> = with(ArticleTbl) {
