@@ -1,14 +1,10 @@
 package io.realworld.persistence
 
-import arrow.core.ForOption
 import arrow.core.Option
-import arrow.core.fix
 import arrow.core.getOrElse
 import arrow.core.some
 import arrow.core.toOption
 import arrow.effects.IO
-import arrow.instances.extensions
-import arrow.typeclasses.binding
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
@@ -140,12 +136,7 @@ class ArticleRepository(
   }
 
   fun getBySlug(slug: String, user: Option<User>): IO<Option<Article>> = IO {
-    ForOption extensions {
-      binding {
-        val row = fetchRowBySlug(slug).bind()
-        Article.from(row, loadArticleDeps(row, user))
-      }.fix()
-    }
+    fetchRowBySlug(slug).map { Article.from(it, loadArticleDeps(it, user)) }
   }
 
   fun deleteArticle(articleId: ArticleId): IO<Int> = with(ArticleTbl) {
@@ -178,12 +169,8 @@ class ArticleRepository(
   }
 
   fun getComment(commentId: Long, user: User): IO<Option<Comment>> = IO {
-    ForOption extensions {
-      binding {
-        val row = fetchCommentRowById(commentId).bind()
-        val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
-        Comment.from(row, deps)
-      }.fix()
+    fetchCommentRowById(commentId).map {
+      Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user.some())))
     }
   }
 
