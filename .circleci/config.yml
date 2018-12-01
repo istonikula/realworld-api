@@ -32,7 +32,7 @@ references:
         - *repo_cache_key
 
   deps_cache_key: &deps_cache_key
-    v1-deps-{{ checksum "build.gradle" }}
+    v1-deps-{{ checksum "build.gradle.kts" }}
 
   restore_deps: &restore_deps
     restore_cache:

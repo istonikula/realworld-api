@@ -1,4 +1,0 @@
-include 'realworld-app:web'
-include 'realworld-domain'
-include 'realworld-infra:persistence'
-rootProject.name = 'realworld'
