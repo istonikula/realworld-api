@@ -55,7 +55,7 @@ buildscript {
     maven { url "https://plugins.gradle.org/m2/" }
   }
   dependencies {
-    classpath "com.github.ben-manes:gradle-versions-plugin:${gradleVersionsPluginVersion}"
+    classpath("com.github.ben-manes:gradle-versions-plugin:${gradleVersionsPluginVersion}")
     classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
     classpath("org.jetbrains.kotlin:kotlin-allopen:${kotlinVersion}")
@@ -116,30 +116,30 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   }
 
   dependencies {
-    implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
 
-    ktlint libs.ktlint
+    ktlint(libs.ktlint)
 
-    compile libs.kotlin_std
-    compile libs.kotlin_reflect
+    implementation(libs.kotlin_std)
+    implementation(libs.kotlin_reflect)
 
-    compile libs.arrow_core
-    compile libs.arrow_typeclasses
-    compile libs.arrow_instances_core
-    compile libs.arrow_instances_data
-    compile libs.arrow_data
-    compile libs.arrow_syntax
-    compile libs.arrow_effects
-    compile libs.arrow_effects_instances
+    implementation(libs.arrow_core)
+    implementation(libs.arrow_typeclasses)
+    implementation(libs.arrow_instances_core)
+    implementation(libs.arrow_instances_data)
+    implementation(libs.arrow_data)
+    implementation(libs.arrow_syntax)
+    implementation(libs.arrow_effects)
+    implementation(libs.arrow_effects_instances)
 
-    runtime libs.jaxb
+    runtime(libs.jaxb)
 
-    testCompile(starters.test) {
+    testImplementation(starters.test) {
       exclude group: 'junit', module: 'junit'
     }
 
-    testImplementation libs.junit_jupiter_api
-    testImplementation libs.junit_jupiter_engine
+    testImplementation(libs.junit_jupiter_api)
+    testImplementation(libs.junit_jupiter_engine)
   }
 
   task ktlint(type: JavaExec, group: "verification") {
@@ -175,35 +175,37 @@ project('realworld-app:web') {
   }
 
   dependencies {
-    compile project(':realworld-domain')
-    compile project(':realworld-infra:persistence')
+    implementation(project(':realworld-domain'))
+    implementation(project(':realworld-infra:persistence'))
 
-    compile starters.actuator
-    compile(starters.web) {
+    implementation(starters.actuator)
+    implementation(starters.jdbc)
+    implementation(starters.web) {
       exclude group: "org.springframework.boot", module: "spring-boot-starter-tomcat"
     }
-    compile starters.undertow
+    implementation(starters.undertow)
 
-    compile libs.jackson_kotlin
+    implementation(libs.jackson_kotlin)
 
-    testCompile libs.restassured
+    testImplementation(libs.restassured)
   }
 }
 
 project('realworld-domain') {
   dependencies {
-    compile libs.jasypt
-    compile libs.jjwt
-    compile libs.slugify
+    implementation(libs.jasypt)
+    implementation(libs.jjwt)
+    implementation(libs.slugify)
   }
 }
 
 project('realworld-infra:persistence') {
   dependencies {
-    compile project(':realworld-domain')
+    implementation(project(':realworld-domain'))
 
-    compile starters.jdbc
-    compile libs.postgresql
+    implementation(starters.jdbc)
+
+    implementation(libs.postgresql)
   }
 }
 
