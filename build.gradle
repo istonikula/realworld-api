@@ -1,18 +1,18 @@
 buildscript {
   ext {
-    arrowVersion = '0.8.1'
-    flywayVersion = '5.2.3'
-    gradleVersionsPluginVersion = '0.20.0'
-    jacksonKotlinVersion = '2.9.7'
-    jasyptVersion = '1.9.2'
-    jaxbVersion = '2.2.11'
-    javaVersion = '1.8'
-    jjwtVersion = '0.9.1'
-    kotlinVersion = '1.3.10'
-    ktlintVersion = '0.29.0'
-    restAssuredVersion = '3.2.0'
-    slugifyVersion = '2.2'
-    springBootVersion = '2.1.1.RELEASE'
+    arrowVersion = "0.8.1"
+    flywayVersion = "5.2.3"
+    gradleVersionsPluginVersion = "0.20.0"
+    jacksonKotlinVersion = "2.9.7"
+    jasyptVersion = "1.9.2"
+    jaxbVersion = "2.2.11"
+    javaVersion = "1.8"
+    jjwtVersion = "0.9.1"
+    kotlinVersion = "1.3.10"
+    ktlintVersion = "0.29.0"
+    restAssuredVersion = "3.2.0"
+    slugifyVersion = "2.2"
+    springBootVersion = "2.1.1.RELEASE"
 
     libs = [
             arrow_core             : "io.arrow-kt:arrow-core:${arrowVersion}",
@@ -39,11 +39,11 @@ buildscript {
     ]
 
     starters = [
-            actuator: 'org.springframework.boot:spring-boot-starter-actuator',
-            jdbc    : 'org.springframework.boot:spring-boot-starter-jdbc',
-            test    : 'org.springframework.boot:spring-boot-starter-test',
-            undertow: 'org.springframework.boot:spring-boot-starter-undertow',
-            web     : 'org.springframework.boot:spring-boot-starter-web',
+            actuator: "org.springframework.boot:spring-boot-starter-actuator",
+            jdbc    : "org.springframework.boot:spring-boot-starter-jdbc",
+            test    : "org.springframework.boot:spring-boot-starter-test",
+            undertow: "org.springframework.boot:spring-boot-starter-undertow",
+            web     : "org.springframework.boot:spring-boot-starter-web",
     ]
   }
 
@@ -63,11 +63,11 @@ buildscript {
   }
 }
 
-configure(subprojects - project(':realworld-app') - project(':realworld-infra')) { project ->
-  apply plugin: 'kotlin'
-  apply plugin: 'kotlin-spring'
+configure(subprojects - project(":realworld-app") - project(":realworld-infra")) { project ->
+  apply plugin: "kotlin"
+  apply plugin: "kotlin-spring"
 
-  version = '0.0.1-SNAPSHOT'
+  version = "0.0.1-SNAPSHOT"
 
   sourceCompatibility = javaVersion
   compileKotlin {
@@ -93,13 +93,13 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   configurations {
     ktlint
     all {
-      exclude module: 'kotlin-stdlib-jdk7'
-      exclude module: 'kotlin-stdlib-jre7'
+      exclude module: "kotlin-stdlib-jdk7"
+      exclude module: "kotlin-stdlib-jre7"
 
       resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if (details.requested.group == 'org.jetbrains.kotlin') {
+        if (details.requested.group == "org.jetbrains.kotlin") {
           details.useVersion "${kotlinVersion}"
-          details.because 'use single kotlin version'
+          details.because "use single kotlin version"
         }
       }
     }
@@ -110,8 +110,8 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
     outputs.upToDateWhen { false }
 
     testLogging {
-      events 'passed', 'failed', 'skipped'
-      exceptionFormat 'full'
+      events "passed", "failed", "skipped"
+      exceptionFormat "full"
     }
   }
 
@@ -135,7 +135,7 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
     runtime(libs.jaxb)
 
     testImplementation(starters.test) {
-      exclude group: 'junit', module: 'junit'
+      exclude group: "junit", module: "junit"
     }
 
     testImplementation(libs.junit_jupiter_api)
@@ -161,22 +161,22 @@ configure(subprojects - project(':realworld-app') - project(':realworld-infra'))
   }
 }
 
-project('realworld-app:web') {
-  apply plugin: 'org.springframework.boot'
-  apply plugin: 'org.flywaydb.flyway'
+project("realworld-app:web") {
+  apply plugin: "org.springframework.boot"
+  apply plugin: "org.flywaydb.flyway"
 
   flyway {
-    url = 'jdbc:postgresql://localhost:5432/realworld'
-    user = 'postgres'
-    password = 'secret'
+    url = "jdbc:postgresql://localhost:5432/realworld"
+    user = "postgres"
+    password = "secret"
     placeholders = [
-      'application_user': 'realworld'
+      "application_user": "realworld"
     ]
   }
 
   dependencies {
-    implementation(project(':realworld-domain'))
-    implementation(project(':realworld-infra:persistence'))
+    implementation(project(":realworld-domain"))
+    implementation(project(":realworld-infra:persistence"))
 
     implementation(starters.actuator)
     implementation(starters.jdbc)
@@ -191,7 +191,7 @@ project('realworld-app:web') {
   }
 }
 
-project('realworld-domain') {
+project("realworld-domain") {
   dependencies {
     implementation(libs.jasypt)
     implementation(libs.jjwt)
@@ -199,9 +199,9 @@ project('realworld-domain') {
   }
 }
 
-project('realworld-infra:persistence') {
+project("realworld-infra:persistence") {
   dependencies {
-    implementation(project(':realworld-domain'))
+    implementation(project(":realworld-domain"))
 
     implementation(starters.jdbc)
 
@@ -211,18 +211,18 @@ project('realworld-infra:persistence') {
 
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
-  gradleVersion = '5.0'
+  gradleVersion = "5.0"
 }
 
-apply plugin: 'com.github.ben-manes.versions'
+apply plugin: "com.github.ben-manes.versions"
 dependencyUpdates.resolutionStrategy = {
   componentSelection { rules ->
     rules.all { ComponentSelection selection ->
-      boolean rejected = ['alpha', 'beta', 'build-snapshot', 'rc', 'cr', 'm'].any { qualifier ->
+      boolean rejected = ["alpha", "beta", "build-snapshot", "rc", "cr", "m"].any { qualifier ->
         selection.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/
       }
       if (rejected) {
-        selection.reject('Release candidate')
+        selection.reject("Release candidate")
       }
     }
   }
