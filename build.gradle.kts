@@ -1,6 +1,7 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.flywaydb.gradle.FlywayExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.internal.impldep.org.junit.experimental.categories.Categories
 import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
@@ -11,7 +12,7 @@ plugins {
   id("com.github.ben-manes.versions") version "0.20.0"
   id("org.flywaydb.flyway") version "5.2.3" apply false
   id("org.jetbrains.kotlin.jvm") version kotlinVersion apply false
-  id("org.jetbrains.kotlin.plugin.spring") version  kotlinVersion apply false
+  id("org.jetbrains.kotlin.plugin.spring") version kotlinVersion apply false
   id("org.jlleitschuh.gradle.ktlint") version "6.3.1" apply false
   id("org.springframework.boot") version "2.1.1.RELEASE" apply false
 }
@@ -27,8 +28,6 @@ val ktlintVersion by extra("0.29.0")
 val restAssuredVersion by extra("3.2.0")
 val slugifyVersion by extra("2.2")
 val springBootVersion by extra("2.1.1.RELEASE")
-
-val jepa by extra("org.jasypt:jasypt:$jasyptVersion")
 
 class Libs {
   val arrowCore = "io.arrow-kt:arrow-core:$arrowVersion"
@@ -47,7 +46,6 @@ class Libs {
   val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
   val kotlinReflect = "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
   val kotlinStd = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-  val ktlint = "com.github.shyiko:ktlint:$ktlintVersion"
   val postgresql = "org.postgresql:postgresql"
   val restassured = "io.rest-assured:rest-assured:$restAssuredVersion"
   val slugify = "com.github.slugify:slugify:$slugifyVersion"
@@ -119,31 +117,31 @@ configure(subprojects.apply {
   }
 
   dependencies {
-    "implementation"(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
+    "implementation".let {
+      it(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
 
-    libs.apply {
-      "implementation"(kotlinStd)
-      "implementation"(kotlinReflect)
-
-      "implementation"(arrowCore)
-      "implementation"(arrowTypeclasses)
-      "implementation"(arrowInstancesCore)
-      "implementation"(arrowInstancesData)
-      "implementation"(arrowData)
-      "implementation"(arrowSyntax)
-      "implementation"(arrowEffects)
-      "implementation"(arrowEffectsInstances)
-
+      it(libs.arrowCore)
+      it(libs.arrowTypeclasses)
+      it(libs.arrowInstancesCore)
+      it(libs.arrowInstancesData)
+      it(libs.arrowData)
+      it(libs.arrowSyntax)
+      it(libs.arrowEffects)
+      it(libs.arrowEffectsInstances)
+      it(libs.kotlinStd)
+      it(libs.kotlinReflect)
     }
 
     "runtime"(libs.jaxb)
 
-    "testImplementation"(starters.test) {
-      exclude(group = "junit", module = "junit")
-    }
+    "testImplementation".let {
+      it(starters.test) {
+        exclude(group = "junit", module = "junit")
+      }
 
-    "testImplementation"(libs.junitJupiterApi)
-    "testImplementation"(libs.junitJupiterEngine)
+      it(libs.junitJupiterApi)
+      it(libs.junitJupiterEngine)
+    }
   }
 }
 
@@ -161,22 +159,22 @@ project("realworld-app:web") {
   }
 
   dependencies {
-    "implementation"(project(":realworld-domain"))
-    "implementation"(project(":realworld-infra:persistence"))
+    "implementation".let {
+      it(project(":realworld-domain"))
+      it(project(":realworld-infra:persistence"))
 
-    starters.apply {
-      "implementation"(actuator)
-      "implementation"(jdbc)
-      "implementation"(web) {
+      it(starters.actuator)
+      it(starters.jdbc)
+      it(starters.web) {
         exclude(
           group = "org.springframework.boot",
           module = "spring-boot-starter-tomcat"
         )
       }
-      "implementation"(undertow)
-    }
+      it(starters.undertow)
 
-    "implementation"(libs.jacksonKotlin)
+      it(libs.jacksonKotlin)
+    }
 
     "runtime"(libs.postgresql)
 
@@ -186,21 +184,23 @@ project("realworld-app:web") {
 
 project("realworld-domain") {
   dependencies {
-    libs.apply {
-      "implementation"(jasypt)
-      "implementation"(jjwt)
-      "implementation"(slugify)
+    "implementation".let {
+      it(libs.jasypt)
+      it(libs.jjwt)
+      it(libs.slugify)
     }
   }
 }
 
 project("realworld-infra:persistence") {
   dependencies {
-    "implementation"(project(":realworld-domain"))
+    "implementation".let {
+      it(project(":realworld-domain"))
 
-    "implementation"(starters.jdbc)
+      it(starters.jdbc)
 
-    "implementation"(libs.postgresql)
+      it(libs.postgresql)
+    }
   }
 }
 
