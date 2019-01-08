@@ -5,9 +5,7 @@ import arrow.core.none
 import arrow.core.some
 import arrow.core.toOption
 import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
-import arrow.typeclasses.binding
+import arrow.effects.instances.io.monad.binding
 import io.realworld.domain.users.User
 
 data class GetProfileCommand(val username: String, val current: Option<User>)
@@ -20,7 +18,7 @@ interface GetProfileUseCase {
 
   fun GetProfileCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return IO.monad().binding {
+    return binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -35,7 +33,7 @@ interface GetProfileUseCase {
           ).some()
         }
       )
-    }.fix()
+    }
   }
 }
 
@@ -45,7 +43,7 @@ interface FollowUseCase {
 
   fun FollowCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return IO.monad().binding {
+    return binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -58,7 +56,7 @@ interface FollowUseCase {
           ).some()
         }
       )
-    }.fix()
+    }
   }
 }
 
@@ -68,7 +66,7 @@ interface UnfollowUseCase {
 
   fun UnfollowCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return IO.monad().binding {
+    return binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -81,6 +79,6 @@ interface UnfollowUseCase {
           ).some()
         }
       )
-    }.fix()
+    }
   }
 }

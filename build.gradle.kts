@@ -1,33 +1,32 @@
+
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.flywaydb.gradle.FlywayExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
-  val kotlinVersion = "1.3.10"
+  val kotlinVersion = "1.3.21"
 
-  id("com.github.ben-manes.versions") version "0.20.0"
-  id("org.flywaydb.flyway") version "5.2.3" apply false
+  id("com.github.ben-manes.versions") version "0.21.0"
+  id("org.flywaydb.flyway") version "5.2.4" apply false
   id("org.jetbrains.kotlin.jvm") version kotlinVersion apply false
   id("org.jetbrains.kotlin.plugin.spring") version kotlinVersion apply false
-  id("org.jlleitschuh.gradle.ktlint") version "6.3.1" apply false
-  id("org.springframework.boot") version "2.1.1.RELEASE" apply false
+  id("org.jlleitschuh.gradle.ktlint") version "7.3.0" apply false
+  id("org.springframework.boot") version "2.1.4.RELEASE" apply false
 }
 
-val arrowVersion by extra("0.8.1")
-val jacksonKotlinVersion by extra( "2.9.7")
+val arrowVersion by extra("0.8.2")
+val jacksonKotlinVersion by extra( "2.9.8")
 val jasyptVersion by extra("1.9.2")
 val javaVersion by extra("1.8")
 val jaxbVersion by extra("2.3.1")
 val jjwtVersion by extra("0.9.1")
-val kotlinVersion by extra("1.3.10")
-val ktlintVersion by extra("0.29.0")
-val restAssuredVersion by extra("3.2.0")
-val slugifyVersion by extra("2.2")
-val springBootVersion by extra("2.1.1.RELEASE")
+val ktlintVersion by extra("0.31.0")
+val kotlinVersion by extra("1.3.21")
+val restAssuredVersion by extra("3.3.0")
+val slugifyVersion by extra("2.3")
+val springBootVersion by extra("2.1.4.RELEASE")
 
 class Libs {
   val arrowCore = "io.arrow-kt:arrow-core:$arrowVersion"
