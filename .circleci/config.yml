@@ -2,7 +2,7 @@ version: 2
 
 references:
   gradle_user_home: &gradle_user_home
-    .gradle-user-home
+    .gradle
 
   workspace_root: &workspace_root
     ~/repo
@@ -11,7 +11,7 @@ references:
     working_directory: *workspace_root
     environment:
       GRADLE_USER_HOME: *gradle_user_home
-      JVM_OPTS: -Xmx3200m
+      JAVA_OPTS: -Xmx3200m
 
   container_config: &container_config
     <<: *defaults
@@ -32,7 +32,7 @@ references:
         - *repo_cache_key
 
   deps_cache_key: &deps_cache_key
-    v1-deps-{{ checksum "build.gradle.kts" }}
+    v1-deps-{{ checksum "build.gradle.kts" }}-{{ checksum "settings.gradle.kts" }}
 
   restore_deps: &restore_deps
     restore_cache:
