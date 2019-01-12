@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.effects.ForIO
 import io.realworld.articles.CommentDto
 import io.realworld.articles.CommentResponse
 import io.realworld.domain.common.Auth
@@ -43,7 +44,7 @@ class CommentTests {
   lateinit var jdbcTemplate: JdbcTemplate
 
   @Autowired
-  lateinit var articleRepo: ArticleRepository
+  lateinit var articleRepo: ArticleRepository<ForIO>
 
   @Autowired
   lateinit var auth: Auth

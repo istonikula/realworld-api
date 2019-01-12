@@ -1,5 +1,6 @@
 package io.realworld.domain.articles
 
+import arrow.Kind
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.getOrElse
@@ -13,6 +14,7 @@ import arrow.effects.ForIO
 import arrow.effects.IO
 import arrow.effects.fix
 import arrow.effects.instances.io.monad.monad
+import arrow.effects.typeclasses.MonadDefer
 import arrow.instances.monad
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
@@ -126,21 +128,20 @@ interface GetArticlesUseCase {
   }
 }
 
-interface GetFeedsUsecase {
-  val getFeeds: GetFeeds
-  val getFeedsCount: GetFeedsCount
+interface GetFeedsUseCase<F> {
+  val getFeeds: GetFeeds<F>
+  val getFeedsCount: GetFeedsCount<F>
 
-  fun GetFeedsCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
+  fun GetFeedsCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Pair<List<Article>, Long>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       val count = getFeedsCount(cmd.user).bind()
-      if (count == 0L)
-        Pair(listOf(), 0L)
+      if (count == 0L) Pair(listOf(), 0L)
       else {
         val feeds = getFeeds(cmd.filter, cmd.user).bind()
         Pair(feeds, count)
       }
-    }.fix()
+    }
   }
 }
 

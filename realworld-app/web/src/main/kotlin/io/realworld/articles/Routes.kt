@@ -1,5 +1,9 @@
 package io.realworld.articles
 
+import arrow.effects.ForIO
+import arrow.effects.IO
+import arrow.effects.fix
+import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
@@ -31,7 +35,7 @@ import io.realworld.domain.articles.GetArticlesUseCase
 import io.realworld.domain.articles.GetCommentsCommand
 import io.realworld.domain.articles.GetCommentsUseCase
 import io.realworld.domain.articles.GetFeedsCommand
-import io.realworld.domain.articles.GetFeedsUsecase
+import io.realworld.domain.articles.GetFeedsUseCase
 import io.realworld.domain.articles.GetTagsCommand
 import io.realworld.domain.articles.GetTagsUseCase
 import io.realworld.domain.articles.UnfavoriteArticleCommand
@@ -96,7 +100,7 @@ data class TagsResponse(val tags: Set<String>)
 @RestController
 class ArticleController(
   private val auth: Auth,
-  private val articleRepo: ArticleRepository,
+  private val articleRepo: ArticleRepository<ForIO>,
   private val userRepo: UserRepository,
   private val txManager: PlatformTransactionManager
 ) {
@@ -146,12 +150,12 @@ class ArticleController(
     filter: FeedFilter,
     user: User
   ): ResponseEntity<ArticlesResponse> {
-    return object : GetFeedsUsecase {
+    return object : GetFeedsUseCase<ForIO> {
       override val getFeeds = articleRepo::getFeeds
       override val getFeedsCount = articleRepo::getFeedsCount
     }.run {
-      GetFeedsCommand(filter, user).runUseCase()
-    }.runReadTx(txManager).let {
+      GetFeedsCommand(filter, user).runUseCase(IO.monadDefer())
+    }.fix().runReadTx(txManager).let {
       ResponseEntity.ok(ArticlesResponse.fromDomain(it))
     }
   }

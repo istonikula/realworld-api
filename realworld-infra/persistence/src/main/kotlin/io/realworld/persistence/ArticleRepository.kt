@@ -1,10 +1,12 @@
 package io.realworld.persistence
 
+import arrow.Kind
 import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.some
 import arrow.core.toOption
 import arrow.effects.IO
+import arrow.effects.typeclasses.MonadDefer
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
@@ -106,10 +108,11 @@ private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment
   author = deps.author
 )
 
-class ArticleRepository(
+class ArticleRepository<F>(
   val jdbcTemplate: NamedParameterJdbcTemplate,
-  val userRepo: UserRepository
-) {
+  val userRepo: UserRepository,
+  MD: MonadDefer<F>
+) : MonadDefer<F> by MD {
 
   fun create(article: ValidArticleCreation, user: User): IO<Article> = IO {
     val row = insertArticleRow(article, user)
@@ -208,14 +211,14 @@ class ArticleRepository(
     fetchArticleRowCount(filter.toQueryParts())
   }
 
-  fun getFeeds(filter: FeedFilter, user: User): IO<List<Article>> = IO {
+  fun getFeeds(filter: FeedFilter, user: User): Kind<F, List<Article>> = defer {
     val rows = fetchArticleRows(user.toFeedsQueryParts(), filter.limit, filter.offset)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
-    rows.map { row -> Article.from(row, loadArticleDeps(row, user.some())) }
+    rows.map { row -> Article.from(row, loadArticleDeps(row, user.some())) }.just()
   }
 
-  fun getFeedsCount(user: User): IO<Long> = IO {
-    fetchArticleRowCount(user.toFeedsQueryParts())
+  fun getFeedsCount(user: User): Kind<F, Long> = defer {
+    fetchArticleRowCount(user.toFeedsQueryParts()).just()
   }
 
   fun getTags(): IO<Set<String>> = with(TagTbl) {

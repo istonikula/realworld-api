@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.effects.ForIO
 import io.realworld.articles.UpdateDto
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
@@ -34,7 +35,7 @@ class FavoriteTests {
   lateinit var jdbcTemplate: JdbcTemplate
 
   @Autowired
-  lateinit var articleRepo: ArticleRepository
+  lateinit var articleRepo: ArticleRepository<ForIO>
 
   @Autowired
   lateinit var auth: Auth

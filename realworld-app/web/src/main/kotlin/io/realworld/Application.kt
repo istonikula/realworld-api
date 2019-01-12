@@ -1,6 +1,8 @@
 package io.realworld
 
 import arrow.core.getOrElse
+import arrow.effects.IO
+import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
@@ -50,7 +52,7 @@ class Application : WebMvcConfigurer {
 
   @Bean
   fun articleRepository(jdbcTemplate: NamedParameterJdbcTemplate, userRepository: UserRepository) = ArticleRepository(
-    jdbcTemplate, userRepository
+    jdbcTemplate, userRepository, IO.monadDefer()
   )
 
   override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {
