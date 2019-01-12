@@ -1,5 +1,6 @@
 package io.realworld.profiles
 
+import arrow.effects.ForIO
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.common.Auth
@@ -32,7 +33,7 @@ data class ProfileResponse(val profile: ProfileResponseDto) {
 @RestController
 class ProfileController(
   private val auth: Auth,
-  private val repo: UserRepository,
+  private val repo: UserRepository<ForIO>,
   private val txManager: PlatformTransactionManager
 
 ) {

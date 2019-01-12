@@ -1,6 +1,7 @@
 package io.realworld.users
 
 import arrow.core.Option
+import arrow.effects.ForIO
 import io.realworld.FieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
@@ -43,7 +44,7 @@ data class UserResponse(val user: UserResponseDto) {
 @RestController
 class UserController(
   private val auth0: Auth,
-  private val repo: UserRepository,
+  private val repo: UserRepository<ForIO>,
   private val txManager: PlatformTransactionManager
 ) {
 

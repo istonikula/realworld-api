@@ -110,7 +110,7 @@ private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment
 
 class ArticleRepository<F>(
   val jdbcTemplate: NamedParameterJdbcTemplate,
-  val userRepo: UserRepository,
+  val userRepo: UserRepository<F>,
   MD: MonadDefer<F>
 ) : MonadDefer<F> by MD {
 

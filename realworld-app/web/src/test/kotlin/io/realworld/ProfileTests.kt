@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.effects.ForIO
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
@@ -35,7 +36,7 @@ class ProfileTests {
   lateinit var auth: Auth
 
   @Autowired
-  lateinit var userRepo: UserRepository
+  lateinit var userRepo: UserRepository<ForIO>
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory

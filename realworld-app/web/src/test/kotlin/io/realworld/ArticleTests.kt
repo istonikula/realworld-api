@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.effects.ForIO
 import io.realworld.articles.ArticleResponse
 import io.realworld.articles.ArticleResponseDto
 import io.realworld.articles.ArticlesResponse
@@ -181,7 +182,7 @@ class ArticleTests {
   lateinit var auth: Auth
 
   @Autowired
-  lateinit var userRepo: UserRepository
+  lateinit var userRepo: UserRepository<ForIO>
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory

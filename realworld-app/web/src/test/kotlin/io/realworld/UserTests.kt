@@ -1,5 +1,6 @@
 package io.realworld
 
+import arrow.effects.ForIO
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
@@ -47,7 +48,7 @@ class UserTests {
 
   @Autowired lateinit var auth: Auth
 
-  @SpyBean lateinit var userRepo: UserRepository
+  @SpyBean lateinit var userRepo: UserRepository<ForIO>
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory

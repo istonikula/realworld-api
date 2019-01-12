@@ -101,7 +101,7 @@ data class TagsResponse(val tags: Set<String>)
 class ArticleController(
   private val auth: Auth,
   private val articleRepo: ArticleRepository<ForIO>,
-  private val userRepo: UserRepository,
+  private val userRepo: UserRepository<ForIO>,
   private val txManager: PlatformTransactionManager
 ) {
   @PostMapping("/api/articles")

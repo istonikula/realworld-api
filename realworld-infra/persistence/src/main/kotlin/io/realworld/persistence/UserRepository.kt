@@ -3,6 +3,7 @@ package io.realworld.persistence
 import arrow.core.Option
 import arrow.core.toOption
 import arrow.effects.IO
+import arrow.effects.typeclasses.MonadDefer
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserId
@@ -17,7 +18,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.util.UUID
 
-open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
+open class UserRepository<F>(
+  val jdbcTemplate: NamedParameterJdbcTemplate,
+  MD: MonadDefer<F>
+) : MonadDefer<F> by MD {
 
   fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     User(

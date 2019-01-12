@@ -50,7 +50,7 @@ class CommentTests {
   lateinit var auth: Auth
 
   @Autowired
-  lateinit var userRepo: UserRepository
+  lateinit var userRepo: UserRepository<ForIO>
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory
