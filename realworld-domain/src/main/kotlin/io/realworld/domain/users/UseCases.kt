@@ -1,5 +1,6 @@
 package io.realworld.domain.users
 
+import arrow.Kind
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
@@ -9,6 +10,7 @@ import arrow.effects.ForIO
 import arrow.effects.IO
 import arrow.effects.fix
 import arrow.effects.instances.io.monad.monad
+import arrow.effects.typeclasses.MonadDefer
 import arrow.instances.monad
 import arrow.typeclasses.binding
 import io.realworld.domain.common.Auth
@@ -44,26 +46,26 @@ interface RegisterUserUseCase {
   }
 }
 
-interface LoginUserUseCase {
+interface LoginUserUseCase<F> {
   val auth: Auth
-  val getUser: GetUserByEmail
+  val getUser: GetUserByEmail<F>
 
-  fun LoginUserCommand.runUseCase(): IO<Either<UserLoginError, User>> {
+  fun LoginUserCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<UserLoginError, User>> {
     val cmd = this
-    return EitherT.monad<ForIO, UserLoginError>(IO.monad()).binding {
+    return EitherT.monad<F, UserLoginError>(MD).binding {
       val userAndPassword = EitherT(
-        getUser(cmd.email).map {
-          it.toEither { UserLoginError.BadCredentials }
+        MD.run {
+          getUser(cmd.email).map { it.toEither { UserLoginError.BadCredentials } }
         }
       ).bind()
-      EitherT(IO.just(
+      EitherT(MD.just(
         when (auth.checkPassword(cmd.password, userAndPassword.encryptedPassword)) {
           true -> userAndPassword.right()
           false -> UserLoginError.BadCredentials.left()
         }
       )).bind()
       userAndPassword.user
-    }.value().fix()
+    }.value()
   }
 }
 

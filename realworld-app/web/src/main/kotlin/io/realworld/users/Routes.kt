@@ -2,6 +2,9 @@ package io.realworld.users
 
 import arrow.core.Option
 import arrow.effects.ForIO
+import arrow.effects.IO
+import arrow.effects.fix
+import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.FieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
@@ -84,15 +87,15 @@ class UserController(
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    return object : LoginUserUseCase {
+    return object : LoginUserUseCase<ForIO> {
       override val auth = auth0
-      override val getUser: GetUserByEmail = repo::findByEmail
+      override val getUser: GetUserByEmail<ForIO> = repo::findByEmail
     }.run {
       LoginUserCommand(
         email = login.email,
         password = login.password
-      ).runUseCase()
-    }.runWriteTx(txManager).fold(
+      ).runUseCase(IO.monadDefer())
+    }.fix().runWriteTx(txManager).fold(
       { throw UnauthorizedException() },
       { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
     )

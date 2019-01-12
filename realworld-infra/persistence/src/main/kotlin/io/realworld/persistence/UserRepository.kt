@@ -1,5 +1,6 @@
 package io.realworld.persistence
 
+import arrow.Kind
 import arrow.core.Option
 import arrow.core.toOption
 import arrow.effects.IO
@@ -19,11 +20,11 @@ import java.sql.ResultSet
 import java.util.UUID
 
 open class UserRepository<F>(
-  val jdbcTemplate: NamedParameterJdbcTemplate,
+  private val jdbcTemplate: NamedParameterJdbcTemplate,
   MD: MonadDefer<F>
 ) : MonadDefer<F> by MD {
 
-  fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
+  private fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     User(
       id = UUID.fromString(rs.getString(id)).userId(),
       email = rs.getString(email),
@@ -34,7 +35,7 @@ open class UserRepository<F>(
     )
   }
 
-  fun UserAndPassword.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
+  private fun UserAndPassword.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     UserAndPassword(User.fromRs(rs), rs.getString(password))
   }
 
@@ -97,15 +98,14 @@ open class UserRepository<F>(
       ).toOption()
     }
 
-  fun findByEmail(email: String): IO<Option<UserAndPassword>> =
-    IO {
+  fun findByEmail(email: String): Kind<F, Option<UserAndPassword>> =
+    defer {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
           "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
-          mapOf(UserTbl.email to email),
-          { rs, _ -> UserAndPassword.fromRs(rs) }
-        )
-      ).toOption()
+          mapOf(UserTbl.email to email)
+        ) { rs, _ -> UserAndPassword.fromRs(rs) }
+      ).toOption().just()
     }
 
   fun findByUsername(username: String): IO<Option<User>> =

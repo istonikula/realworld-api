@@ -1,5 +1,6 @@
 package io.realworld.domain.users
 
+import arrow.Kind
 import arrow.core.Either
 import arrow.core.Option
 import arrow.effects.IO
@@ -10,7 +11,7 @@ typealias CreateUser = (user: ValidUserRegistration) -> IO<User>
 typealias ValidateUserUpdate = (update: UserUpdate, current: User) -> IO<Either<UserUpdateError, ValidUserUpdate>>
 typealias UpdateUser = (update: ValidUserUpdate, current: User) -> IO<User>
 
-typealias GetUserByEmail = (email: String) -> IO<Option<UserAndPassword>>
+typealias GetUserByEmail<F> = (email: String) -> Kind<F, Option<UserAndPassword>>
 
 typealias ExistsByEmail = (email: String) -> IO<Boolean>
 typealias ExistsByUsername = (username: String) -> IO<Boolean>
