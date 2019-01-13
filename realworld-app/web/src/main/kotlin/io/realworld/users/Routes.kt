@@ -56,23 +56,25 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUserSrv = object : ValidateUserService {
+    val ioMonadDefer = IO.monadDefer()
+    val validateUserSrv = object : ValidateUserService<ForIO> {
       override val auth = auth0
       override val existsByEmail = repo::existsByEmail
       override val existsByUsername = repo::existsByUsername
+      override val MD = ioMonadDefer
     }
 
-    return object : RegisterUserUseCase {
+    return object : RegisterUserUseCase<ForIO> {
       override val auth = auth0
-      override val createUser: CreateUser = repo::create
-      override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
+      override val createUser: CreateUser<ForIO> = repo::create
+      override val validateUser: ValidateUserRegistration<ForIO> = { x -> validateUserSrv.run { x.validate() } }
     }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
         email = registration.email,
         password = registration.password
-      )).runUseCase()
-    }.runWriteTx(txManager).fold(
+      )).runUseCase(ioMonadDefer)
+    }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
           is UserRegistrationError.EmailAlreadyTaken ->
@@ -103,16 +105,18 @@ class UserController(
 
   @PutMapping("/api/user")
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
-    val validateUpdateSrv = object : ValidateUserUpdateService {
+    val ioMonadDefer = IO.monadDefer()
+    val validateUpdateSrv = object : ValidateUserUpdateService<ForIO> {
       override val auth = auth0
       override val existsByEmail = repo::existsByEmail
       override val existsByUsername = repo::existsByUsername
+      override val MD = ioMonadDefer
     }
 
-    return object : UpdateUserUseCase {
+    return object : UpdateUserUseCase<ForIO> {
       override val auth = auth0
-      override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
-      override val updateUser: UpdateUser = repo::update
+      override val validateUpdate: ValidateUserUpdate<ForIO> = { x, y -> validateUpdateSrv.run { x.validate(y) } }
+      override val updateUser: UpdateUser<ForIO> = repo::update
     }.run {
       UpdateUserCommand(
         data = UserUpdate(
@@ -123,8 +127,8 @@ class UserController(
           image = Option.fromNullable(update.image)
         ),
         current = user
-      ).runUseCase()
-    }.runWriteTx(txManager).fold(
+      ).runUseCase(ioMonadDefer)
+    }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
           is UserUpdateError.EmailAlreadyTaken ->

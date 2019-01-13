@@ -1,6 +1,9 @@
 package io.realworld.profiles
 
 import arrow.effects.ForIO
+import arrow.effects.IO
+import arrow.effects.fix
+import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.common.Auth
@@ -46,15 +49,15 @@ class ProfileController(
     val user = JwtTokenResolver(auth::parse)(
       webRequest.authHeader()
     ).toOption().flatMap {
-      repo.findById(it.id).unsafeRunSync().map { it.user }
+      repo.findById(it.id).fix().unsafeRunSync().map { it.user }
     }
 
-    return object : GetProfileUseCase {
+    return object : GetProfileUseCase<ForIO> {
       override val getUser = repo::findByUsername
       override val hasFollower = repo::hasFollower
     }.run {
-      GetProfileCommand(username, user).runUseCase()
-    }.runReadTx(txManager).fold(
+      GetProfileCommand(username, user).runUseCase(IO.monadDefer())
+    }.fix().runReadTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
@@ -65,12 +68,12 @@ class ProfileController(
     @PathVariable("username") username: String,
     current: User
   ): ResponseEntity<ProfileResponse> {
-    return object : FollowUseCase {
+    return object : FollowUseCase<ForIO> {
       override val addFollower = repo::addFollower
       override val getUser = repo::findByUsername
     }.run {
-      FollowCommand(username, current).runUseCase()
-    }.runWriteTx(txManager).fold(
+      FollowCommand(username, current).runUseCase(IO.monadDefer())
+    }.fix().runWriteTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )
@@ -81,12 +84,12 @@ class ProfileController(
     @PathVariable("username") username: String,
     current: User
   ): ResponseEntity<ProfileResponse> {
-    return object : UnfollowUseCase {
+    return object : UnfollowUseCase<ForIO> {
       override val getUser = repo::findByUsername
       override val removeFollower = repo::removeFollower
     }.run {
-      UnfollowCommand(username, current).runUseCase()
-    }.runWriteTx(txManager).fold(
+      UnfollowCommand(username, current).runUseCase(IO.monadDefer())
+    }.fix().runWriteTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
     )

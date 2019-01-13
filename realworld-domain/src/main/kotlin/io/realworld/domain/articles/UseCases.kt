@@ -10,10 +10,6 @@ import arrow.core.right
 import arrow.core.some
 import arrow.data.EitherT
 import arrow.data.value
-import arrow.effects.ForIO
-import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
 import arrow.effects.typeclasses.MonadDefer
 import arrow.instances.monad
 import arrow.typeclasses.binding
@@ -62,13 +58,13 @@ sealed class ArticleCommentDeleteError {
   object NotAuthor : ArticleCommentDeleteError()
 }
 
-interface CreateArticleUseCase {
-  val createUniqueSlug: CreateUniqueSlug
-  val createArticle: CreateArticle
+interface CreateArticleUseCase<F> {
+  val createUniqueSlug: CreateUniqueSlug<F>
+  val createArticle: CreateArticle<F>
 
-  fun CreateArticleCommand.runUseCase(): IO<Article> {
+  fun CreateArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Article> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       val slug = createUniqueSlug(cmd.data.title).bind()
       createArticle(
         ValidArticleCreation(
@@ -81,24 +77,24 @@ interface CreateArticleUseCase {
         ),
         cmd.user
       ).bind()
-    }.fix()
+    }
   }
 }
 
-interface GetArticleUseCase {
-  val getArticleBySlug: GetArticleBySlug
+interface GetArticleUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
 
-  fun GetArticleCommand.runUseCase(): IO<Option<Article>> =
+  fun GetArticleCommand.runUseCase(): Kind<F, Option<Article>> =
     getArticleBySlug(slug, user)
 }
 
-interface DeleteArticleUseCase {
-  val getArticleBySlug: GetArticleBySlug
-  val deleteArticle: DeleteArticle
+interface DeleteArticleUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
+  val deleteArticle: DeleteArticle<F>
 
-  fun DeleteArticleCommand.runUseCase(): IO<Either<ArticleDeleteError, Int>> {
+  fun DeleteArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleDeleteError, Int>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(cmd.slug, user.some()).bind().fold(
         { ArticleDeleteError.NotFound.left() },
         {
@@ -106,17 +102,17 @@ interface DeleteArticleUseCase {
           else deleteArticle(it.id).bind().right()
         }
       )
-    }.fix()
+    }
   }
 }
 
-interface GetArticlesUseCase {
-  val getArticles: GetArticles
-  val getArticlesCount: GetArticlesCount
+interface GetArticlesUseCase<F> {
+  val getArticles: GetArticles<F>
+  val getArticlesCount: GetArticlesCount<F>
 
-  fun GetArticlesCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
+  fun GetArticlesCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Pair<List<Article>, Long>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       val count = getArticlesCount(cmd.filter).bind()
       if (count == 0L)
         Pair(listOf(), 0L)
@@ -124,7 +120,7 @@ interface GetArticlesUseCase {
         val articles = getArticles(cmd.filter, cmd.user).bind()
         Pair(articles, count)
       }
-    }.fix()
+    }
   }
 }
 
@@ -145,26 +141,28 @@ interface GetFeedsUseCase<F> {
   }
 }
 
-interface UpdateArticleUseCase {
-  val validateUpdate: ValidateArticleUpdate
-  val updateArticle: UpdateArticle
+interface UpdateArticleUseCase<F> {
+  val validateUpdate: ValidateArticleUpdate<F>
+  val updateArticle: UpdateArticle<F>
 
-  fun UpdateArticleCommand.runUseCase(): IO<Either<ArticleUpdateError, Article>> {
+  fun UpdateArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleUpdateError, Article>> {
     val cmd = this
-    return EitherT.monad<ForIO, ArticleUpdateError>(IO.monad()).binding {
+    return EitherT.monad<F, ArticleUpdateError>(MD).binding {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.slug, cmd.user)).bind()
-      EitherT(updateArticle(validUpdate, cmd.user).map { it.right() }).bind()
-    }.value().fix()
+      EitherT(
+        MD.run { updateArticle(validUpdate, cmd.user).map { it.right() } }
+      ).bind()
+    }.value()
   }
 }
 
-interface FavoriteUseCase {
-  val getArticleBySlug: GetArticleBySlug
-  val addFavorite: AddFavorite
+interface FavoriteUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
+  val addFavorite: AddFavorite<F>
 
-  fun FavoriteArticleCommand.runUseCase(): IO<Either<ArticleFavoriteError, Article>> {
+  fun FavoriteArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleFavoriteError, Article>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleFavoriteError.NotFound.left() },
         {
@@ -180,17 +178,17 @@ interface FavoriteUseCase {
           }
         }
       )
-    }.fix()
+    }
   }
 }
 
-interface UnfavoriteUseCase {
-  val getArticleBySlug: GetArticleBySlug
-  val removeFavorite: RemoveFavorite
+interface UnfavoriteUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
+  val removeFavorite: RemoveFavorite<F>
 
-  fun UnfavoriteArticleCommand.runUseCase(): IO<Either<ArticleUnfavoriteError, Article>> {
+  fun UnfavoriteArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleUnfavoriteError, Article>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleUnfavoriteError.NotFound.left() },
         {
@@ -204,33 +202,33 @@ interface UnfavoriteUseCase {
           }
         }
       )
-    }.fix()
+    }
   }
 }
 
-interface CommentUseCase {
-  val getArticleBySlug: GetArticleBySlug
-  val addComment: AddComment
+interface CommentUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
+  val addComment: AddComment<F>
 
-  fun CommentArticleCommand.runUsecase(): IO<Either<ArticleCommentError, Comment>> {
+  fun CommentArticleCommand.runUsecase(MD: MonadDefer<F>): Kind<F, Either<ArticleCommentError, Comment>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleCommentError.NotFound.left() },
         { addComment(it.id, cmd.comment, cmd.user).bind().right() }
       )
-    }.fix()
+    }
   }
 }
 
-interface DeleteCommentUseCase {
-  val getArticleBySlug: GetArticleBySlug
-  val getComment: GetComment
-  val deleteComment: DeleteComment
+interface DeleteCommentUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
+  val getComment: GetComment<F>
+  val deleteComment: DeleteComment<F>
 
-  fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
+  fun DeleteCommentCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleCommentDeleteError, Int>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleCommentDeleteError.ArticleNotFound.left() },
         {
@@ -246,29 +244,29 @@ interface DeleteCommentUseCase {
           )
         }
       )
-    }.fix()
+    }
   }
 }
 
-interface GetCommentsUseCase {
-  val getArticleBySlug: GetArticleBySlug
-  val getComments: GetComments
+interface GetCommentsUseCase<F> {
+  val getArticleBySlug: GetArticleBySlug<F>
+  val getComments: GetComments<F>
 
-  fun GetCommentsCommand.runUseCase(): IO<Option<List<Comment>>> {
+  fun GetCommentsCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Option<List<Comment>>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user).bind().fold(
         { none<List<Comment>>() },
         { getComments(it.id, cmd.user).bind().some() }
       )
-    }.fix()
+    }
   }
 }
 
-interface GetTagsUseCase {
-  val getTags: GetTags
+interface GetTagsUseCase<F> {
+  val getTags: GetTags<F>
 
-  fun GetTagsCommand.runUseCase(): IO<Set<String>> = getTags()
+  fun GetTagsCommand.runUseCase(): Kind<F, Set<String>> = getTags()
 }
 
 private fun Option<Article>.getOrSystemError(slug: String) = this.getOrElse {

@@ -1,6 +1,7 @@
 package io.realworld
 
 import arrow.effects.ForIO
+import arrow.effects.fix
 import io.realworld.articles.CommentDto
 import io.realworld.articles.CommentResponse
 import io.realworld.domain.common.Auth
@@ -78,7 +79,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
@@ -99,7 +100,7 @@ class CommentTests {
   fun `comment article, author`() {
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val janeClient = ApiClient(spec, jane.token)
     janeClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
@@ -112,7 +113,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
@@ -129,7 +130,7 @@ class CommentTests {
   @Test
   fun `comment article requires auth`() {
     val jane = createUser("jane")
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     ApiClient(spec).post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
@@ -141,7 +142,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
@@ -161,7 +162,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
@@ -181,7 +182,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/${Long.MAX_VALUE}")
@@ -194,7 +195,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val janeClient = ApiClient(spec, jane.token)
     val cheetaClient = ApiClient(spec, cheeta.token)
@@ -218,7 +219,7 @@ class CommentTests {
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
@@ -259,5 +260,5 @@ class CommentTests {
   }
 
   private fun createUser(username: String) =
-    userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()
+    userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).fix().unsafeRunSync()
 }

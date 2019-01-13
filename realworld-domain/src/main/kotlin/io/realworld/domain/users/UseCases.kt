@@ -6,10 +6,6 @@ import arrow.core.left
 import arrow.core.right
 import arrow.data.EitherT
 import arrow.data.value
-import arrow.effects.ForIO
-import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
 import arrow.effects.typeclasses.MonadDefer
 import arrow.instances.monad
 import arrow.typeclasses.binding
@@ -32,17 +28,19 @@ sealed class UserUpdateError {
   object UsernameAlreadyTaken : UserUpdateError()
 }
 
-interface RegisterUserUseCase {
+interface RegisterUserUseCase<F> {
   val auth: Auth
-  val createUser: CreateUser
-  val validateUser: ValidateUserRegistration
+  val createUser: CreateUser<F>
+  val validateUser: ValidateUserRegistration<F>
 
-  fun RegisterUserCommand.runUseCase(): IO<Either<UserRegistrationError, User>> {
+  fun RegisterUserCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<UserRegistrationError, User>> {
     val cmd = this
-    return EitherT.monad<ForIO, UserRegistrationError>(IO.monad()).binding {
+    return EitherT.monad<F, UserRegistrationError>(MD).binding {
       val validRegistration = EitherT(validateUser(cmd.data)).bind()
-      EitherT(createUser(validRegistration).map { it.right() }).bind()
-    }.value().fix()
+      EitherT(
+        MD.run { createUser(validRegistration).map { it.right() } }
+      ).bind()
+    }.value()
   }
 }
 
@@ -69,16 +67,18 @@ interface LoginUserUseCase<F> {
   }
 }
 
-interface UpdateUserUseCase {
+interface UpdateUserUseCase<F> {
   val auth: Auth
-  val validateUpdate: ValidateUserUpdate
-  val updateUser: UpdateUser
+  val validateUpdate: ValidateUserUpdate<F>
+  val updateUser: UpdateUser<F>
 
-  fun UpdateUserCommand.runUseCase(): IO<Either<UserUpdateError, User>> {
+  fun UpdateUserCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<UserUpdateError, User>> {
     val cmd = this
-    return EitherT.monad<ForIO, UserUpdateError>(IO.monad()).binding {
+    return EitherT.monad<F, UserUpdateError>(MD).binding {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
-      EitherT(updateUser(validUpdate, current).map { it.right() }).bind()
-    }.value().fix()
+      EitherT(
+        MD.run { updateUser(validUpdate, current).map { it.right() } }
+      ).bind()
+    }.value()
   }
 }

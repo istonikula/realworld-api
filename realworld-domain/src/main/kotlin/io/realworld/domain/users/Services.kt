@@ -1,25 +1,25 @@
 package io.realworld.domain.users
 
+import arrow.Kind
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
-import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
+import arrow.effects.typeclasses.MonadDefer
 import arrow.typeclasses.binding
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import java.util.UUID
 
-interface ValidateUserService {
+interface ValidateUserService<F> {
   val auth: Auth
-  val existsByUsername: ExistsByUsername
-  val existsByEmail: ExistsByEmail
+  val existsByUsername: ExistsByUsername<F>
+  val existsByEmail: ExistsByEmail<F>
+  val MD: MonadDefer<F>
 
-  fun UserRegistration.validate(): IO<Either<UserRegistrationError, ValidUserRegistration>> {
+  fun UserRegistration.validate(): Kind<F, Either<UserRegistrationError, ValidUserRegistration>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       when {
         existsByEmail(cmd.email).bind() ->
           UserRegistrationError.EmailAlreadyTaken.left()
@@ -36,18 +36,19 @@ interface ValidateUserService {
           ).right()
         }
       }
-    }.fix()
+    }
   }
 }
 
-interface ValidateUserUpdateService {
+interface ValidateUserUpdateService<F> {
   val auth: Auth
-  val existsByUsername: ExistsByUsername
-  val existsByEmail: ExistsByEmail
+  val existsByUsername: ExistsByUsername<F>
+  val existsByEmail: ExistsByEmail<F>
+  val MD: MonadDefer<F>
 
-  fun UserUpdate.validate(current: User): IO<Either<UserUpdateError, ValidUserUpdate>> {
+  fun UserUpdate.validate(current: User): Kind<F, Either<UserUpdateError, ValidUserUpdate>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       when {
         cmd.email.fold({ false }, { current.email !== it && existsByEmail(it).bind() }) ->
           UserUpdateError.EmailAlreadyTaken.left()
@@ -61,6 +62,6 @@ interface ValidateUserUpdateService {
           image = image.getOrElse { current.image }
         ).right()
       }
-    }.fix()
+    }
   }
 }

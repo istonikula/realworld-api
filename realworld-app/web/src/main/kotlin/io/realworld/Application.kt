@@ -3,6 +3,7 @@ package io.realworld
 import arrow.core.getOrElse
 import arrow.effects.ForIO
 import arrow.effects.IO
+import arrow.effects.fix
 import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
@@ -41,7 +42,7 @@ class Application : WebMvcConfigurer {
     lateinit var repo: UserRepository<ForIO>
 
     override fun invoke(token: Token): User {
-      return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
+      return repo.findById(token.id).fix().unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
     }
   }
 

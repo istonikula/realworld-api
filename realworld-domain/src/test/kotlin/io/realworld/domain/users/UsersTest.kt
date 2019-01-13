@@ -2,7 +2,10 @@
 package io.realworld.domain.users
 
 import arrow.core.right
+import arrow.effects.ForIO
 import arrow.effects.IO
+import arrow.effects.fix
+import arrow.effects.instances.io.monadDefer.monadDefer
 import arrow.effects.liftIO
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
@@ -22,13 +25,13 @@ class RegisterUserWorkflowTests {
     "foo", "foo@bar.com", "bar"
   )
 
-  val createUser0: CreateUser = { x ->
+  val createUser0: CreateUser<ForIO> = { x ->
     User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username).liftIO()
   }
 
   @Test
   fun `happy path`() {
-    val actual = object : RegisterUserUseCase {
+    val actual = object : RegisterUserUseCase<ForIO> {
       override val auth = auth0
       override val createUser = createUser0
       override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
@@ -40,18 +43,18 @@ class RegisterUserWorkflowTests {
   @Test
   fun `exceptions from dependencies are propagated`() {
     assertThatThrownBy {
-      object : RegisterUserUseCase {
+      object : RegisterUserUseCase<ForIO> {
         override val auth = auth0
-        override val createUser: CreateUser = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
+        override val createUser: CreateUser<ForIO> = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
         override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
     assertThatThrownBy {
-      object : RegisterUserUseCase {
+      object : RegisterUserUseCase<ForIO> {
         override val auth = auth0
         override val createUser = createUser0
-        override val validateUser: ValidateUserRegistration = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
+        override val validateUser: ValidateUserRegistration<ForIO> = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
   }
@@ -61,9 +64,9 @@ class RegisterUserWorkflowTests {
     var userSaved = false
 
     catchThrowable {
-      object : RegisterUserUseCase {
+      object : RegisterUserUseCase<ForIO> {
         override val auth = auth0
-        override val createUser: CreateUser = { x ->
+        override val createUser: CreateUser<ForIO> = { x ->
           IO {
             userSaved = true
             User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username)
@@ -75,8 +78,8 @@ class RegisterUserWorkflowTests {
     assertThat(userSaved).isFalse()
   }
 
-  private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
-    RegisterUserCommand(input).runUseCase()
+  private fun RegisterUserUseCase<ForIO>.test(input: UserRegistration) = this.run {
+    RegisterUserCommand(input).runUseCase(IO.monadDefer()).fix()
   }
 
   private fun UserRegistration.autovalid() = UUID.randomUUID().userId().let {
