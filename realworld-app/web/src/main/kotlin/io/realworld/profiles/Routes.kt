@@ -55,8 +55,9 @@ class ProfileController(
     return object : GetProfileUseCase<ForIO> {
       override val getUser = repo::findByUsername
       override val hasFollower = repo::hasFollower
+      override val MD = IO.monadDefer()
     }.run {
-      GetProfileCommand(username, user).runUseCase(IO.monadDefer())
+      GetProfileCommand(username, user).runUseCase()
     }.fix().runReadTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
@@ -71,8 +72,9 @@ class ProfileController(
     return object : FollowUseCase<ForIO> {
       override val addFollower = repo::addFollower
       override val getUser = repo::findByUsername
+      override val MD = IO.monadDefer()
     }.run {
-      FollowCommand(username, current).runUseCase(IO.monadDefer())
+      FollowCommand(username, current).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
@@ -87,8 +89,9 @@ class ProfileController(
     return object : UnfollowUseCase<ForIO> {
       override val getUser = repo::findByUsername
       override val removeFollower = repo::removeFollower
+      override val MD = IO.monadDefer()
     }.run {
-      UnfollowCommand(username, current).runUseCase(IO.monadDefer())
+      UnfollowCommand(username, current).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }

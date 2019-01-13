@@ -115,11 +115,12 @@ class ArticleController(
     return object : CreateArticleUseCase<ForIO> {
       override val createUniqueSlug = createUniqueSlugSrv::slufigy
       override val createArticle = articleRepo::create
+      override val MD = ioMonadDefer
     }.run {
       CreateArticleCommand(
         data = dto.toDomain(),
         user = user
-      ).runUseCase(ioMonadDefer)
+      ).runUseCase()
     }.fix().runWriteTx(txManager).let {
       ResponseEntity.status(HttpStatus.CREATED).body(ArticleResponse.fromDomain(it))
     }
@@ -140,8 +141,9 @@ class ArticleController(
     return object : GetArticlesUseCase<ForIO> {
       override val getArticles = articleRepo::getArticles
       override val getArticlesCount = articleRepo::getArticlesCount
+      override val MD = IO.monadDefer()
     }.run {
-      GetArticlesCommand(filter, user).runUseCase(IO.monadDefer())
+      GetArticlesCommand(filter, user).runUseCase()
     }.fix().runReadTx(txManager).let {
       ResponseEntity.ok(ArticlesResponse.fromDomain(it))
     }
@@ -155,8 +157,9 @@ class ArticleController(
     return object : GetFeedsUseCase<ForIO> {
       override val getFeeds = articleRepo::getFeeds
       override val getFeedsCount = articleRepo::getFeedsCount
+      override val MD = IO.monadDefer()
     }.run {
-      GetFeedsCommand(filter, user).runUseCase(IO.monadDefer())
+      GetFeedsCommand(filter, user).runUseCase()
     }.fix().runReadTx(txManager).let {
       ResponseEntity.ok(ArticlesResponse.fromDomain(it))
     }
@@ -192,8 +195,9 @@ class ArticleController(
     return object : DeleteArticleUseCase<ForIO> {
       override val getArticleBySlug = articleRepo::getBySlug
       override val deleteArticle = articleRepo::deleteArticle
+      override val MD = IO.monadDefer()
     }.run {
-      DeleteArticleCommand(slug, user).runUseCase(IO.monadDefer())
+      DeleteArticleCommand(slug, user).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
@@ -227,8 +231,9 @@ class ArticleController(
       override val validateUpdate: ValidateArticleUpdate<ForIO> =
         { x, y, z -> validateUpdateSrv.run { x.validate(y, z) } }
       override val updateArticle = articleRepo::updateArticle
+      override val MD = ioMonadDefer
     }.run {
-      UpdateArticleCommand(update.toDomain(), slug, user).runUseCase(ioMonadDefer)
+      UpdateArticleCommand(update.toDomain(), slug, user).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
@@ -249,8 +254,9 @@ class ArticleController(
     return object : FavoriteUseCase<ForIO> {
       override val getArticleBySlug = articleRepo::getBySlug
       override val addFavorite = articleRepo::addFavorite
+      override val MD = IO.monadDefer()
     }.run {
-      FavoriteArticleCommand(slug, user).runUseCase(IO.monadDefer())
+      FavoriteArticleCommand(slug, user).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
@@ -270,8 +276,9 @@ class ArticleController(
     return object : UnfavoriteUseCase<ForIO> {
       override val getArticleBySlug = articleRepo::getBySlug
       override val removeFavorite = articleRepo::removeFavorite
+      override val MD = IO.monadDefer()
     }.run {
-      UnfavoriteArticleCommand(slug, user).runUseCase(IO.monadDefer())
+      UnfavoriteArticleCommand(slug, user).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
@@ -297,8 +304,9 @@ class ArticleController(
     return object : GetCommentsUseCase<ForIO> {
       override val getArticleBySlug = articleRepo::getBySlug
       override val getComments = articleRepo::getComments
+      override val MD = IO.monadDefer()
     }.run {
-      GetCommentsCommand(slug, user).runUseCase(IO.monadDefer())
+      GetCommentsCommand(slug, user).runUseCase()
     }.fix().runReadTx(txManager).fold(
       { ResponseEntity.notFound().build() },
       { ResponseEntity.ok(CommentsResponse.fromDomain(it)) }
@@ -314,8 +322,9 @@ class ArticleController(
     return object : CommentUseCase<ForIO> {
       override val getArticleBySlug = articleRepo::getBySlug
       override val addComment = articleRepo::addComment
+      override val MD = IO.monadDefer()
     }.run {
-      CommentArticleCommand(slug, comment.body, user).runUsecase(IO.monadDefer())
+      CommentArticleCommand(slug, comment.body, user).runUsecase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
@@ -336,8 +345,9 @@ class ArticleController(
       override val getArticleBySlug = articleRepo::getBySlug
       override val deleteComment = articleRepo::deleteComment
       override val getComment = articleRepo::getComment
+      override val MD = IO.monadDefer()
     }.run {
-      DeleteCommentCommand(slug, commentId, user).runUseCase(IO.monadDefer())
+      DeleteCommentCommand(slug, commentId, user).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {

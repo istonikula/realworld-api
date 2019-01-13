@@ -16,8 +16,9 @@ data class UnfollowCommand(val username: String, val current: User)
 interface GetProfileUseCase<F> {
   val getUser: GetUserByUsername<F>
   val hasFollower: HasFollower<F>
+  val MD: MonadDefer<F>
 
-  fun GetProfileCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Option<Profile>> {
+  fun GetProfileCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
     return MD.binding {
       getUser(cmd.username).bind().fold(
@@ -41,8 +42,9 @@ interface GetProfileUseCase<F> {
 interface FollowUseCase<F> {
   val getUser: GetUserByUsername<F>
   val addFollower: AddFollower<F>
+  val MD: MonadDefer<F>
 
-  fun FollowCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Option<Profile>> {
+  fun FollowCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
     return MD.binding {
       getUser(cmd.username).bind().fold(
@@ -64,8 +66,9 @@ interface FollowUseCase<F> {
 interface UnfollowUseCase<F> {
   val getUser: GetUserByUsername<F>
   val removeFollower: RemoveFollower<F>
+  val MD: MonadDefer<F>
 
-  fun UnfollowCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Option<Profile>> {
+  fun UnfollowCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
     return MD.binding {
       getUser(cmd.username).bind().fold(

@@ -68,12 +68,13 @@ class UserController(
       override val auth = auth0
       override val createUser: CreateUser<ForIO> = repo::create
       override val validateUser: ValidateUserRegistration<ForIO> = { x -> validateUserSrv.run { x.validate() } }
+      override val MD = ioMonadDefer
     }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
         email = registration.email,
         password = registration.password
-      )).runUseCase(ioMonadDefer)
+      )).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
@@ -92,11 +93,12 @@ class UserController(
     return object : LoginUserUseCase<ForIO> {
       override val auth = auth0
       override val getUser: GetUserByEmail<ForIO> = repo::findByEmail
+      override val MD = IO.monadDefer()
     }.run {
       LoginUserCommand(
         email = login.email,
         password = login.password
-      ).runUseCase(IO.monadDefer())
+      ).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       { throw UnauthorizedException() },
       { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
@@ -117,6 +119,7 @@ class UserController(
       override val auth = auth0
       override val validateUpdate: ValidateUserUpdate<ForIO> = { x, y -> validateUpdateSrv.run { x.validate(y) } }
       override val updateUser: UpdateUser<ForIO> = repo::update
+      override val MD = ioMonadDefer
     }.run {
       UpdateUserCommand(
         data = UserUpdate(
@@ -127,7 +130,7 @@ class UserController(
           image = Option.fromNullable(update.image)
         ),
         current = user
-      ).runUseCase(ioMonadDefer)
+      ).runUseCase()
     }.fix().runWriteTx(txManager).fold(
       {
         when (it) {

@@ -35,6 +35,7 @@ class RegisterUserWorkflowTests {
       override val auth = auth0
       override val createUser = createUser0
       override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
+      override val MD = IO.monadDefer()
     }.test(userRegistration).unsafeRunSync()
 
     assertThat(actual.isRight()).isTrue()
@@ -45,8 +46,9 @@ class RegisterUserWorkflowTests {
     assertThatThrownBy {
       object : RegisterUserUseCase<ForIO> {
         override val auth = auth0
-        override val createUser: CreateUser<ForIO> = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
+        override val createUser: CreateUser<ForIO> = { IO.raiseError(RuntimeException("BOOM!")) }
         override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
+        override val MD = IO.monadDefer()
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
@@ -54,7 +56,8 @@ class RegisterUserWorkflowTests {
       object : RegisterUserUseCase<ForIO> {
         override val auth = auth0
         override val createUser = createUser0
-        override val validateUser: ValidateUserRegistration<ForIO> = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
+        override val validateUser: ValidateUserRegistration<ForIO> = { IO.raiseError(RuntimeException("BOOM!")) }
+        override val MD = IO.monadDefer()
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
   }
@@ -72,14 +75,15 @@ class RegisterUserWorkflowTests {
             User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username)
           }
         }
-        override val validateUser = { _: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
+        override val validateUser: ValidateUserRegistration<ForIO> = { IO.raiseError(RuntimeException("BOOM!")) }
+        override val MD = IO.monadDefer()
       }.test(userRegistration).unsafeRunSync()
     }
     assertThat(userSaved).isFalse()
   }
 
   private fun RegisterUserUseCase<ForIO>.test(input: UserRegistration) = this.run {
-    RegisterUserCommand(input).runUseCase(IO.monadDefer()).fix()
+    RegisterUserCommand(input).runUseCase().fix()
   }
 
   private fun UserRegistration.autovalid() = UUID.randomUUID().userId().let {

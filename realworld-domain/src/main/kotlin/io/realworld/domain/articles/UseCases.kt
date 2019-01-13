@@ -61,8 +61,9 @@ sealed class ArticleCommentDeleteError {
 interface CreateArticleUseCase<F> {
   val createUniqueSlug: CreateUniqueSlug<F>
   val createArticle: CreateArticle<F>
+  val MD: MonadDefer<F>
 
-  fun CreateArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Article> {
+  fun CreateArticleCommand.runUseCase(): Kind<F, Article> {
     val cmd = this
     return MD.binding {
       val slug = createUniqueSlug(cmd.data.title).bind()
@@ -91,8 +92,9 @@ interface GetArticleUseCase<F> {
 interface DeleteArticleUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val deleteArticle: DeleteArticle<F>
+  val MD: MonadDefer<F>
 
-  fun DeleteArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleDeleteError, Int>> {
+  fun DeleteArticleCommand.runUseCase(): Kind<F, Either<ArticleDeleteError, Int>> {
     val cmd = this
     return MD.binding {
       getArticleBySlug(cmd.slug, user.some()).bind().fold(
@@ -109,8 +111,9 @@ interface DeleteArticleUseCase<F> {
 interface GetArticlesUseCase<F> {
   val getArticles: GetArticles<F>
   val getArticlesCount: GetArticlesCount<F>
+  val MD: MonadDefer<F>
 
-  fun GetArticlesCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Pair<List<Article>, Long>> {
+  fun GetArticlesCommand.runUseCase(): Kind<F, Pair<List<Article>, Long>> {
     val cmd = this
     return MD.binding {
       val count = getArticlesCount(cmd.filter).bind()
@@ -127,8 +130,9 @@ interface GetArticlesUseCase<F> {
 interface GetFeedsUseCase<F> {
   val getFeeds: GetFeeds<F>
   val getFeedsCount: GetFeedsCount<F>
+  val MD: MonadDefer<F>
 
-  fun GetFeedsCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Pair<List<Article>, Long>> {
+  fun GetFeedsCommand.runUseCase(): Kind<F, Pair<List<Article>, Long>> {
     val cmd = this
     return MD.binding {
       val count = getFeedsCount(cmd.user).bind()
@@ -144,8 +148,9 @@ interface GetFeedsUseCase<F> {
 interface UpdateArticleUseCase<F> {
   val validateUpdate: ValidateArticleUpdate<F>
   val updateArticle: UpdateArticle<F>
+  val MD: MonadDefer<F>
 
-  fun UpdateArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleUpdateError, Article>> {
+  fun UpdateArticleCommand.runUseCase(): Kind<F, Either<ArticleUpdateError, Article>> {
     val cmd = this
     return EitherT.monad<F, ArticleUpdateError>(MD).binding {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.slug, cmd.user)).bind()
@@ -159,8 +164,9 @@ interface UpdateArticleUseCase<F> {
 interface FavoriteUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val addFavorite: AddFavorite<F>
+  val MD: MonadDefer<F>
 
-  fun FavoriteArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleFavoriteError, Article>> {
+  fun FavoriteArticleCommand.runUseCase(): Kind<F, Either<ArticleFavoriteError, Article>> {
     val cmd = this
     return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
@@ -185,8 +191,9 @@ interface FavoriteUseCase<F> {
 interface UnfavoriteUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val removeFavorite: RemoveFavorite<F>
+  val MD: MonadDefer<F>
 
-  fun UnfavoriteArticleCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleUnfavoriteError, Article>> {
+  fun UnfavoriteArticleCommand.runUseCase(): Kind<F, Either<ArticleUnfavoriteError, Article>> {
     val cmd = this
     return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
@@ -209,8 +216,9 @@ interface UnfavoriteUseCase<F> {
 interface CommentUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val addComment: AddComment<F>
+  val MD: MonadDefer<F>
 
-  fun CommentArticleCommand.runUsecase(MD: MonadDefer<F>): Kind<F, Either<ArticleCommentError, Comment>> {
+  fun CommentArticleCommand.runUsecase(): Kind<F, Either<ArticleCommentError, Comment>> {
     val cmd = this
     return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
@@ -225,8 +233,9 @@ interface DeleteCommentUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val getComment: GetComment<F>
   val deleteComment: DeleteComment<F>
+  val MD: MonadDefer<F>
 
-  fun DeleteCommentCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<ArticleCommentDeleteError, Int>> {
+  fun DeleteCommentCommand.runUseCase(): Kind<F, Either<ArticleCommentDeleteError, Int>> {
     val cmd = this
     return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
@@ -251,8 +260,9 @@ interface DeleteCommentUseCase<F> {
 interface GetCommentsUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val getComments: GetComments<F>
+  val MD: MonadDefer<F>
 
-  fun GetCommentsCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Option<List<Comment>>> {
+  fun GetCommentsCommand.runUseCase(): Kind<F, Option<List<Comment>>> {
     val cmd = this
     return MD.binding {
       getArticleBySlug(cmd.slug, cmd.user).bind().fold(

@@ -32,8 +32,9 @@ interface RegisterUserUseCase<F> {
   val auth: Auth
   val createUser: CreateUser<F>
   val validateUser: ValidateUserRegistration<F>
+  val MD: MonadDefer<F>
 
-  fun RegisterUserCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<UserRegistrationError, User>> {
+  fun RegisterUserCommand.runUseCase(): Kind<F, Either<UserRegistrationError, User>> {
     val cmd = this
     return EitherT.monad<F, UserRegistrationError>(MD).binding {
       val validRegistration = EitherT(validateUser(cmd.data)).bind()
@@ -47,8 +48,9 @@ interface RegisterUserUseCase<F> {
 interface LoginUserUseCase<F> {
   val auth: Auth
   val getUser: GetUserByEmail<F>
+  val MD: MonadDefer<F>
 
-  fun LoginUserCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<UserLoginError, User>> {
+  fun LoginUserCommand.runUseCase(): Kind<F, Either<UserLoginError, User>> {
     val cmd = this
     return EitherT.monad<F, UserLoginError>(MD).binding {
       val userAndPassword = EitherT(
@@ -71,8 +73,9 @@ interface UpdateUserUseCase<F> {
   val auth: Auth
   val validateUpdate: ValidateUserUpdate<F>
   val updateUser: UpdateUser<F>
+  val MD: MonadDefer<F>
 
-  fun UpdateUserCommand.runUseCase(MD: MonadDefer<F>): Kind<F, Either<UserUpdateError, User>> {
+  fun UpdateUserCommand.runUseCase(): Kind<F, Either<UserUpdateError, User>> {
     val cmd = this
     return EitherT.monad<F, UserUpdateError>(MD).binding {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
