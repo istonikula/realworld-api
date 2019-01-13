@@ -12,6 +12,7 @@ import arrow.data.EitherT
 import arrow.data.value
 import arrow.effects.typeclasses.MonadDefer
 import arrow.instances.monad
+import arrow.typeclasses.MonadError
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 import java.util.UUID
@@ -34,7 +35,7 @@ sealed class ArticleUpdateError {
   object NotFound : ArticleUpdateError()
 }
 
-sealed class ArticleDeleteError {
+sealed class ArticleDeleteError : RuntimeException() {
   object NotAuthor : ArticleDeleteError()
   object NotFound : ArticleDeleteError()
 }
@@ -92,18 +93,18 @@ interface GetArticleUseCase<F> {
 interface DeleteArticleUseCase<F> {
   val getArticleBySlug: GetArticleBySlug<F>
   val deleteArticle: DeleteArticle<F>
-  val MD: MonadDefer<F>
+  val ME: MonadError<F, in ArticleDeleteError>
 
-  fun DeleteArticleCommand.runUseCase(): Kind<F, Either<ArticleDeleteError, Int>> {
+  fun DeleteArticleCommand.runUseCase(): Kind<F, Int> {
     val cmd = this
-    return MD.binding {
+    return ME.binding {
       getArticleBySlug(cmd.slug, user.some()).bind().fold(
-        { ArticleDeleteError.NotFound.left() },
+        { ME.raiseError<Int>(ArticleDeleteError.NotFound) },
         {
-          if (it.author.username != cmd.user.username) ArticleDeleteError.NotAuthor.left()
-          else deleteArticle(it.id).bind().right()
+          if (it.author.username != cmd.user.username) ME.raiseError(ArticleDeleteError.NotAuthor)
+          else deleteArticle(it.id)
         }
-      )
+      ).bind()
     }
   }
 }

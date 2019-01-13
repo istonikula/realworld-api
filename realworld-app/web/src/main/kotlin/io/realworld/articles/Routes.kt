@@ -195,14 +195,17 @@ class ArticleController(
     return object : DeleteArticleUseCase<ForIO> {
       override val getArticleBySlug = articleRepo::getBySlug
       override val deleteArticle = articleRepo::deleteArticle
-      override val MD = IO.monadDefer()
+      override val ME = IO.monadDefer()
     }.run {
       DeleteArticleCommand(slug, user).runUseCase()
-    }.fix().runWriteTx(txManager).fold(
+    }.fix().attempt().runWriteTx(txManager).fold(
       {
         when (it) {
-          is ArticleDeleteError.NotAuthor -> throw ForbiddenException()
-          is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
+          is ArticleDeleteError -> when (it) {
+            is ArticleDeleteError.NotAuthor -> throw ForbiddenException()
+            is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
+          }
+          else -> throw it
         }
       },
       { ResponseEntity.noContent().build() }
