@@ -1,5 +1,7 @@
 package io.realworld
 
+import arrow.effects.ForIO
+import arrow.effects.fix
 import io.realworld.articles.ArticleResponse
 import io.realworld.articles.ArticleResponseDto
 import io.realworld.articles.ArticlesResponse
@@ -181,7 +183,7 @@ class ArticleTests {
   lateinit var auth: Auth
 
   @Autowired
-  lateinit var userRepo: UserRepository
+  lateinit var userRepo: UserRepository<ForIO>
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory
@@ -215,16 +217,14 @@ class ArticleTests {
       .then()
       .statusCode(201)
       .toDto<ArticleResponse>().apply {
-        assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
-        assertThat(article.createdAt).isNotNull()
-        assertThat(article.createdAt).isEqualTo(article.updatedAt)
+        article.assert(expected)
       }
 
     client.get("/api/articles/${expected.title.slugify()}")
       .then()
       .statusCode(200)
       .toDto<ArticleResponse>().apply {
-        assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
+        article.assert(expected)
       }
   }
 
@@ -948,7 +948,7 @@ class ArticleTests {
   }
 
   private fun createUser(user: TestUser) =
-    userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)).unsafeRunSync()
+    userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)).fix().unsafeRunSync()
 
   private fun UserClient.Companion.from(user: TestUser) =
     createUser(user).let { UserClient(it, ApiClient(spec, it.token)) }

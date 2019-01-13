@@ -1,6 +1,10 @@
 package io.realworld
 
 import arrow.core.getOrElse
+import arrow.effects.ForIO
+import arrow.effects.IO
+import arrow.effects.fix
+import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
@@ -35,10 +39,10 @@ class Application : WebMvcConfigurer {
   @Bean
   fun userCreator() = object : (Token) -> User {
     @Autowired
-    lateinit var repo: UserRepository
+    lateinit var repo: UserRepository<ForIO>
 
     override fun invoke(token: Token): User {
-      return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
+      return repo.findById(token.id).fix().unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
     }
   }
 
@@ -46,11 +50,14 @@ class Application : WebMvcConfigurer {
   fun auth() = Auth(settings().security)
 
   @Bean
-  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = UserRepository(jdbcTemplate)
+  fun userRepository(jdbcTemplate: NamedParameterJdbcTemplate) = UserRepository(jdbcTemplate, IO.monadDefer())
 
   @Bean
-  fun articleRepository(jdbcTemplate: NamedParameterJdbcTemplate, userRepository: UserRepository) = ArticleRepository(
-    jdbcTemplate, userRepository
+  fun articleRepository(
+    jdbcTemplate: NamedParameterJdbcTemplate,
+    userRepository: UserRepository<ForIO>
+  ) = ArticleRepository(
+    jdbcTemplate, userRepository, IO.monadDefer()
   )
 
   override fun addArgumentResolvers(resolvers: MutableList<HandlerMethodArgumentResolver>) {

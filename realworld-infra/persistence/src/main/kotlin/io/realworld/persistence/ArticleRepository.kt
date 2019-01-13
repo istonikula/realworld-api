@@ -1,10 +1,11 @@
 package io.realworld.persistence
 
+import arrow.Kind
 import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.some
 import arrow.core.toOption
-import arrow.effects.IO
+import arrow.effects.typeclasses.MonadDefer
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
@@ -106,12 +107,13 @@ private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment
   author = deps.author
 )
 
-class ArticleRepository(
+class ArticleRepository<F>(
   val jdbcTemplate: NamedParameterJdbcTemplate,
-  val userRepo: UserRepository
-) {
+  val userRepo: UserRepository<F>,
+  MD: MonadDefer<F>
+) : MonadDefer<F> by MD {
 
-  fun create(article: ValidArticleCreation, user: User): IO<Article> = IO {
+  fun create(article: ValidArticleCreation, user: User): Kind<F, Article> = defer {
     val row = insertArticleRow(article, user)
 
     val deps = ArticleDeps()
@@ -128,105 +130,107 @@ class ArticleRepository(
       deps.tagList.addAll(article.tagList)
     }
 
-    Article.from(row, deps)
+    Article.from(row, deps).just()
   }
 
-  fun existsBySlug(slug: String): IO<Boolean> = ArticleTbl.let {
-    jdbcTemplate.queryIfExists(it.table, "${it.slug.eq()}", mapOf(it.slug to slug))
+  fun existsBySlug(slug: String): Kind<F, Boolean> = defer {
+    ArticleTbl.let {
+      jdbcTemplate.queryIfExists(it.table, "${it.slug.eq()}", mapOf(it.slug to slug)).just()
+    }
   }
 
-  fun getBySlug(slug: String, user: Option<User>): IO<Option<Article>> = IO {
-    fetchRowBySlug(slug).map { Article.from(it, loadArticleDeps(it, user)) }
+  fun getBySlug(slug: String, user: Option<User>): Kind<F, Option<Article>> = defer {
+    fetchRowBySlug(slug).map { Article.from(it, loadArticleDeps(it, user)) }.just()
   }
 
-  fun deleteArticle(articleId: ArticleId): IO<Int> = with(ArticleTbl) {
+  fun deleteArticle(articleId: ArticleId): Kind<F, Int> = with(ArticleTbl) {
     val sql = "DELETE FROM $table WHERE ${id.eq()}"
     val params = mapOf(id to articleId.value)
-    IO {
-      jdbcTemplate.update(sql, params)
+    defer {
+      jdbcTemplate.update(sql, params).just()
     }
   }
 
-  fun updateArticle(update: ValidArticleUpdate, user: User): IO<Article> = IO {
+  fun updateArticle(update: ValidArticleUpdate, user: User): Kind<F, Article> = defer {
     val row = updateArticleRow(update)
-    Article.from(row, loadArticleDeps(row, user.some()))
+    Article.from(row, loadArticleDeps(row, user.some())).just()
   }
 
-  fun addFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
+  fun addFavorite(articleId: ArticleId, user: User): Kind<F, Int> = with(ArticleFavoriteTbl) {
     val sql = "${table.insert(article_id, user_id)} ON CONFLICT ($article_id, $user_id) DO NOTHING"
     val params = mapOf(article_id to articleId.value, user_id to user.id.value)
-    IO {
-      jdbcTemplate.update(sql, params)
+    defer {
+      jdbcTemplate.update(sql, params).just()
     }
   }
 
-  fun removeFavorite(articleId: ArticleId, user: User): IO<Int> = with(ArticleFavoriteTbl) {
+  fun removeFavorite(articleId: ArticleId, user: User): Kind<F, Int> = with(ArticleFavoriteTbl) {
     val sql = "DELETE FROM $table WHERE ${article_id.eq()} AND ${user_id.eq()}"
     val params = mapOf(article_id to articleId.value, user_id to user.id.value)
-    IO {
-      jdbcTemplate.update(sql, params)
+    defer {
+      jdbcTemplate.update(sql, params).just()
     }
   }
 
-  fun getComment(commentId: Long, user: User): IO<Option<Comment>> = IO {
+  fun getComment(commentId: Long, user: User): Kind<F, Option<Comment>> = defer {
     fetchCommentRowById(commentId).map {
       Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user.some())))
-    }
+    }.just()
   }
 
-  fun addComment(articleId: ArticleId, comment: String, user: User): IO<Comment> = IO {
+  fun addComment(articleId: ArticleId, comment: String, user: User): Kind<F, Comment> = defer {
     val row = insertCommentRow(articleId, comment, user)
     val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
-    Comment.from(row, deps)
+    Comment.from(row, deps).just()
   }
 
-  fun deleteComment(commentId: Long): IO<Int> = with(ArticleCommentTbl) {
+  fun deleteComment(commentId: Long): Kind<F, Int> = with(ArticleCommentTbl) {
     val sql = "DELETE FROM $table WHERE ${id.eq()}"
     val params = mapOf(id to commentId)
-    IO {
-      jdbcTemplate.update(sql, params)
+    defer {
+      jdbcTemplate.update(sql, params).just()
     }
   }
 
-  fun getComments(articleId: ArticleId, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
+  fun getComments(articleId: ArticleId, user: Option<User>): Kind<F, List<Comment>> = with(ArticleCommentTbl) {
     val sql = "SELECT * from $table WHERE ${article_id.eq()}"
     val params = mapOf(article_id to articleId.value)
-    IO {
+    defer {
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }.map {
         Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user)))
-      }
+      }.just()
     }
   }
 
-  fun getArticles(filter: ArticleFilter, user: Option<User>): IO<List<Article>> = IO {
+  fun getArticles(filter: ArticleFilter, user: Option<User>): Kind<F, List<Article>> = defer {
     val rows = fetchArticleRows(filter.toQueryParts(), filter.limit, filter.offset)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
-    rows.map { row -> Article.from(row, loadArticleDeps(row, user)) }
+    rows.map { row -> Article.from(row, loadArticleDeps(row, user)) }.just()
   }
 
-  fun getArticlesCount(filter: ArticleFilter): IO<Long> = IO {
-    fetchArticleRowCount(filter.toQueryParts())
+  fun getArticlesCount(filter: ArticleFilter): Kind<F, Long> = defer {
+    fetchArticleRowCount(filter.toQueryParts()).just()
   }
 
-  fun getFeeds(filter: FeedFilter, user: User): IO<List<Article>> = IO {
+  fun getFeeds(filter: FeedFilter, user: User): Kind<F, List<Article>> = defer {
     val rows = fetchArticleRows(user.toFeedsQueryParts(), filter.limit, filter.offset)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
-    rows.map { row -> Article.from(row, loadArticleDeps(row, user.some())) }
+    rows.map { row -> Article.from(row, loadArticleDeps(row, user.some())) }.just()
   }
 
-  fun getFeedsCount(user: User): IO<Long> = IO {
-    fetchArticleRowCount(user.toFeedsQueryParts())
+  fun getFeedsCount(user: User): Kind<F, Long> = defer {
+    fetchArticleRowCount(user.toFeedsQueryParts()).just()
   }
 
-  fun getTags(): IO<Set<String>> = with(TagTbl) {
-    IO {
-      jdbcTemplate.query("SELECT $name FROM $table") { rs, _ -> rs.getString(name) }.toSet()
+  fun getTags(): Kind<F, Set<String>> = with(TagTbl) {
+    defer {
+      jdbcTemplate.query("SELECT $name FROM $table") { rs, _ -> rs.getString(name) }.toSet().just()
     }
   }
 
   private fun loadArticleDeps(row: ArticleRow, user: Option<User>): ArticleDeps =
     ArticleDeps().apply {
-      favorited = user.map { isFavorited(row.id, it).unsafeRunSync() }.getOrElse { false }
+      favorited = user.map { isFavorited(row.id, it) }.getOrElse { false }
       favoritesCount = fetchFavoritesCount(row.id)
       tagList.addAll(fetchArticleTags(row.id))
       author = fetchAuthor(row.authorId, user)
@@ -373,13 +377,13 @@ class ArticleRepository(
   }
 
   private fun fetchAuthor(id: UserId, querier: Option<User>): Profile =
-    userRepo.findById(id).unsafeRunSync().map {
+    userRepo.findByIdImpure(id).map {
       it.user.let { author ->
         Profile(
           username = author.username,
           bio = author.bio.toOption(),
           image = author.image.toOption(),
-          following = querier.map { userRepo.hasFollower(author.id, it.id).unsafeRunSync() }
+          following = querier.map { userRepo.hasFollowerImpure(author.id, it.id) }
         )
       }
     }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
@@ -390,7 +394,7 @@ class ArticleRepository(
     jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
   }
 
-  private fun isFavorited(articleId: ArticleId, user: User): IO<Boolean> = with(ArticleFavoriteTbl) {
+  private fun isFavorited(articleId: ArticleId, user: User): Boolean = with(ArticleFavoriteTbl) {
     jdbcTemplate.queryIfExists(
       table,
       "${article_id.eq()} AND ${user_id.eq()}",

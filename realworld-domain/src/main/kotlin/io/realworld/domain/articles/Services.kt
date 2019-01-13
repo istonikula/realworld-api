@@ -1,13 +1,12 @@
 package io.realworld.domain.articles
 
+import arrow.Kind
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import arrow.core.some
-import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
+import arrow.effects.typeclasses.MonadDefer
 import arrow.typeclasses.binding
 import com.github.slugify.Slugify
 import io.realworld.domain.users.User
@@ -16,26 +15,28 @@ import java.util.UUID
 private val slugifier = Slugify()
 fun String.slugify() = slugifier.slugify(this)
 
-interface CreateUniqueSlugService {
-  val existsBySlug: ExistsBySlug
+interface CreateUniqueSlugService<F> {
+  val existsBySlug: ExistsBySlug<F>
+  val MD: MonadDefer<F>
 
-  fun slufigy(s: String): IO<String> = IO.monad().binding {
+  fun slufigy(s: String): Kind<F, String> = MD.binding {
     val slugified = s.slugify()
     var slugCandidate = slugified
     while (existsBySlug(slugCandidate).bind()) {
       slugCandidate = "$slugified-${UUID.randomUUID().toString().substring(0, 8)}"
     }
     slugCandidate
-  }.fix()
+  }
 }
 
-interface ValidateArticleUpdateService {
-  val createUniqueSlug: CreateUniqueSlug
-  val getArticleBySlug: GetArticleBySlug
+interface ValidateArticleUpdateService<F> {
+  val createUniqueSlug: CreateUniqueSlug<F>
+  val getArticleBySlug: GetArticleBySlug<F>
+  val MD: MonadDefer<F>
 
-  fun ArticleUpdate.validate(slug: String, user: User): IO<Either<ArticleUpdateError, ValidArticleUpdate>> {
+  fun ArticleUpdate.validate(slug: String, user: User): Kind<F, Either<ArticleUpdateError, ValidArticleUpdate>> {
     val cmd = this
-    return IO.monad().binding {
+    return MD.binding {
       getArticleBySlug(slug, user.some()).bind().fold(
         { ArticleUpdateError.NotFound.left() },
         {
@@ -53,6 +54,6 @@ interface ValidateArticleUpdateService {
           }
         }
       )
-    }.fix()
+    }
   }
 }

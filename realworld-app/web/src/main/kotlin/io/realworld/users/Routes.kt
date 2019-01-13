@@ -1,6 +1,8 @@
 package io.realworld.users
 
 import arrow.core.Option
+import arrow.effects.ForIO
+import arrow.effects.fix
 import io.realworld.FieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
@@ -43,7 +45,7 @@ data class UserResponse(val user: UserResponseDto) {
 @RestController
 class UserController(
   private val auth0: Auth,
-  private val repo: UserRepository,
+  private val repo: UserRepository<ForIO>,
   private val txManager: PlatformTransactionManager
 ) {
 
@@ -52,23 +54,25 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUserSrv = object : ValidateUserService {
+    val validateUserSrv = object : ValidateUserService<ForIO> {
       override val auth = auth0
       override val existsByEmail = repo::existsByEmail
       override val existsByUsername = repo::existsByUsername
+      override val M = repo.MD
     }
 
-    return object : RegisterUserUseCase {
+    return object : RegisterUserUseCase<ForIO> {
       override val auth = auth0
-      override val createUser: CreateUser = repo::create
-      override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
+      override val createUser: CreateUser<ForIO> = repo::create
+      override val validateUser: ValidateUserRegistration<ForIO> = { x -> validateUserSrv.run { x.validate() } }
+      override val M = repo.MD
     }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
         email = registration.email,
         password = registration.password
       )).runUseCase()
-    }.runWriteTx(txManager).fold(
+    }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
           is UserRegistrationError.EmailAlreadyTaken ->
@@ -83,15 +87,16 @@ class UserController(
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    return object : LoginUserUseCase {
+    return object : LoginUserUseCase<ForIO> {
       override val auth = auth0
-      override val getUser: GetUserByEmail = repo::findByEmail
+      override val getUser: GetUserByEmail<ForIO> = repo::findByEmail
+      override val M = repo.MD
     }.run {
       LoginUserCommand(
         email = login.email,
         password = login.password
       ).runUseCase()
-    }.runWriteTx(txManager).fold(
+    }.fix().runWriteTx(txManager).fold(
       { throw UnauthorizedException() },
       { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
     )
@@ -99,16 +104,18 @@ class UserController(
 
   @PutMapping("/api/user")
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
-    val validateUpdateSrv = object : ValidateUserUpdateService {
+    val validateUpdateSrv = object : ValidateUserUpdateService<ForIO> {
       override val auth = auth0
       override val existsByEmail = repo::existsByEmail
       override val existsByUsername = repo::existsByUsername
+      override val M = repo.MD
     }
 
-    return object : UpdateUserUseCase {
+    return object : UpdateUserUseCase<ForIO> {
       override val auth = auth0
-      override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
-      override val updateUser: UpdateUser = repo::update
+      override val validateUpdate: ValidateUserUpdate<ForIO> = { x, y -> validateUpdateSrv.run { x.validate(y) } }
+      override val updateUser: UpdateUser<ForIO> = repo::update
+      override val M = repo.MD
     }.run {
       UpdateUserCommand(
         data = UserUpdate(
@@ -120,7 +127,7 @@ class UserController(
         ),
         current = user
       ).runUseCase()
-    }.runWriteTx(txManager).fold(
+    }.fix().runWriteTx(txManager).fold(
       {
         when (it) {
           is UserUpdateError.EmailAlreadyTaken ->

@@ -1,33 +1,33 @@
 package io.realworld.domain.articles
 
+import arrow.Kind
 import arrow.core.Either
 import arrow.core.Option
-import arrow.effects.IO
 import io.realworld.domain.users.User
 
-typealias CreateArticle = (ValidArticleCreation, User) -> IO<Article>
+typealias CreateArticle<F> = (ValidArticleCreation, User) -> Kind<F, Article>
 
-typealias ValidateArticleUpdate = (ArticleUpdate, slug: String, User) ->
-  IO<Either<ArticleUpdateError, ValidArticleUpdate>>
-typealias UpdateArticle = (ValidArticleUpdate, User) -> IO<Article>
+typealias ValidateArticleUpdate<F> = (ArticleUpdate, slug: String, User) ->
+  Kind<F, Either<ArticleUpdateError, ValidArticleUpdate>>
+typealias UpdateArticle<F> = (ValidArticleUpdate, User) -> Kind<F, Article>
 
-typealias CreateUniqueSlug = (title: String) -> IO<String>
-typealias ExistsBySlug = (slug: String) -> IO<Boolean>
+typealias CreateUniqueSlug<F> = (title: String) -> Kind<F, String>
+typealias ExistsBySlug<F> = (slug: String) -> Kind<F, Boolean>
 
-typealias GetArticleBySlug = (slug: String, Option<User>) -> IO<Option<Article>>
-typealias GetArticles = (ArticleFilter, Option<User>) -> IO<List<Article>>
-typealias GetArticlesCount = (ArticleFilter) -> IO<Long>
-typealias GetFeeds = (FeedFilter, User) -> IO<List<Article>>
-typealias GetFeedsCount = (user: User) -> IO<Long>
+typealias GetArticleBySlug<F> = (slug: String, Option<User>) -> Kind<F, Option<Article>>
+typealias GetArticles<F> = (ArticleFilter, Option<User>) -> Kind<F, List<Article>>
+typealias GetArticlesCount<F> = (ArticleFilter) -> Kind<F, Long>
+typealias GetFeeds<F> = (FeedFilter, User) -> Kind<F, List<Article>>
+typealias GetFeedsCount<F> = (user: User) -> Kind<F, Long>
 
-typealias DeleteArticle = (ArticleId) -> IO<Int>
+typealias DeleteArticle<F> = (ArticleId) -> Kind<F, Int>
 
-typealias AddFavorite = (ArticleId, User) -> IO<Int>
-typealias RemoveFavorite = (ArticleId, User) -> IO<Int>
+typealias AddFavorite<F> = (ArticleId, User) -> Kind<F, Int>
+typealias RemoveFavorite<F> = (ArticleId, User) -> Kind<F, Int>
 
-typealias AddComment = (ArticleId, comment: String, User) -> IO<Comment>
-typealias DeleteComment = (id: Long) -> IO<Int>
-typealias GetComment = (id: Long, User) -> IO<Option<Comment>>
-typealias GetComments = (ArticleId, Option<User>) -> IO<List<Comment>>
+typealias AddComment<F> = (ArticleId, comment: String, User) -> Kind<F, Comment>
+typealias DeleteComment<F> = (id: Long) -> Kind<F, Int>
+typealias GetComment<F> = (id: Long, User) -> Kind<F, Option<Comment>>
+typealias GetComments<F> = (ArticleId, Option<User>) -> Kind<F, List<Comment>>
 
-typealias GetTags = () -> IO<Set<String>>
+typealias GetTags<F> = () -> Kind<F, Set<String>>

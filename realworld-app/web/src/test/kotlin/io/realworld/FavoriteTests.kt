@@ -1,5 +1,7 @@
 package io.realworld
 
+import arrow.effects.ForIO
+import arrow.effects.fix
 import io.realworld.articles.UpdateDto
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
@@ -34,13 +36,13 @@ class FavoriteTests {
   lateinit var jdbcTemplate: JdbcTemplate
 
   @Autowired
-  lateinit var articleRepo: ArticleRepository
+  lateinit var articleRepo: ArticleRepository<ForIO>
 
   @Autowired
   lateinit var auth: Auth
 
   @Autowired
-  lateinit var userRepo: UserRepository
+  lateinit var userRepo: UserRepository<ForIO>
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory
@@ -69,7 +71,7 @@ class FavoriteTests {
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.get("/api/articles/${janesArticle.slug}")
@@ -116,7 +118,7 @@ class FavoriteTests {
   @Test
   fun `favorite article, author`() {
     val jane = createUser("jane")
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
     val janeClient = ApiClient(spec, jane.token)
 
     janeClient.get("/api/articles/${janesArticle.slug}")
@@ -137,7 +139,7 @@ class FavoriteTests {
   @Test
   fun `favoriting already favorited acticle has no effect`() {
     val jane = createUser("jane")
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val tarzan = createUser("tarzan")
     val tarzanClient = ApiClient(spec, tarzan.token)
@@ -169,7 +171,7 @@ class FavoriteTests {
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
 
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
@@ -213,7 +215,7 @@ class FavoriteTests {
     val janeClient = ApiClient(spec, jane.token)
     val tarzanClient = ApiClient(spec, tarzan.token)
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).fix().unsafeRunSync()
     val updateReq = UpdateRequest(UpdateDto(description = "updated.${janesArticle.description}"))
 
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
@@ -257,5 +259,5 @@ class FavoriteTests {
   }
 
   private fun createUser(username: String) =
-    userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()
+    userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).fix().unsafeRunSync()
 }

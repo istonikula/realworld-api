@@ -1,12 +1,11 @@
 package io.realworld.domain.profiles
 
+import arrow.Kind
 import arrow.core.Option
 import arrow.core.none
 import arrow.core.some
 import arrow.core.toOption
-import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
+import arrow.typeclasses.Monad
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 
@@ -14,13 +13,14 @@ data class GetProfileCommand(val username: String, val current: Option<User>)
 data class FollowCommand(val username: String, val current: User)
 data class UnfollowCommand(val username: String, val current: User)
 
-interface GetProfileUseCase {
-  val getUser: GetUserByUsername
-  val hasFollower: HasFollower
+interface GetProfileUseCase<F> {
+  val getUser: GetUserByUsername<F>
+  val hasFollower: HasFollower<F>
+  val M: Monad<F>
 
-  fun GetProfileCommand.runUseCase(): IO<Option<Profile>> {
+  fun GetProfileCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
-    return IO.monad().binding {
+    return M.binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -35,17 +35,18 @@ interface GetProfileUseCase {
           ).some()
         }
       )
-    }.fix()
+    }
   }
 }
 
-interface FollowUseCase {
-  val getUser: GetUserByUsername
-  val addFollower: AddFollower
+interface FollowUseCase<F> {
+  val getUser: GetUserByUsername<F>
+  val addFollower: AddFollower<F>
+  val M: Monad<F>
 
-  fun FollowCommand.runUseCase(): IO<Option<Profile>> {
+  fun FollowCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
-    return IO.monad().binding {
+    return M.binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -58,17 +59,18 @@ interface FollowUseCase {
           ).some()
         }
       )
-    }.fix()
+    }
   }
 }
 
-interface UnfollowUseCase {
-  val getUser: GetUserByUsername
-  val removeFollower: RemoveFollower
+interface UnfollowUseCase<F> {
+  val getUser: GetUserByUsername<F>
+  val removeFollower: RemoveFollower<F>
+  val M: Monad<F>
 
-  fun UnfollowCommand.runUseCase(): IO<Option<Profile>> {
+  fun UnfollowCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
-    return IO.monad().binding {
+    return M.binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -81,6 +83,6 @@ interface UnfollowUseCase {
           ).some()
         }
       )
-    }.fix()
+    }
   }
 }
