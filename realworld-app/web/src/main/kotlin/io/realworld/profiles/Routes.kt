@@ -1,9 +1,7 @@
 package io.realworld.profiles
 
 import arrow.effects.ForIO
-import arrow.effects.IO
 import arrow.effects.fix
-import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.common.Auth
@@ -38,7 +36,6 @@ class ProfileController(
   private val auth: Auth,
   private val repo: UserRepository<ForIO>,
   private val txManager: PlatformTransactionManager
-
 ) {
   @GetMapping("/api/profiles/{username}")
   fun getProfile(
@@ -55,7 +52,7 @@ class ProfileController(
     return object : GetProfileUseCase<ForIO> {
       override val getUser = repo::findByUsername
       override val hasFollower = repo::hasFollower
-      override val MD = IO.monadDefer()
+      override val M = repo.MD
     }.run {
       GetProfileCommand(username, user).runUseCase()
     }.fix().runReadTx(txManager).fold(
@@ -72,7 +69,7 @@ class ProfileController(
     return object : FollowUseCase<ForIO> {
       override val addFollower = repo::addFollower
       override val getUser = repo::findByUsername
-      override val MD = IO.monadDefer()
+      override val M = repo.MD
     }.run {
       FollowCommand(username, current).runUseCase()
     }.fix().runWriteTx(txManager).fold(
@@ -89,7 +86,7 @@ class ProfileController(
     return object : UnfollowUseCase<ForIO> {
       override val getUser = repo::findByUsername
       override val removeFollower = repo::removeFollower
-      override val MD = IO.monadDefer()
+      override val M = repo.MD
     }.run {
       UnfollowCommand(username, current).runUseCase()
     }.fix().runWriteTx(txManager).fold(

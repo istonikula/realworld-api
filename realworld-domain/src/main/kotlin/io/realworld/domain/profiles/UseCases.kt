@@ -5,7 +5,7 @@ import arrow.core.Option
 import arrow.core.none
 import arrow.core.some
 import arrow.core.toOption
-import arrow.effects.typeclasses.MonadDefer
+import arrow.typeclasses.Monad
 import arrow.typeclasses.binding
 import io.realworld.domain.users.User
 
@@ -16,11 +16,11 @@ data class UnfollowCommand(val username: String, val current: User)
 interface GetProfileUseCase<F> {
   val getUser: GetUserByUsername<F>
   val hasFollower: HasFollower<F>
-  val MD: MonadDefer<F>
+  val M: Monad<F>
 
   fun GetProfileCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
-    return MD.binding {
+    return M.binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -42,11 +42,11 @@ interface GetProfileUseCase<F> {
 interface FollowUseCase<F> {
   val getUser: GetUserByUsername<F>
   val addFollower: AddFollower<F>
-  val MD: MonadDefer<F>
+  val M: Monad<F>
 
   fun FollowCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
-    return MD.binding {
+    return M.binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -66,11 +66,11 @@ interface FollowUseCase<F> {
 interface UnfollowUseCase<F> {
   val getUser: GetUserByUsername<F>
   val removeFollower: RemoveFollower<F>
-  val MD: MonadDefer<F>
+  val M: Monad<F>
 
   fun UnfollowCommand.runUseCase(): Kind<F, Option<Profile>> {
     val cmd = this
-    return MD.binding {
+    return M.binding {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {

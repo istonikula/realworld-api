@@ -20,7 +20,7 @@ import java.util.UUID
 
 open class UserRepository<F>(
   private val jdbcTemplate: NamedParameterJdbcTemplate,
-  MD: MonadDefer<F>
+  val MD: MonadDefer<F>
 ) : MonadDefer<F> by MD {
 
   private fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
