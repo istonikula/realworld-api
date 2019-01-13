@@ -377,13 +377,13 @@ class ArticleRepository<F>(
   }
 
   private fun fetchAuthor(id: UserId, querier: Option<User>): Profile =
-    userRepo.findByIdEff(id).map {
+    userRepo.findByIdImpure(id).map {
       it.user.let { author ->
         Profile(
           username = author.username,
           bio = author.bio.toOption(),
           image = author.image.toOption(),
-          following = querier.map { userRepo.hasFollowerEff(author.id, it.id) }
+          following = querier.map { userRepo.hasFollowerImpure(author.id, it.id) }
         )
       }
     }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }

@@ -87,9 +87,9 @@ open class UserRepository<F>(
   }
 
   fun findById(id: UserId): Kind<F, Option<UserAndPassword>> =
-    defer { findByIdEff(id).just() }
+    defer { findByIdImpure(id).just() }
 
-  fun findByIdEff(id: UserId): Option<UserAndPassword> =
+  fun findByIdImpure(id: UserId): Option<UserAndPassword> =
     DataAccessUtils.singleResult(
       jdbcTemplate.query(
         "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
@@ -132,10 +132,10 @@ open class UserRepository<F>(
   }
 
   fun hasFollower(followee: UserId, follower: UserId): Kind<F, Boolean> = defer {
-    hasFollowerEff(followee, follower).just()
+    hasFollowerImpure(followee, follower).just()
   }
 
-  fun hasFollowerEff(followee: UserId, follower: UserId): Boolean = FollowTbl.let {
+  fun hasFollowerImpure(followee: UserId, follower: UserId): Boolean = FollowTbl.let {
     jdbcTemplate.queryIfExists(
       it.table,
       "${it.followee.eq()} AND ${it.follower.eq()}",
