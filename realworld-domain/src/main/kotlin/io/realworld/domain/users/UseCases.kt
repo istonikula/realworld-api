@@ -6,8 +6,8 @@ import arrow.core.left
 import arrow.core.right
 import arrow.data.EitherT
 import arrow.data.value
-import arrow.effects.typeclasses.MonadDefer
 import arrow.instances.monad
+import arrow.typeclasses.Monad
 import arrow.typeclasses.binding
 import io.realworld.domain.common.Auth
 
@@ -32,14 +32,14 @@ interface RegisterUserUseCase<F> {
   val auth: Auth
   val createUser: CreateUser<F>
   val validateUser: ValidateUserRegistration<F>
-  val MD: MonadDefer<F>
+  val M: Monad<F>
 
   fun RegisterUserCommand.runUseCase(): Kind<F, Either<UserRegistrationError, User>> {
     val cmd = this
-    return EitherT.monad<F, UserRegistrationError>(MD).binding {
+    return EitherT.monad<F, UserRegistrationError>(M).binding {
       val validRegistration = EitherT(validateUser(cmd.data)).bind()
       EitherT(
-        MD.run { createUser(validRegistration).map { it.right() } }
+        M.run { createUser(validRegistration).map { it.right() } }
       ).bind()
     }.value()
   }
@@ -48,17 +48,17 @@ interface RegisterUserUseCase<F> {
 interface LoginUserUseCase<F> {
   val auth: Auth
   val getUser: GetUserByEmail<F>
-  val MD: MonadDefer<F>
+  val M: Monad<F>
 
   fun LoginUserCommand.runUseCase(): Kind<F, Either<UserLoginError, User>> {
     val cmd = this
-    return EitherT.monad<F, UserLoginError>(MD).binding {
+    return EitherT.monad<F, UserLoginError>(M).binding {
       val userAndPassword = EitherT(
-        MD.run {
+        M.run {
           getUser(cmd.email).map { it.toEither { UserLoginError.BadCredentials } }
         }
       ).bind()
-      EitherT(MD.just(
+      EitherT(M.just(
         when (auth.checkPassword(cmd.password, userAndPassword.encryptedPassword)) {
           true -> userAndPassword.right()
           false -> UserLoginError.BadCredentials.left()
@@ -73,14 +73,14 @@ interface UpdateUserUseCase<F> {
   val auth: Auth
   val validateUpdate: ValidateUserUpdate<F>
   val updateUser: UpdateUser<F>
-  val MD: MonadDefer<F>
+  val M: Monad<F>
 
   fun UpdateUserCommand.runUseCase(): Kind<F, Either<UserUpdateError, User>> {
     val cmd = this
-    return EitherT.monad<F, UserUpdateError>(MD).binding {
+    return EitherT.monad<F, UserUpdateError>(M).binding {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
       EitherT(
-        MD.run { updateUser(validUpdate, current).map { it.right() } }
+        M.run { updateUser(validUpdate, current).map { it.right() } }
       ).bind()
     }.value()
   }

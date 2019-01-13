@@ -2,9 +2,7 @@ package io.realworld.users
 
 import arrow.core.Option
 import arrow.effects.ForIO
-import arrow.effects.IO
 import arrow.effects.fix
-import arrow.effects.instances.io.monadDefer.monadDefer
 import io.realworld.FieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
@@ -56,19 +54,18 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val ioMonadDefer = IO.monadDefer()
     val validateUserSrv = object : ValidateUserService<ForIO> {
       override val auth = auth0
       override val existsByEmail = repo::existsByEmail
       override val existsByUsername = repo::existsByUsername
-      override val MD = ioMonadDefer
+      override val M = repo.MD
     }
 
     return object : RegisterUserUseCase<ForIO> {
       override val auth = auth0
       override val createUser: CreateUser<ForIO> = repo::create
       override val validateUser: ValidateUserRegistration<ForIO> = { x -> validateUserSrv.run { x.validate() } }
-      override val MD = ioMonadDefer
+      override val M = repo.MD
     }.run {
       RegisterUserCommand(UserRegistration(
         username = registration.username,
@@ -93,7 +90,7 @@ class UserController(
     return object : LoginUserUseCase<ForIO> {
       override val auth = auth0
       override val getUser: GetUserByEmail<ForIO> = repo::findByEmail
-      override val MD = IO.monadDefer()
+      override val M = repo.MD
     }.run {
       LoginUserCommand(
         email = login.email,
@@ -107,19 +104,18 @@ class UserController(
 
   @PutMapping("/api/user")
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
-    val ioMonadDefer = IO.monadDefer()
     val validateUpdateSrv = object : ValidateUserUpdateService<ForIO> {
       override val auth = auth0
       override val existsByEmail = repo::existsByEmail
       override val existsByUsername = repo::existsByUsername
-      override val MD = ioMonadDefer
+      override val M = repo.MD
     }
 
     return object : UpdateUserUseCase<ForIO> {
       override val auth = auth0
       override val validateUpdate: ValidateUserUpdate<ForIO> = { x, y -> validateUpdateSrv.run { x.validate(y) } }
       override val updateUser: UpdateUser<ForIO> = repo::update
-      override val MD = ioMonadDefer
+      override val M = repo.MD
     }.run {
       UpdateUserCommand(
         data = UserUpdate(

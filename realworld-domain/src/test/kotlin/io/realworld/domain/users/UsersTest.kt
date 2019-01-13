@@ -5,7 +5,7 @@ import arrow.core.right
 import arrow.effects.ForIO
 import arrow.effects.IO
 import arrow.effects.fix
-import arrow.effects.instances.io.monadDefer.monadDefer
+import arrow.effects.instances.io.monad.monad
 import arrow.effects.liftIO
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
@@ -35,7 +35,7 @@ class RegisterUserWorkflowTests {
       override val auth = auth0
       override val createUser = createUser0
       override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
-      override val MD = IO.monadDefer()
+      override val M = IO.monad()
     }.test(userRegistration).unsafeRunSync()
 
     assertThat(actual.isRight()).isTrue()
@@ -48,7 +48,7 @@ class RegisterUserWorkflowTests {
         override val auth = auth0
         override val createUser: CreateUser<ForIO> = { IO.raiseError(RuntimeException("BOOM!")) }
         override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
-        override val MD = IO.monadDefer()
+        override val M = IO.monad()
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
 
@@ -57,7 +57,7 @@ class RegisterUserWorkflowTests {
         override val auth = auth0
         override val createUser = createUser0
         override val validateUser: ValidateUserRegistration<ForIO> = { IO.raiseError(RuntimeException("BOOM!")) }
-        override val MD = IO.monadDefer()
+        override val M = IO.monad()
       }.test(userRegistration).unsafeRunSync()
     }.hasMessage("BOOM!")
   }
@@ -76,7 +76,7 @@ class RegisterUserWorkflowTests {
           }
         }
         override val validateUser: ValidateUserRegistration<ForIO> = { IO.raiseError(RuntimeException("BOOM!")) }
-        override val MD = IO.monadDefer()
+        override val M = IO.monad()
       }.test(userRegistration).unsafeRunSync()
     }
     assertThat(userSaved).isFalse()
