@@ -25,3 +25,27 @@ test suite to enable easy refactoring
 # Prior art
 * [Simple Inversion of Control in Kotlin without Dependency Injection Frameworks](https://bit.ly/2q2ccUg) 
   | [Part 2](https://bit.ly/2PJkn3d)
+
+# How to build
+
+## Prerequisites
+
+Install Docker and Docker Compose:
+
+- [Docker installation instructions](https://docs.docker.com/engine/installation/)
+- [Docker Compose installation instructions](https://docs.docker.com/compose/install/)
+
+## Init DB
+
+```sh
+docker-compose -d up
+./gradlew flywayMigrate
+
+```
+
+## Build
+
+```sh
+./gradlew build
+
+```
