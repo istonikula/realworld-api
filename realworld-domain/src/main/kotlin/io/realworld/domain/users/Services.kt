@@ -5,9 +5,7 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import arrow.effects.IO
-import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
-import arrow.typeclasses.binding
+import arrow.effects.extensions.io.fx.fx
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import java.util.UUID
@@ -19,7 +17,7 @@ interface ValidateUserService {
 
   fun UserRegistration.validate(): IO<Either<UserRegistrationError, ValidUserRegistration>> {
     val cmd = this
-    return IO.monad().binding {
+    return fx {
       when {
         existsByEmail(cmd.email).bind() ->
           UserRegistrationError.EmailAlreadyTaken.left()
@@ -36,7 +34,7 @@ interface ValidateUserService {
           ).right()
         }
       }
-    }.fix()
+    }
   }
 }
 
@@ -47,7 +45,7 @@ interface ValidateUserUpdateService {
 
   fun UserUpdate.validate(current: User): IO<Either<UserUpdateError, ValidUserUpdate>> {
     val cmd = this
-    return IO.monad().binding {
+    return fx {
       when {
         cmd.email.fold({ false }, { current.email !== it && existsByEmail(it).bind() }) ->
           UserUpdateError.EmailAlreadyTaken.left()
@@ -61,6 +59,6 @@ interface ValidateUserUpdateService {
           image = image.getOrElse { current.image }
         ).right()
       }
-    }.fix()
+    }
   }
 }

@@ -1,19 +1,17 @@
 version: 2
 
-references:
-  gradle_user_home: &gradle_user_home
-    .gradle-user-home
+aliases:
+  - &gradle_user_home .gradle
 
-  workspace_root: &workspace_root
-    ~/repo
+  - &workspace_root ~/repo
 
-  defaults: &defaults
+  - &defaults
     working_directory: *workspace_root
     environment:
       GRADLE_USER_HOME: *gradle_user_home
-      JVM_OPTS: -Xmx3200m
+      JAVA_OPTS: -Xmx3200m
 
-  container_config: &container_config
+  - &container_config
     <<: *defaults
     docker:
       - image: circleci/openjdk:11-jdk
@@ -23,18 +21,22 @@ references:
           POSTGRES_PASSWORD: secret
           POSTGRES_DB: realworld
 
-  repo_cache_key: &repo_cache_key
-    v1-repo-{{ .Branch }}-{{ .Revision }}
+  - &repo_cache_key >-
+    v1-repo
+    {{ .Branch }}
+    {{ .Revision }}
 
-  restore_repo: &restore_repo
+  - &restore_repo
     restore_cache:
       keys:
         - *repo_cache_key
 
-  deps_cache_key: &deps_cache_key
-    v1-deps-{{ checksum "build.gradle.kts" }}
+  - &deps_cache_key >-
+    v1-deps
+    {{ checksum "build.gradle.kts" }}
+    {{ checksum "settings.gradle.kts" }}
 
-  restore_deps: &restore_deps
+  - &restore_deps
     restore_cache:
       keys:
         - *deps_cache_key

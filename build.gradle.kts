@@ -1,41 +1,41 @@
+
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.flywaydb.gradle.FlywayExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
-  val kotlinVersion = "1.3.10"
+  val kotlinVersion = "1.3.21"
 
-  id("com.github.ben-manes.versions") version "0.20.0"
-  id("org.flywaydb.flyway") version "5.2.3" apply false
+  id("com.github.ben-manes.versions") version "0.21.0"
+  id("org.flywaydb.flyway") version "5.2.4" apply false
   id("org.jetbrains.kotlin.jvm") version kotlinVersion apply false
   id("org.jetbrains.kotlin.plugin.spring") version kotlinVersion apply false
-  id("org.jlleitschuh.gradle.ktlint") version "6.3.1" apply false
-  id("org.springframework.boot") version "2.1.1.RELEASE" apply false
+  id("org.jlleitschuh.gradle.ktlint") version "7.3.0" apply false
+  id("org.springframework.boot") version "2.1.4.RELEASE" apply false
 }
 
-val arrowVersion by extra("0.8.1")
-val jacksonKotlinVersion by extra( "2.9.7")
+val arrowVersion by extra("0.9.0")
+val jacksonKotlinVersion by extra( "2.9.8")
 val jasyptVersion by extra("1.9.2")
 val javaVersion by extra("1.8")
 val jaxbVersion by extra("2.3.1")
 val jjwtVersion by extra("0.9.1")
-val kotlinVersion by extra("1.3.10")
-val ktlintVersion by extra("0.29.0")
-val restAssuredVersion by extra("3.2.0")
-val slugifyVersion by extra("2.2")
-val springBootVersion by extra("2.1.1.RELEASE")
+val ktlintVersion by extra("0.31.0")
+val kotlinVersion by extra("1.3.21")
+val restAssuredVersion by extra("3.3.0")
+val slugifyVersion by extra("2.3")
+val springBootVersion by extra("2.1.4.RELEASE")
 
 class Libs {
-  val arrowCore = "io.arrow-kt:arrow-core:$arrowVersion"
-  val arrowEffects = "io.arrow-kt:arrow-effects:$arrowVersion"
-  val arrowEffectsInstances = "io.arrow-kt:arrow-effects-instances:$arrowVersion"
-  val arrowInstancesCore = "io.arrow-kt:arrow-instances-core:$arrowVersion"
-  val arrowInstancesData = "io.arrow-kt:arrow-instances-data:$arrowVersion"
-  val arrowData = "io.arrow-kt:arrow-data:$arrowVersion"
+  val arrowCoreData = "io.arrow-kt:arrow-core-data:$arrowVersion"
+  val arrowCoreExt = "io.arrow-kt:arrow-core-extensions:$arrowVersion"
+  val arrowEffectsData = "io.arrow-kt:arrow-effects-data:$arrowVersion"
+  val arrowEffectsExt = "io.arrow-kt:arrow-effects-extensions:$arrowVersion"
+  val arrowEffectsExtIO = "io.arrow-kt:arrow-effects-io-extensions:$arrowVersion"
+  val arrowExtrasData = "io.arrow-kt:arrow-extras-data:$arrowVersion"
+  val arrowExtrasExt = "io.arrow-kt:arrow-extras-extensions:$arrowVersion"
   val arrowSyntax = "io.arrow-kt:arrow-syntax:$arrowVersion"
   val arrowTypeclasses = "io.arrow-kt:arrow-typeclasses:$arrowVersion"
   val jacksonKotlin = "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonKotlinVersion"
@@ -120,14 +120,15 @@ configure(subprojects.apply {
     "implementation".let {
       it(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
 
-      it(libs.arrowCore)
+      it(libs.arrowCoreData)
+      it(libs.arrowCoreExt)
       it(libs.arrowTypeclasses)
-      it(libs.arrowInstancesCore)
-      it(libs.arrowInstancesData)
-      it(libs.arrowData)
       it(libs.arrowSyntax)
-      it(libs.arrowEffects)
-      it(libs.arrowEffectsInstances)
+      it(libs.arrowEffectsData)
+      it(libs.arrowEffectsExt)
+      it(libs.arrowEffectsExtIO)
+      it(libs.arrowExtrasData)
+      it(libs.arrowExtrasExt)
       it(libs.kotlinStd)
       it(libs.kotlinReflect)
     }
