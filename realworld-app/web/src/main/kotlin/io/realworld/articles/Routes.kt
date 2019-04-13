@@ -107,7 +107,7 @@ class ArticleController(
     }
 
     return object : CreateArticleUseCase {
-      override val createUniqueSlug = createUniqueSlugSrv::slufigy
+      override val createUniqueSlug = createUniqueSlugSrv::slugify
       override val createArticle = articleRepo::create
     }.run {
       CreateArticleCommand(
@@ -210,7 +210,7 @@ class ArticleController(
     }
 
     val validateUpdateSrv = object : ValidateArticleUpdateService {
-      override val createUniqueSlug = createUniqueSlugSrv::slufigy
+      override val createUniqueSlug = createUniqueSlugSrv::slugify
       override val getArticleBySlug = articleRepo::getBySlug
     }
 

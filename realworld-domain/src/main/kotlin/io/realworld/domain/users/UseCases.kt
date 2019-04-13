@@ -4,11 +4,11 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import arrow.data.EitherT
+import arrow.data.extensions.eithert.monad.binding
 import arrow.effects.ForIO
 import arrow.effects.IO
+import arrow.effects.extensions.io.monad.monad
 import arrow.effects.fix
-import arrow.effects.instances.io.monad.monad
-import arrow.instances.eithert.monad.binding
 import io.realworld.domain.common.Auth
 
 data class RegisterUserCommand(val data: UserRegistration)

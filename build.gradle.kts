@@ -16,7 +16,7 @@ plugins {
   id("org.springframework.boot") version "2.1.4.RELEASE" apply false
 }
 
-val arrowVersion by extra("0.8.2")
+val arrowVersion by extra("0.9.0")
 val jacksonKotlinVersion by extra( "2.9.8")
 val jasyptVersion by extra("1.9.2")
 val javaVersion by extra("1.8")
@@ -29,12 +29,13 @@ val slugifyVersion by extra("2.3")
 val springBootVersion by extra("2.1.4.RELEASE")
 
 class Libs {
-  val arrowCore = "io.arrow-kt:arrow-core:$arrowVersion"
-  val arrowEffects = "io.arrow-kt:arrow-effects:$arrowVersion"
-  val arrowEffectsInstances = "io.arrow-kt:arrow-effects-instances:$arrowVersion"
-  val arrowInstancesCore = "io.arrow-kt:arrow-instances-core:$arrowVersion"
-  val arrowInstancesData = "io.arrow-kt:arrow-instances-data:$arrowVersion"
-  val arrowData = "io.arrow-kt:arrow-data:$arrowVersion"
+  val arrowCoreData = "io.arrow-kt:arrow-core-data:$arrowVersion"
+  val arrowCoreExt = "io.arrow-kt:arrow-core-extensions:$arrowVersion"
+  val arrowEffectsData = "io.arrow-kt:arrow-effects-data:$arrowVersion"
+  val arrowEffectsExt = "io.arrow-kt:arrow-effects-extensions:$arrowVersion"
+  val arrowEffectsExtIO = "io.arrow-kt:arrow-effects-io-extensions:$arrowVersion"
+  val arrowExtrasData = "io.arrow-kt:arrow-extras-data:$arrowVersion"
+  val arrowExtrasExt = "io.arrow-kt:arrow-extras-extensions:$arrowVersion"
   val arrowSyntax = "io.arrow-kt:arrow-syntax:$arrowVersion"
   val arrowTypeclasses = "io.arrow-kt:arrow-typeclasses:$arrowVersion"
   val jacksonKotlin = "com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonKotlinVersion"
@@ -119,14 +120,15 @@ configure(subprojects.apply {
     "implementation".let {
       it(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
 
-      it(libs.arrowCore)
+      it(libs.arrowCoreData)
+      it(libs.arrowCoreExt)
       it(libs.arrowTypeclasses)
-      it(libs.arrowInstancesCore)
-      it(libs.arrowInstancesData)
-      it(libs.arrowData)
       it(libs.arrowSyntax)
-      it(libs.arrowEffects)
-      it(libs.arrowEffectsInstances)
+      it(libs.arrowEffectsData)
+      it(libs.arrowEffectsExt)
+      it(libs.arrowEffectsExtIO)
+      it(libs.arrowExtrasData)
+      it(libs.arrowExtrasExt)
       it(libs.kotlinStd)
       it(libs.kotlinReflect)
     }

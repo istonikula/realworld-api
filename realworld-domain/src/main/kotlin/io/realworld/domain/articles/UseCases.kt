@@ -8,12 +8,12 @@ import arrow.core.none
 import arrow.core.right
 import arrow.core.some
 import arrow.data.EitherT
+import arrow.data.extensions.eithert.monad.binding
 import arrow.effects.ForIO
 import arrow.effects.IO
+import arrow.effects.extensions.io.fx.fx
+import arrow.effects.extensions.io.monad.monad
 import arrow.effects.fix
-import arrow.effects.instances.io.monad.binding
-import arrow.effects.instances.io.monad.monad
-import arrow.instances.eithert.monad.binding
 import io.realworld.domain.users.User
 import java.util.UUID
 
@@ -65,7 +65,7 @@ interface CreateArticleUseCase {
 
   fun CreateArticleCommand.runUseCase(): IO<Article> {
     val cmd = this
-    return binding {
+    return fx {
       val slug = createUniqueSlug(cmd.data.title).bind()
       createArticle(
         ValidArticleCreation(
@@ -95,7 +95,7 @@ interface DeleteArticleUseCase {
 
   fun DeleteArticleCommand.runUseCase(): IO<Either<ArticleDeleteError, Int>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(cmd.slug, user.some()).bind().fold(
         { ArticleDeleteError.NotFound.left() },
         {
@@ -113,7 +113,7 @@ interface GetArticlesUseCase {
 
   fun GetArticlesCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
     val cmd = this
-    return binding {
+    return fx {
       val count = getArticlesCount(cmd.filter).bind()
       if (count == 0L)
         Pair(listOf(), 0L)
@@ -131,7 +131,7 @@ interface GetFeedsUsecase {
 
   fun GetFeedsCommand.runUseCase(): IO<Pair<List<Article>, Long>> {
     val cmd = this
-    return binding {
+    return fx {
       val count = getFeedsCount(cmd.user).bind()
       if (count == 0L)
         Pair(listOf(), 0L)
@@ -162,7 +162,7 @@ interface FavoriteUseCase {
 
   fun FavoriteArticleCommand.runUseCase(): IO<Either<ArticleFavoriteError, Article>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleFavoriteError.NotFound.left() },
         {
@@ -188,7 +188,7 @@ interface UnfavoriteUseCase {
 
   fun UnfavoriteArticleCommand.runUseCase(): IO<Either<ArticleUnfavoriteError, Article>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleUnfavoriteError.NotFound.left() },
         {
@@ -212,7 +212,7 @@ interface CommentUseCase {
 
   fun CommentArticleCommand.runUsecase(): IO<Either<ArticleCommentError, Comment>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleCommentError.NotFound.left() },
         { addComment(it.id, cmd.comment, cmd.user).bind().right() }
@@ -228,7 +228,7 @@ interface DeleteCommentUseCase {
 
   fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
         { ArticleCommentDeleteError.ArticleNotFound.left() },
         {
@@ -254,7 +254,7 @@ interface GetCommentsUseCase {
 
   fun GetCommentsCommand.runUseCase(): IO<Option<List<Comment>>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(cmd.slug, cmd.user).bind().fold(
         { none<List<Comment>>() },
         { getComments(it.id, cmd.user).bind().some() }

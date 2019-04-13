@@ -6,7 +6,7 @@ import arrow.core.left
 import arrow.core.right
 import arrow.core.some
 import arrow.effects.IO
-import arrow.effects.instances.io.monad.binding
+import arrow.effects.extensions.io.fx.fx
 import com.github.slugify.Slugify
 import io.realworld.domain.users.User
 import java.util.UUID
@@ -17,7 +17,7 @@ fun String.slugify() = slugifier.slugify(this)
 interface CreateUniqueSlugService {
   val existsBySlug: ExistsBySlug
 
-  fun slufigy(s: String): IO<String> = binding {
+  fun slugify(s: String): IO<String> = fx {
     val slugified = s.slugify()
     var slugCandidate = slugified
     while (existsBySlug(slugCandidate).bind()) {
@@ -33,7 +33,7 @@ interface ValidateArticleUpdateService {
 
   fun ArticleUpdate.validate(slug: String, user: User): IO<Either<ArticleUpdateError, ValidArticleUpdate>> {
     val cmd = this
-    return binding {
+    return fx {
       getArticleBySlug(slug, user.some()).bind().fold(
         { ArticleUpdateError.NotFound.left() },
         {
