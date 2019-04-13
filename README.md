@@ -38,7 +38,7 @@ Install Docker and Docker Compose:
 ## Init DB
 
 ```sh
-docker-compose -d up
+docker-compose up -d
 ./gradlew flywayMigrate
 
 ```
