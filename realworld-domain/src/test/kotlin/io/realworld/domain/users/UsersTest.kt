@@ -1,20 +1,16 @@
 // ktlint-disable filename
 package io.realworld.domain.users
 
-import arrow.core.right
-import arrow.effects.IO
-import arrow.effects.liftIO
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.assertj.core.api.Assertions.catchThrowable
+import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
-class RegisterUserWorkflowTests {
-  val auth0 = Auth(Settings().apply {
+class RegisterUserUseCaseTests {
+  val auth = Auth(Settings().apply {
     security.tokenSecret = "secret"
   }.security)
 
@@ -22,70 +18,55 @@ class RegisterUserWorkflowTests {
     "foo", "foo@bar.com", "bar"
   )
 
-  val createUser0: CreateUser = { x ->
-    User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username).liftIO()
+  @Test
+  fun register() {
+    object : RegisterUserUseCase {
+      override val validateUser = Stubs.validateUser(validRegistration)
+      override val createUser = Stubs.createUser
+    }.test(userRegistration).fold(
+      { fail<Nothing>("right expected $it") },
+      {
+        assertThat(it.email).isEqualTo(userRegistration.email)
+        assertThat(it.username).isEqualTo(userRegistration.username)
+      }
+    )
   }
 
   @Test
-  fun `happy path`() {
-    val actual = object : RegisterUserUseCase {
-      override val auth = auth0
-      override val createUser = createUser0
-      override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
-    }.test(userRegistration).unsafeRunSync()
-
-    assertThat(actual.isRight()).isTrue()
+  fun `email already taken`() {
+    object : RegisterUserUseCase {
+      override val validateUser = Stubs.validateUserError(UserRegistrationError.EmailAlreadyTaken)
+      override val createUser = Stubs.unexpectedCreateUser
+    }.test(userRegistration).fold(
+      { assertThat(it).isSameAs(UserRegistrationError.EmailAlreadyTaken) },
+      { fail("left expected") }
+    )
   }
 
   @Test
-  fun `exceptions from dependencies are propagated`() {
-    assertThatThrownBy {
-      object : RegisterUserUseCase {
-        override val auth = auth0
-        override val createUser: CreateUser = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
-        override val validateUser = { x: UserRegistration -> x.autovalid().right().liftIO() }
-      }.test(userRegistration).unsafeRunSync()
-    }.hasMessage("BOOM!")
-
-    assertThatThrownBy {
-      object : RegisterUserUseCase {
-        override val auth = auth0
-        override val createUser = createUser0
-        override val validateUser: ValidateUserRegistration = { _ -> IO.raiseError(RuntimeException("BOOM!")) }
-      }.test(userRegistration).unsafeRunSync()
-    }.hasMessage("BOOM!")
-  }
-
-  @Test
-  fun `on validation failure, save user is skipped`() {
-    var userSaved = false
-
-    catchThrowable {
-      object : RegisterUserUseCase {
-        override val auth = auth0
-        override val createUser: CreateUser = { x ->
-          IO {
-            userSaved = true
-            User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username)
-          }
-        }
-        override val validateUser = { _: UserRegistration -> IO { throw RuntimeException("BOOM!") } }
-      }.test(userRegistration).unsafeRunSync()
-    }
-    assertThat(userSaved).isFalse()
+  fun `username already taken`() {
+    object : RegisterUserUseCase {
+      override val validateUser = Stubs.validateUserError(UserRegistrationError.UsernameAlreadyTaken)
+      override val createUser = Stubs.unexpectedCreateUser
+    }.test(userRegistration).fold(
+      { assertThat(it).isSameAs(UserRegistrationError.UsernameAlreadyTaken) },
+      { fail("left expected") }
+    )
   }
 
   private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
     RegisterUserCommand(input).runUseCase()
-  }
+  }.unsafeRunSync()
 
-  private fun UserRegistration.autovalid() = UUID.randomUUID().userId().let {
-    ValidUserRegistration(
-      id = it,
-      username = username,
-      email = email,
-      token = auth0.createToken(Token(it)),
-      encryptedPassword = auth0.encryptPassword(password)
-    )
+  private val validRegistration = { x: UserRegistration ->
+    UUID.randomUUID().userId().let {
+      ValidUserRegistration(
+        id = it,
+        username = x.username,
+        email = x.email,
+        token = auth.createToken(Token(it)),
+        encryptedPassword = auth.encryptPassword(x.password)
+      )
+    }
   }
 }
