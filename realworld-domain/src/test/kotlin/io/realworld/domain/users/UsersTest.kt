@@ -1,33 +1,29 @@
 // ktlint-disable filename
 package io.realworld.domain.users
 
-import io.realworld.domain.common.Auth
-import io.realworld.domain.common.Settings
-import io.realworld.domain.common.Token
+import arrow.core.none
+import arrow.core.some
+import io.realworld.domain.fixtures.UserFactory
+import io.realworld.domain.fixtures.userAndPassword
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
-import java.util.UUID
+
+val userFactory = UserFactory(Stubs.auth)
 
 class RegisterUserUseCaseTests {
-  val auth = Auth(Settings().apply {
-    security.tokenSecret = "secret"
-  }.security)
-
-  val userRegistration = UserRegistration(
-    "foo", "foo@bar.com", "bar"
-  )
+  private val jane = userFactory.createRegistration("jane")
 
   @Test
   fun register() {
     object : RegisterUserUseCase {
-      override val validateUser = Stubs.validateUser(validRegistration)
+      override val validateUser = Stubs.validateUser(userFactory.validRegistration)
       override val createUser = Stubs.createUser
-    }.test(userRegistration).fold(
+    }.test(jane).fold(
       { fail<Nothing>("right expected $it") },
       {
-        assertThat(it.email).isEqualTo(userRegistration.email)
-        assertThat(it.username).isEqualTo(userRegistration.username)
+        assertThat(it.email).isEqualTo(jane.email)
+        assertThat(it.username).isEqualTo(jane.username)
       }
     )
   }
@@ -37,7 +33,7 @@ class RegisterUserUseCaseTests {
     object : RegisterUserUseCase {
       override val validateUser = Stubs.validateUserError(UserRegistrationError.EmailAlreadyTaken)
       override val createUser = Stubs.unexpectedCreateUser
-    }.test(userRegistration).fold(
+    }.test(jane).fold(
       { assertThat(it).isSameAs(UserRegistrationError.EmailAlreadyTaken) },
       { fail("left expected") }
     )
@@ -48,25 +44,59 @@ class RegisterUserUseCaseTests {
     object : RegisterUserUseCase {
       override val validateUser = Stubs.validateUserError(UserRegistrationError.UsernameAlreadyTaken)
       override val createUser = Stubs.unexpectedCreateUser
-    }.test(userRegistration).fold(
-      { assertThat(it).isSameAs(UserRegistrationError.UsernameAlreadyTaken) },
+    }.test(jane).fold(
+      { assertThat(it).isEqualTo(UserRegistrationError.UsernameAlreadyTaken) },
+      { fail("left expected") }
+    )
+  }
+}
+
+class LoginUserUseCaseTests {
+  private val jane = userFactory.createRegistration("jane")
+
+  @Test
+  fun login() {
+    val expected = userFactory.run { jane.valid().userAndPassword() }
+
+    object : LoginUserUseCase {
+      override val auth = Stubs.auth
+      override val getUser = Stubs.getUserByEmail { expected.some() }
+    }.test(jane.email, jane.password).fold(
+      { fail<Nothing>("right expected $it") },
+      { assertThat(it).isEqualTo(expected.user) }
+    )
+  }
+
+  @Test
+  fun `not found`() {
+    object : LoginUserUseCase {
+      override val auth = Stubs.auth
+      override val getUser = Stubs.getUserByEmail { none() }
+    }.test(jane.email, jane.password).fold(
+      { assertThat(it).isEqualTo(UserLoginError.BadCredentials) },
       { fail("left expected") }
     )
   }
 
-  private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
-    RegisterUserCommand(input).runUseCase()
-  }.unsafeRunSync()
-
-  private val validRegistration = { x: UserRegistration ->
-    UUID.randomUUID().userId().let {
-      ValidUserRegistration(
-        id = it,
-        username = x.username,
-        email = x.email,
-        token = auth.createToken(Token(it)),
-        encryptedPassword = auth.encryptPassword(x.password)
-      )
-    }
+  @Test
+  fun `invalid password`() {
+    object : LoginUserUseCase {
+      override val auth = Stubs.auth
+      override val getUser = Stubs.getUserByEmail {
+        userFactory.run { jane.valid().userAndPassword().some() }
+      }
+    }.test(jane.email, "invalid password").fold(
+      { assertThat(it).isEqualTo(UserLoginError.BadCredentials) },
+      { fail("left expected") }
+    )
   }
 }
+
+private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
+  RegisterUserCommand(input).runUseCase()
+}.unsafeRunSync()
+
+private fun LoginUserUseCase.test(email: String, password: String) = this.run {
+  LoginUserCommand(email, password).runUseCase()
+}.unsafeRunSync()
+
