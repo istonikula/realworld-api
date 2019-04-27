@@ -4,6 +4,8 @@ package io.realworld.domain.users
 import arrow.core.none
 import arrow.core.some
 import io.realworld.domain.fixtures.UserFactory
+import io.realworld.domain.fixtures.registration
+import io.realworld.domain.fixtures.update
 import io.realworld.domain.fixtures.userAndPassword
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
@@ -12,14 +14,14 @@ import org.junit.jupiter.api.Test
 val userFactory = UserFactory(Stubs.auth)
 
 class RegisterUserUseCaseTests {
-  private val jane = userFactory.createRegistration("jane")
+  private val jane = userFactory.createUser("jane")
 
   @Test
   fun register() {
     object : RegisterUserUseCase {
       override val validateUser = Stubs.validateUser(userFactory.validRegistration)
       override val createUser = Stubs.createUser
-    }.test(jane).fold(
+    }.test(jane.registration()).fold(
       { fail<Nothing>("right expected $it") },
       {
         assertThat(it.email).isEqualTo(jane.email)
@@ -33,7 +35,7 @@ class RegisterUserUseCaseTests {
     object : RegisterUserUseCase {
       override val validateUser = Stubs.validateUserError(UserRegistrationError.EmailAlreadyTaken)
       override val createUser = Stubs.unexpectedCreateUser
-    }.test(jane).fold(
+    }.test(jane.registration()).fold(
       { assertThat(it).isSameAs(UserRegistrationError.EmailAlreadyTaken) },
       { fail("left expected") }
     )
@@ -44,7 +46,7 @@ class RegisterUserUseCaseTests {
     object : RegisterUserUseCase {
       override val validateUser = Stubs.validateUserError(UserRegistrationError.UsernameAlreadyTaken)
       override val createUser = Stubs.unexpectedCreateUser
-    }.test(jane).fold(
+    }.test(jane.registration()).fold(
       { assertThat(it).isEqualTo(UserRegistrationError.UsernameAlreadyTaken) },
       { fail("left expected") }
     )
@@ -52,7 +54,7 @@ class RegisterUserUseCaseTests {
 }
 
 class LoginUserUseCaseTests {
-  private val jane = userFactory.createRegistration("jane")
+  private val jane = userFactory.createUser("jane").registration()
 
   @Test
   fun login() {
@@ -92,11 +94,55 @@ class LoginUserUseCaseTests {
   }
 }
 
-private fun RegisterUserUseCase.test(input: UserRegistration) = this.run {
+class UpdateUserUseCaseTest {
+  private val jane = userFactory.createUser("jane")
+  private val janeUpdated= jane.update()
+
+  @Test
+  fun update() {
+    object : UpdateUserUseCase {
+      override val validateUpdate = Stubs.validateUpdate(userFactory.validUpdate)
+      override val updateUser = Stubs.updateUser
+    }.test(janeUpdated, jane).fold(
+      { fail<Nothing>("right expected $it") },
+      {
+        assertThat(it.email).isEqualTo(janeUpdated.email.orNull()!!)
+        assertThat(it.username).isEqualTo(janeUpdated.username.orNull()!!)
+      }
+    )
+  }
+
+  @Test
+  fun `email already taken`() {
+    object : UpdateUserUseCase {
+      override val validateUpdate = Stubs.validUserUpdateError(UserUpdateError.EmailAlreadyTaken)
+      override val updateUser = Stubs.unexpectedUpdateUser
+    }.test(janeUpdated, jane).fold(
+      { assertThat(it).isSameAs(UserUpdateError.EmailAlreadyTaken) },
+      { fail("left expected") }
+    )
+  }
+
+  @Test
+  fun `username already taken`() {
+    object : UpdateUserUseCase {
+      override val validateUpdate = Stubs.validUserUpdateError(UserUpdateError.UsernameAlreadyTaken)
+      override val updateUser = Stubs.unexpectedUpdateUser
+    }.test(janeUpdated, jane).fold(
+      { assertThat(it).isSameAs(UserUpdateError.UsernameAlreadyTaken) },
+      { fail("left expected") }
+    )
+  }
+}
+
+private fun RegisterUserUseCase.test(input: UserRegistration) = run {
   RegisterUserCommand(input).runUseCase()
 }.unsafeRunSync()
 
-private fun LoginUserUseCase.test(email: String, password: String) = this.run {
+private fun LoginUserUseCase.test(email: String, password: String) = run {
   LoginUserCommand(email, password).runUseCase()
 }.unsafeRunSync()
 
+private fun UpdateUserUseCase.test(data: UserUpdate, current: User) = run {
+  UpdateUserCommand(data, current).runUseCase()
+}.unsafeRunSync()

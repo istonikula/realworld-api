@@ -65,7 +65,6 @@ interface LoginUserUseCase {
 }
 
 interface UpdateUserUseCase {
-  val auth: Auth
   val validateUpdate: ValidateUserUpdate
   val updateUser: UpdateUser
 

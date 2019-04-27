@@ -16,7 +16,7 @@ object Stubs {
     security.tokenSecret = "secret"
   }.security)
 
-  // -- USER
+  // -- CREATE USER
 
   val createUser: CreateUser = { x ->
     User(id = UUID.randomUUID().userId(), email = x.email, token = x.token, username = x.username).liftIO()
@@ -30,6 +30,26 @@ object Stubs {
 
   fun validateUserError(error: UserRegistrationError): ValidateUserRegistration =
     { _ -> error.left().liftIO() }
+
+  // -- UPDATE USER
+
+  val updateUser: UpdateUser = { update, current ->
+    current.copy(
+      username = update.username,
+      email = update.email,
+      bio = update.bio,
+      image = update.image
+    ).liftIO()
+  }
+
+  val unexpectedUpdateUser: UpdateUser =
+    {_: ValidUserUpdate, _: User -> unexpected("update user") }
+
+  fun validateUpdate(fn: (UserUpdate, User) -> ValidUserUpdate): ValidateUserUpdate =
+    { x: UserUpdate, current: User -> fn(x, current).right().liftIO() }
+
+  fun validUserUpdateError(error: UserUpdateError): ValidateUserUpdate =
+    { _: UserUpdate, _: User -> error.left().liftIO() }
 
   // -- GET USER
 

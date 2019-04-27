@@ -37,6 +37,7 @@ class Application : WebMvcConfigurer {
     @Autowired
     lateinit var repo: UserRepository
 
+    // TODO check token match
     override fun invoke(token: Token): User {
       return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
     }
