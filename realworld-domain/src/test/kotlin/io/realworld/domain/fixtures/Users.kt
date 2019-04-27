@@ -18,7 +18,7 @@ import io.realworld.domain.users.userId
 import java.util.UUID
 
 class UserFactory(val auth: Auth) {
-  fun createUser(username: String, id: UserId= UUID.randomUUID().userId()) = User(
+  fun createUser(username: String, id: UserId = UUID.randomUUID().userId()) = User(
     id = id,
     email = "$username@realworld.io",
     token = auth.createToken(Token(id)),
@@ -61,7 +61,7 @@ fun User.update(password: Option<String> = none()) = UserUpdate(
   email = "$username.updated@realworld.io".some(),
   password = password,
   bio = bio.toOption(),
-  image= image.toOption()
+  image = image.toOption()
 )
 
 fun ValidUserRegistration.user() = User(

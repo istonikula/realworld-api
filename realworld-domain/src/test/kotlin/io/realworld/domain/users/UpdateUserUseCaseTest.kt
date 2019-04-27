@@ -10,7 +10,7 @@ private val userFactory = UserFactory(Stubs.auth)
 
 class UpdateUserUseCaseTest {
   private val jane = userFactory.createUser("jane")
-  private val janeUpdated= jane.update()
+  private val janeUpdated = jane.update()
 
   @Test
   fun update() {

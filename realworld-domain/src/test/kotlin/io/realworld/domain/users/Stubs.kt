@@ -43,7 +43,7 @@ object Stubs {
   }
 
   val unexpectedUpdateUser: UpdateUser =
-    {_: ValidUserUpdate, _: User -> unexpected("update user") }
+    { _: ValidUserUpdate, _: User -> unexpected("update user") }
 
   fun validateUpdate(fn: (UserUpdate, User) -> ValidUserUpdate): ValidateUserUpdate =
     { x: UserUpdate, current: User -> fn(x, current).right().liftIO() }
@@ -55,5 +55,4 @@ object Stubs {
 
   fun getUserByEmail(resultL: () -> Option<UserAndPassword>): GetUserByEmail =
     { _ -> resultL().liftIO() }
-
 }
