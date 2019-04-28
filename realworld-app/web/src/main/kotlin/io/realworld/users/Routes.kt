@@ -59,7 +59,6 @@ class UserController(
     }
 
     return object : RegisterUserUseCase {
-      override val auth = auth0
       override val createUser: CreateUser = repo::create
       override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
     }.run {
@@ -106,7 +105,6 @@ class UserController(
     }
 
     return object : UpdateUserUseCase {
-      override val auth = auth0
       override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
       override val updateUser: UpdateUser = repo::update
     }.run {

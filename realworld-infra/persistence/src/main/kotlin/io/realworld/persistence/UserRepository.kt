@@ -59,6 +59,7 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }
   }
 
+  // TODO invalidate token on password change
   fun update(update: ValidUserUpdate, current: User): IO<User> {
     val sql = with(UserTbl) {
       StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")

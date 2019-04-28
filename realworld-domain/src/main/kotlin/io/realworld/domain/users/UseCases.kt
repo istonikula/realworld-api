@@ -29,7 +29,6 @@ sealed class UserUpdateError {
 }
 
 interface RegisterUserUseCase {
-  val auth: Auth
   val createUser: CreateUser
   val validateUser: ValidateUserRegistration
 
@@ -66,7 +65,6 @@ interface LoginUserUseCase {
 }
 
 interface UpdateUserUseCase {
-  val auth: Auth
   val validateUpdate: ValidateUserUpdate
   val updateUser: UpdateUser
 
