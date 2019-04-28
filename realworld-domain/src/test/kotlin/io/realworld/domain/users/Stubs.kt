@@ -55,4 +55,10 @@ object Stubs {
 
   fun getUserByEmail(resultL: () -> Option<UserAndPassword>): GetUserByEmail =
     { _ -> resultL().liftIO() }
+
+  fun existsByEmail(exists: Boolean): ExistsByEmail =
+    { _: String -> exists.liftIO() }
+
+  fun existsByUsername(exists: Boolean): ExistsByUsername =
+    { _: String -> exists.liftIO() }
 }
