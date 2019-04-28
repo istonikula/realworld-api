@@ -51,7 +51,7 @@ object Stubs {
   fun validUserUpdateError(error: UserUpdateError): ValidateUserUpdate =
     { _: UserUpdate, _: User -> error.left().liftIO() }
 
-  // -- GET USER
+  // -- USER MISC
 
   fun getUserByEmail(resultL: () -> Option<UserAndPassword>): GetUserByEmail =
     { _ -> resultL().liftIO() }
