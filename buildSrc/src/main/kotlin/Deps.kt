@@ -9,7 +9,7 @@ object Version {
   const val kotlin = "1.3.41"
   const val ktlint = "0.33.0"
   const val ktlintPlugin = "8.1.0"
-  const val restAssured = "3.3.0"
+  const val restAssured = "4.0.0"
   const val slugify = "2.3"
   const val springBoot = "2.1.6.RELEASE"
   const val versionsPlugin = "0.21.0"
@@ -34,7 +34,7 @@ object Libs {
   const val kotlinReflect = "org.jetbrains.kotlin:kotlin-reflect:${Version.kotlin}"
   const val kotlinStd = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Version.kotlin}"
   const val postgresql = "org.postgresql:postgresql"
-  const val restassured = "io.rest-assured:rest-assured:${Version.restAssured}"
+  const val restassured = "io.rest-assured:rest-assured"
   const val slugify = "com.github.slugify:slugify:${Version.slugify}"
 }
 
