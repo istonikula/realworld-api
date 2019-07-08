@@ -1,17 +1,17 @@
 object Version {
   const val arrow = "0.9.0"
   const val flyway = "5.2.4"
-  const val jacksonKotlin =  "2.9.8"
-  const val jasypt = "1.9.2"
+  const val jacksonKotlin =  "2.9.9"
+  const val jasypt = "1.9.3"
   const val java = "1.8"
   const val jaxb = "2.3.1"
   const val jjwt = "0.9.1"
-  const val kotlin = "1.3.21"
-  const val ktlint = "0.31.0"
-  const val ktlintPlugin = "7.3.0"
+  const val kotlin = "1.3.41"
+  const val ktlint = "0.33.0"
+  const val ktlintPlugin = "8.1.0"
   const val restAssured = "3.3.0"
   const val slugify = "2.3"
-  const val springBoot = "2.1.4.RELEASE"
+  const val springBoot = "2.1.6.RELEASE"
   const val versionsPlugin = "0.21.0"
 }
 
@@ -36,7 +36,6 @@ object Libs {
   const val postgresql = "org.postgresql:postgresql"
   const val restassured = "io.rest-assured:rest-assured:${Version.restAssured}"
   const val slugify = "com.github.slugify:slugify:${Version.slugify}"
-  const val springBootDevtools = "org.springframework.boot:spring-boot-devtools"
 }
 
 object Starters {
