@@ -9,6 +9,7 @@ import io.realworld.domain.common.Settings
 import unexpected
 import java.util.UUID
 
+/* ktlint-disable curly-spacing */
 object Stubs {
   // -- AUTH
 
@@ -62,3 +63,4 @@ object Stubs {
   fun existsByUsername(exists: Boolean): ExistsByUsername =
     { _: String -> exists.liftIO() }
 }
+/* ktlint-enable curly-spacing */
