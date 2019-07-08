@@ -15,7 +15,7 @@ aliases:
     <<: *defaults
     docker:
       - image: circleci/openjdk:11-jdk
-      - image: postgres:9.6-alpine
+      - image: postgres:10.8-alpine
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: secret
@@ -53,6 +53,7 @@ jobs:
             - .
       - *restore_deps
       - run: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: sudo apt-get update || sudo apt-get update # https://github.com/CircleCI-Public/gcp-cli-orb/issues/5
       - run: sudo apt-get install postgresql-client
       - run: psql -U postgres -h localhost -p 5432 -c "CREATE USER realworld WITH PASSWORD 'secret';"
       - run: ./gradlew --no-daemon flywayMigrate
