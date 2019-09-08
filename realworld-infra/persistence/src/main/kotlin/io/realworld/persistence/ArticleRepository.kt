@@ -402,12 +402,12 @@ class ArticleRepository(
   private fun insertArticleRow(article: ValidArticleCreation, user: User): ArticleRow = with(ArticleTbl) {
     val sql = "${table.insert(id, slug, title, description, body, author)} RETURNING *"
     val params = mapOf(
-        id to article.id.value,
-        slug to article.slug,
-        title to article.title,
-        description to article.description,
-        body to article.body,
-        author to user.id.value
+      id to article.id.value,
+      slug to article.slug,
+      title to article.title,
+      description to article.description,
+      body to article.body,
+      author to user.id.value
     )
     jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }!!
   }
