@@ -17,9 +17,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.util.UUID
 
-open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
-
-  fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
+open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) {
+  private fun User.Companion.fromRs(rs: ResultSet) = with(UserTbl) {
     User(
       id = UUID.fromString(rs.getString(id)).userId(),
       email = rs.getString(email),
@@ -34,28 +33,17 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     UserAndPassword(User.fromRs(rs), rs.getString(password))
   }
 
-  fun create(user: ValidUserRegistration): IO<User> {
-    val sql = with(UserTbl) {
-      """
-      INSERT INTO $table (
-        $id, $email, $token, $username, $password
-      ) VALUES (
-        :$id, :$email, :$token, :$username, :$password
-      )
-      RETURNING *
-      """
-    }
-    val params = with(UserTbl) {
-      mapOf(
-        id to user.id.value,
-        email to user.email,
-        token to user.token,
-        username to user.username,
-        password to user.encryptedPassword
-      )
-    }
+  fun create(user: ValidUserRegistration): IO<User> = with(UserTbl) {
+    val sql = "${table.insert(id, email, token, username, password)} RETURNING *"
+    val params = mapOf(
+      id to user.id.value,
+      email to user.email,
+      token to user.token,
+      username to user.username,
+      password to user.encryptedPassword
+    )
     return IO {
-      jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
+      jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
     }
   }
 
@@ -79,7 +67,7 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
     }
 
     return IO {
-      jdbcTemplate.queryForObject(sql, params, { rs, _ -> User.fromRs(rs) })!!
+      jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
     }
   }
 
@@ -88,9 +76,8 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
           "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
-          mapOf(UserTbl.id to id.value),
-          { rs, _ -> UserAndPassword.fromRs(rs) }
-        )
+          mapOf(UserTbl.id to id.value)
+        ) { rs, _ -> UserAndPassword.fromRs(rs) }
       ).toOption()
     }
 
@@ -99,9 +86,8 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
           "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
-          mapOf(UserTbl.email to email),
-          { rs, _ -> UserAndPassword.fromRs(rs) }
-        )
+          mapOf(UserTbl.email to email)
+        ) { rs, _ -> UserAndPassword.fromRs(rs) }
       ).toOption()
     }
 
@@ -110,18 +96,17 @@ open class UserRepository(val jdbcTemplate: NamedParameterJdbcTemplate) {
       DataAccessUtils.singleResult(
         jdbcTemplate.query(
           "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.username.eq()}",
-          mapOf(UserTbl.username to username),
-          { rs, _ -> User.fromRs(rs) }
-        )
+          mapOf(UserTbl.username to username)
+        ) { rs, _ -> User.fromRs(rs) }
       ).toOption()
     }
 
   open fun existsByEmail(email: String): IO<Boolean> = UserTbl.let {
-    jdbcTemplate.queryIfExists(it.table, "${it.email.eq()}", mapOf(it.email to email))
+    jdbcTemplate.queryIfExists(it.table, it.email.eq(), mapOf(it.email to email))
   }
 
   fun existsByUsername(username: String): IO<Boolean> = UserTbl.let {
-    jdbcTemplate.queryIfExists(it.table, "${it.username.eq()}", mapOf(it.username to username))
+    jdbcTemplate.queryIfExists(it.table, it.username.eq(), mapOf(it.username to username))
   }
 
   fun hasFollower(followee: UserId, follower: UserId): IO<Boolean> = FollowTbl.let {
