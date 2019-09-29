@@ -7,6 +7,7 @@ object Dsl {
   fun String.eq() = "$this = :$this"
   fun String.insert(vararg cols: String) =
     "INSERT INTO $this (${cols.joinToString()}) VALUES (${cols.joinToString { ":$it" }})"
+  fun String.now() = "$this = CURRENT_TIMESTAMP"
   fun String.set() = "$this = :$this"
 }
 

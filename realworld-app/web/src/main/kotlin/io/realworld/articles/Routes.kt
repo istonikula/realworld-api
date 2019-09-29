@@ -40,6 +40,7 @@ import io.realworld.domain.articles.UpdateArticleCommand
 import io.realworld.domain.articles.UpdateArticleUseCase
 import io.realworld.domain.articles.ValidateArticleUpdate
 import io.realworld.domain.articles.ValidateArticleUpdateService
+import io.realworld.domain.articles.articleScopedCommentId
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.User
 import io.realworld.persistence.ArticleRepository
@@ -327,7 +328,7 @@ class ArticleController(
       override val deleteComment = articleRepo::deleteComment
       override val getComment = articleRepo::getComment
     }.run {
-      DeleteCommentCommand(slug, commentId, user).runUseCase()
+      DeleteCommentCommand(slug, commentId.articleScopedCommentId(), user).runUseCase()
     }.runWriteTx(txManager).fold(
       {
         when (it) {

@@ -8,17 +8,20 @@ import arrow.effects.IO
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
+import io.realworld.domain.articles.ArticleScopedCommentId
 import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.FeedFilter
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.articles.articleId
+import io.realworld.domain.articles.articleScopedCommentId
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserId
 import io.realworld.domain.users.userId
 import io.realworld.persistence.Dsl.eq
 import io.realworld.persistence.Dsl.insert
+import io.realworld.persistence.Dsl.now
 import io.realworld.persistence.Dsl.set
 import org.springframework.dao.support.DataAccessUtils
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -76,6 +79,7 @@ private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article
 
 private data class CommentRow(
   val id: Long,
+  val articleScopedId: Long,
   val createdAt: Instant,
   val updatedAt: Instant,
   val body: String,
@@ -85,6 +89,7 @@ private data class CommentRow(
     fun fromRs(rs: ResultSet) = with(ArticleCommentTbl) {
       CommentRow(
         id = rs.getLong(id),
+        articleScopedId = rs.getLong(article_scoped_id),
         createdAt = rs.getTimestamp(ArticleTbl.created_at).toInstant(),
         updatedAt = rs.getTimestamp(ArticleTbl.updated_at).toInstant(),
         body = rs.getString(body),
@@ -99,7 +104,7 @@ private data class CommentDeps(
 )
 
 private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment(
-  id = row.id,
+  id = row.articleScopedId.articleScopedCommentId(),
   createdAt = row.createdAt,
   updatedAt = row.updatedAt,
   body = row.body,
@@ -107,8 +112,8 @@ private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment
 )
 
 class ArticleRepository(
-  val jdbcTemplate: NamedParameterJdbcTemplate,
-  val userRepo: UserRepository
+  private val jdbcTemplate: NamedParameterJdbcTemplate,
+  private val userRepo: UserRepository
 ) {
 
   fun create(article: ValidArticleCreation, user: User): IO<Article> = IO {
@@ -132,7 +137,7 @@ class ArticleRepository(
   }
 
   fun existsBySlug(slug: String): IO<Boolean> = ArticleTbl.let {
-    jdbcTemplate.queryIfExists(it.table, "${it.slug.eq()}", mapOf(it.slug to slug))
+    jdbcTemplate.queryIfExists(it.table, it.slug.eq(), mapOf(it.slug to slug))
   }
 
   fun getBySlug(slug: String, user: Option<User>): IO<Option<Article>> = IO {
@@ -168,8 +173,8 @@ class ArticleRepository(
     }
   }
 
-  fun getComment(commentId: Long, user: User): IO<Option<Comment>> = IO {
-    fetchCommentRowById(commentId).map {
+  fun getComment(articleId: ArticleId, commentId: ArticleScopedCommentId, user: User): IO<Option<Comment>> = IO {
+    fetchCommentRow(articleId, commentId).map {
       Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user.some())))
     }
   }
@@ -180,17 +185,24 @@ class ArticleRepository(
     Comment.from(row, deps)
   }
 
-  fun deleteComment(commentId: Long): IO<Int> = with(ArticleCommentTbl) {
-    val sql = "DELETE FROM $table WHERE ${id.eq()}"
-    val params = mapOf(id to commentId)
+  fun deleteComment(articleId: ArticleId, commentId: ArticleScopedCommentId): IO<Int> = with(ArticleCommentTbl) {
     IO {
-      jdbcTemplate.update(sql, params)
+      jdbcTemplate.update(
+        "UPDATE $table SET ${deleted.eq()} WHERE ${id.eq()}",
+        mapOf(
+          deleted to true,
+          id to fetchCommentRow(articleId, commentId).orNull()!!.id
+        )
+      )
     }
   }
 
   fun getComments(articleId: ArticleId, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
-    val sql = "SELECT * from $table WHERE ${article_id.eq()}"
-    val params = mapOf(article_id to articleId.value)
+    val sql = "SELECT * from $view WHERE ${article_id.eq()} AND ${deleted.eq()}"
+    val params = mapOf(
+      article_id to articleId.value,
+      deleted to false
+    )
     IO {
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }.map {
         Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user)))
@@ -233,20 +245,37 @@ class ArticleRepository(
     }
 
   private fun insertCommentRow(articleId: ArticleId, comment: String, user: User) = with(ArticleCommentTbl) {
-    val sql = "${table.insert(body, author, article_id)} RETURNING *"
+    val sql = "${table.insert(body, author, article_id)} RETURNING $id"
     val params = mapOf(
       body to comment,
       author to user.id.value,
       article_id to articleId.value
     )
-    jdbcTemplate.queryForObject(sql, params, { rs, _ -> CommentRow.fromRs(rs) })!!
+    val commentId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong(id) }!!
+
+    jdbcTemplate.queryForObject(
+      "SELECT * FROM $view WHERE ${id.eq()}",
+      mapOf(id to commentId)
+    ) { rs, _ -> CommentRow.fromRs(rs) }!!
   }
 
-  private fun fetchCommentRowById(commentId: Long) = with(ArticleCommentTbl) {
-    val sql = "SELECT * FROM $table WHERE ${id.eq()}"
-    val params = mapOf(id to commentId)
+  private fun fetchCommentRow(articleId: ArticleId, commentId: ArticleScopedCommentId) = with(ArticleCommentTbl) {
+    val sql =
+      """
+      SELECT *
+      FROM $view
+      WHERE
+        ${article_id.eq()} AND
+        ${article_scoped_id.eq()} AND
+        ${deleted.eq()}
+      """.trimIndent()
+    val params = mapOf(
+      article_id to articleId.value,
+      article_scoped_id to commentId.value,
+      deleted to false
+    )
     DataAccessUtils.singleResult(
-      jdbcTemplate.query(sql, params, { rs, _ -> CommentRow.fromRs(rs) })
+      jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }
     ).toOption()
   }
 
@@ -259,7 +288,7 @@ class ArticleRepository(
         ${title.set()},
         ${description.set()},
         ${body.set()},
-        $updated_at = CURRENT_TIMESTAMP
+        ${updated_at.now()}
       WHERE
         ${id.eq()}
       RETURNING *
@@ -271,20 +300,20 @@ class ArticleRepository(
       body to update.body,
       id to update.id.value
     )
-    jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
+    jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }!!
   }
 
   private fun fetchArticleTags(articleId: ArticleId): List<String> = with(ArticleTagTbl) {
     val sql = "SELECT $tag FROM $table WHERE ${article_id.eq()}"
     val params = mapOf(article_id to articleId.value)
-    jdbcTemplate.query(sql, params, { rs, _ -> rs.getString(tag) })
+    jdbcTemplate.query(sql, params) { rs, _ -> rs.getString(tag) }
   }
 
   private fun fetchRowBySlug(slug: String): Option<ArticleRow> = ArticleTbl.let {
     val sql = "SELECT * FROM ${it.table} WHERE ${it.slug.eq()}"
     val params = mapOf(it.slug to slug)
     DataAccessUtils.singleResult(
-      jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+      jdbcTemplate.query(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }
     ).toOption()
   }
 
@@ -303,12 +332,12 @@ class ArticleRepository(
       put("limit", limit)
       put("offset", offset)
     }
-    jdbcTemplate.query(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })
+    jdbcTemplate.query(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }
   }
 
   private fun fetchArticleRowCount(queryParts: ArticlesQueryParts): Long = with(ArticleTbl) {
     val sql = "SELECT COUNT(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
-    jdbcTemplate.queryForObject(sql, queryParts.params, { rs, _ -> rs.getLong("count") })!!
+    jdbcTemplate.queryForObject(sql, queryParts.params) { rs, _ -> rs.getLong("count") }!!
   }
 
   private data class ArticlesQueryParts(
@@ -387,7 +416,7 @@ class ArticleRepository(
   private fun fetchFavoritesCount(articleId: ArticleId): Long = with(ArticleFavoriteTbl) {
     val sql = "SELECT COUNT(*) FROM $table WHERE ${article_id.eq()}"
     val params = mapOf(article_id to articleId.value)
-    jdbcTemplate.queryForObject(sql, params, { rs, _ -> rs.getLong("count") })!!
+    jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong("count") }!!
   }
 
   private fun isFavorited(articleId: ArticleId, user: User): IO<Boolean> = with(ArticleFavoriteTbl) {
@@ -401,14 +430,14 @@ class ArticleRepository(
   private fun insertArticleRow(article: ValidArticleCreation, user: User): ArticleRow = with(ArticleTbl) {
     val sql = "${table.insert(id, slug, title, description, body, author)} RETURNING *"
     val params = mapOf(
-        id to article.id.value,
-        slug to article.slug,
-        title to article.title,
-        description to article.description,
-        body to article.body,
-        author to user.id.value
+      id to article.id.value,
+      slug to article.slug,
+      title to article.title,
+      description to article.description,
+      body to article.body,
+      author to user.id.value
     )
-    jdbcTemplate.queryForObject(sql, params, { rs, _ -> ArticleRow.fromRs(rs) })!!
+    jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }!!
   }
 
   private fun insertTags(tags: List<String>) = with(TagTbl) {

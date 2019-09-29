@@ -14,6 +14,8 @@ import arrow.effects.IO
 import arrow.effects.extensions.io.fx.fx
 import arrow.effects.extensions.io.monad.monad
 import arrow.effects.fix
+import arrow.effects.liftIO
+import io.realworld.domain.common.toEither
 import io.realworld.domain.users.User
 import java.util.UUID
 
@@ -26,7 +28,7 @@ data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val u
 data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
 data class CommentArticleCommand(val slug: String, val comment: String, val user: User)
-data class DeleteCommentCommand(val slug: String, val commentId: Long, val user: User)
+data class DeleteCommentCommand(val slug: String, val commentId: ArticleScopedCommentId, val user: User)
 data class GetCommentsCommand(val slug: String, val user: Option<User>)
 object GetTagsCommand
 
@@ -228,23 +230,27 @@ interface DeleteCommentUseCase {
 
   fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
     val cmd = this
-    return fx {
-      getArticleBySlug(cmd.slug, cmd.user.some()).bind().fold(
-        { ArticleCommentDeleteError.ArticleNotFound.left() },
-        {
-          val comment = getComment(cmd.commentId, cmd.user).bind()
-          comment.fold(
-            { ArticleCommentDeleteError.CommentNotFound.left() },
-            {
-              if (it.author.username != cmd.user.username)
-                ArticleCommentDeleteError.NotAuthor.left()
-              else
-                deleteComment(cmd.commentId).bind().right()
-            }
-          )
+    return binding<ForIO, ArticleCommentDeleteError, Int>(IO.monad()) {
+      val article = EitherT(
+        getArticleBySlug(cmd.slug, cmd.user.some()).map {
+          it.toEither { ArticleCommentDeleteError.ArticleNotFound }
         }
-      )
-    }
+      ).bind()
+
+      val comment = EitherT(
+        getComment(article.id, cmd.commentId, cmd.user).map {
+          it.toEither { ArticleCommentDeleteError.CommentNotFound }
+        }
+      ).bind()
+
+      EitherT(
+        (comment.author.username == cmd.user.username).toEither { ArticleCommentDeleteError.NotAuthor }.liftIO()
+      ).bind()
+
+      EitherT(
+        deleteComment(article.id, cmd.commentId).map { it.right() }
+      ).bind()
+    }.value().fix()
   }
 }
 

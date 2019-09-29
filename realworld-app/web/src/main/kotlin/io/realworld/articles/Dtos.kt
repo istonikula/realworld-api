@@ -87,7 +87,7 @@ data class CommentResponseDto(
   companion object {
     fun fromDomain(domain: Comment) = with(domain) {
       CommentResponseDto(
-        id = id,
+        id = id.value,
         createdAt = createdAt,
         updatedAt = updatedAt,
         body = body,

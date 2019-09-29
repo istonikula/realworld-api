@@ -2,6 +2,7 @@ package io.realworld
 
 import io.realworld.articles.CommentDto
 import io.realworld.articles.CommentResponse
+import io.realworld.articles.CommentsResponse
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
@@ -11,6 +12,8 @@ import io.restassured.filter.log.RequestLoggingFilter
 import io.restassured.filter.log.ResponseLoggingFilter
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.tuple
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -104,6 +107,9 @@ class CommentTests {
     janeClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
       .statusCode(201)
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(1L)
+      }
   }
 
   @Test
@@ -118,11 +124,17 @@ class CommentTests {
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
       .statusCode(201)
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(1L)
+      }
 
     val req = CommentRequest(CommentDto("... or a chimpanzee"))
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", req)
       .then()
       .statusCode(201)
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(2L)
+      }
   }
 
   @Test
@@ -141,18 +153,99 @@ class CommentTests {
     val jane = createUser("jane")
 
     val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val cheetasArticle = articleRepo.create(
+      fixtures.validTestArticleCreation().copy(slug = "banana-split", description = "Banana Split"),
+      cheeta
+    ).unsafeRunSync()
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
-    val commentId = cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
+    cheetaClient.post(
+      "/api/articles/${janesArticle.slug}/comments",
+      CommentRequest(CommentDto("comment 1"))
+    )
       .then()
       .statusCode(201)
-      .toDto<CommentResponse>()
-      .comment.id
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(1L)
+      }
 
-    cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/$commentId")
+    cheetaClient.post(
+      "/api/articles/${janesArticle.slug}/comments",
+      CommentRequest(CommentDto("comment 2"))
+    )
+      .then()
+      .statusCode(201)
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(2L)
+      }
+
+    cheetaClient.post(
+      "/api/articles/${janesArticle.slug}/comments",
+      CommentRequest(CommentDto("comment 3"))
+    )
+      .then()
+      .statusCode(201)
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(3L)
+      }
+
+    cheetaClient.post(
+      "/api/articles/${cheetasArticle.slug}/comments",
+      CommentRequest(CommentDto("I'm the author"))
+    )
+      .then()
+      .statusCode(201)
+      .toDto<CommentResponse>().comment.apply {
+        assertThat(id).isEqualTo(1L)
+      }
+
+    cheetaClient.get("/api/articles/${janesArticle.slug}/comments")
+      .then()
+      .toDto<CommentsResponse>().apply {
+        assertThat(comments)
+          .extracting("id", "body")
+          .contains(
+            tuple(1L, "comment 1"),
+            tuple(2L, "comment 2"),
+            tuple(3L, "comment 3")
+          )
+      }
+
+    cheetaClient.get("/api/articles/${cheetasArticle.slug}/comments")
+      .then()
+      .toDto<CommentsResponse>().apply {
+        assertThat(comments)
+          .extracting("id", "body")
+          .contains(
+            tuple(1L, "I'm the author")
+          )
+      }
+
+    cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/2")
       .then()
       .statusCode(204)
+
+    cheetaClient.get("/api/articles/${janesArticle.slug}/comments")
+      .then()
+      .toDto<CommentsResponse>().apply {
+        assertThat(comments)
+          .extracting("id", "body")
+          .contains(
+            tuple(1L, "comment 1"),
+            tuple(3L, "comment 3")
+          )
+      }
+
+    cheetaClient.get("/api/articles/${cheetasArticle.slug}/comments")
+      .then()
+      .toDto<CommentsResponse>().apply {
+        assertThat(comments)
+          .extracting("id", "body")
+          .contains(
+            tuple(1L, "I'm the author")
+          )
+      }
   }
 
   @Test
