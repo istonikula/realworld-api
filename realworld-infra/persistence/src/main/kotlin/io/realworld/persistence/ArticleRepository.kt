@@ -104,8 +104,7 @@ private data class CommentDeps(
 )
 
 private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment(
-  id = row.id,
-  articleScopedId = row.articleScopedId.articleScopedCommentId(),
+  id = row.articleScopedId.articleScopedCommentId(),
   createdAt = row.createdAt,
   updatedAt = row.updatedAt,
   body = row.body,

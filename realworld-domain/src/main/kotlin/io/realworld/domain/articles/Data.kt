@@ -55,8 +55,7 @@ data class Article(
 inline class ArticleScopedCommentId(val value: Long)
 fun Long.articleScopedCommentId() = ArticleScopedCommentId(this)
 data class Comment(
-  val id: Long,
-  val articleScopedId: ArticleScopedCommentId,
+  val id: ArticleScopedCommentId,
   val createdAt: Instant,
   val updatedAt: Instant,
   val body: String,
