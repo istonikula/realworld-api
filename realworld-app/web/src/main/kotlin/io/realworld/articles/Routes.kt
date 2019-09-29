@@ -31,7 +31,7 @@ import io.realworld.domain.articles.GetArticlesUseCase
 import io.realworld.domain.articles.GetCommentsCommand
 import io.realworld.domain.articles.GetCommentsUseCase
 import io.realworld.domain.articles.GetFeedsCommand
-import io.realworld.domain.articles.GetFeedsUsecase
+import io.realworld.domain.articles.GetFeedsUseCase
 import io.realworld.domain.articles.GetTagsCommand
 import io.realworld.domain.articles.GetTagsUseCase
 import io.realworld.domain.articles.UnfavoriteArticleCommand
@@ -147,7 +147,7 @@ class ArticleController(
     filter: FeedFilter,
     user: User
   ): ResponseEntity<ArticlesResponse> {
-    return object : GetFeedsUsecase {
+    return object : GetFeedsUseCase {
       override val getFeeds = articleRepo::getFeeds
       override val getFeedsCount = articleRepo::getFeedsCount
     }.run {
