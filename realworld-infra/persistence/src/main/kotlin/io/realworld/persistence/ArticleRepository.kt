@@ -8,11 +8,13 @@ import arrow.effects.IO
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
+import io.realworld.domain.articles.ArticleScopedCommentId
 import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.FeedFilter
 import io.realworld.domain.articles.ValidArticleCreation
 import io.realworld.domain.articles.ValidArticleUpdate
 import io.realworld.domain.articles.articleId
+import io.realworld.domain.articles.articleScopedCommentId
 import io.realworld.domain.profiles.Profile
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserId
@@ -103,6 +105,7 @@ private data class CommentDeps(
 
 private fun Comment.Companion.from(row: CommentRow, deps: CommentDeps) = Comment(
   id = row.id,
+  articleScopedId = row.articleScopedId.articleScopedCommentId(),
   createdAt = row.createdAt,
   updatedAt = row.updatedAt,
   body = row.body,
@@ -171,8 +174,8 @@ class ArticleRepository(
     }
   }
 
-  fun getComment(commentId: Long, user: User): IO<Option<Comment>> = IO {
-    fetchCommentRowById(commentId).map {
+  fun getComment(articleId: ArticleId, commentId: ArticleScopedCommentId, user: User): IO<Option<Comment>> = IO {
+    fetchCommentRow(articleId, commentId).map {
       Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user.some())))
     }
   }
@@ -183,17 +186,24 @@ class ArticleRepository(
     Comment.from(row, deps)
   }
 
-  fun deleteComment(commentId: Long): IO<Int> = with(ArticleCommentTbl) {
-    val sql = "DELETE FROM $table WHERE ${id.eq()}"
-    val params = mapOf(id to commentId)
+  fun deleteComment(articleId: ArticleId, commentId: ArticleScopedCommentId): IO<Int> = with(ArticleCommentTbl) {
     IO {
-      jdbcTemplate.update(sql, params)
+      jdbcTemplate.update(
+        "UPDATE $table SET ${deleted.eq()} WHERE ${id.eq()}",
+        mapOf(
+          deleted to true,
+          id to fetchCommentRow(articleId, commentId).orNull()!!.id
+        )
+      )
     }
   }
 
   fun getComments(articleId: ArticleId, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
-    val sql = "SELECT * from $view WHERE ${article_id.eq()}"
-    val params = mapOf(article_id to articleId.value)
+    val sql = "SELECT * from $view WHERE ${article_id.eq()} AND ${deleted.eq()}"
+    val params = mapOf(
+      article_id to articleId.value,
+      deleted to false
+    )
     IO {
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }.map {
         Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user)))
@@ -243,12 +253,28 @@ class ArticleRepository(
       article_id to articleId.value
     )
     val commentId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong(id) }!!
-    fetchCommentRowById(commentId).orNull()!!
+
+    jdbcTemplate.queryForObject(
+      "SELECT * FROM $view WHERE ${id.eq()}",
+      mapOf(id to commentId)
+    ) { rs, _ -> CommentRow.fromRs(rs) }!!
   }
 
-  private fun fetchCommentRowById(commentId: Long) = with(ArticleCommentTbl) {
-    val sql = "SELECT * FROM $view WHERE ${id.eq()}"
-    val params = mapOf(id to commentId)
+  private fun fetchCommentRow(articleId: ArticleId, commentId: ArticleScopedCommentId) = with(ArticleCommentTbl) {
+    val sql =
+      """
+      SELECT *
+      FROM $view
+      WHERE
+        ${article_id.eq()} AND
+        ${article_scoped_id.eq()} AND
+        ${deleted.eq()}
+      """.trimIndent()
+    val params = mapOf(
+      article_id to articleId.value,
+      article_scoped_id to commentId.value,
+      deleted to false
+    )
     DataAccessUtils.singleResult(
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }
     ).toOption()

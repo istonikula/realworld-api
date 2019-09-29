@@ -52,8 +52,11 @@ data class Article(
   val updatedAt: Instant
 ) { companion object }
 
+inline class ArticleScopedCommentId(val value: Long)
+fun Long.articleScopedCommentId() = ArticleScopedCommentId(this)
 data class Comment(
   val id: Long,
+  val articleScopedId: ArticleScopedCommentId,
   val createdAt: Instant,
   val updatedAt: Instant,
   val body: String,

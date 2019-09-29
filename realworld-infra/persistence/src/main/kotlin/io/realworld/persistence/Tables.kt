@@ -56,6 +56,7 @@ object ArticleCommentTbl {
   const val body = "body"
   const val author = "author"
   const val article_id = "article_id"
+  const val deleted = "deleted"
 
   const val article_scoped_id = "article_scoped_id" // NOTE: only in view
 }

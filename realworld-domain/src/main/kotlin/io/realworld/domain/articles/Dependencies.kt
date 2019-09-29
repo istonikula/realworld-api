@@ -26,8 +26,8 @@ typealias AddFavorite = (ArticleId, User) -> IO<Int>
 typealias RemoveFavorite = (ArticleId, User) -> IO<Int>
 
 typealias AddComment = (ArticleId, comment: String, User) -> IO<Comment>
-typealias DeleteComment = (id: Long) -> IO<Int>
-typealias GetComment = (id: Long, User) -> IO<Option<Comment>>
+typealias DeleteComment = (ArticleId, ArticleScopedCommentId) -> IO<Int>
+typealias GetComment = (ArticleId, ArticleScopedCommentId, User) -> IO<Option<Comment>>
 typealias GetComments = (ArticleId, Option<User>) -> IO<List<Comment>>
 
 typealias GetTags = () -> IO<Set<String>>
