@@ -48,10 +48,14 @@ object ArticleFavoriteTbl {
 
 object ArticleCommentTbl {
   const val table = "article_comments"
+  const val view = "${table}_view"
+
   const val id = "id"
   const val created_at = "created_at"
   const val updated_at = "updated_at"
   const val body = "body"
   const val author = "author"
   const val article_id = "article_id"
+
+  const val article_scoped_id = "article_scoped_id" // NOTE: only in view
 }

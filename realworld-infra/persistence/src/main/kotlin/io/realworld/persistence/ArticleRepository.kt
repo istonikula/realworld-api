@@ -77,6 +77,7 @@ private fun Article.Companion.from(row: ArticleRow, deps: ArticleDeps) = Article
 
 private data class CommentRow(
   val id: Long,
+  val articleScopedId: Long,
   val createdAt: Instant,
   val updatedAt: Instant,
   val body: String,
@@ -86,6 +87,7 @@ private data class CommentRow(
     fun fromRs(rs: ResultSet) = with(ArticleCommentTbl) {
       CommentRow(
         id = rs.getLong(id),
+        articleScopedId = rs.getLong(article_scoped_id),
         createdAt = rs.getTimestamp(ArticleTbl.created_at).toInstant(),
         updatedAt = rs.getTimestamp(ArticleTbl.updated_at).toInstant(),
         body = rs.getString(body),
@@ -190,7 +192,7 @@ class ArticleRepository(
   }
 
   fun getComments(articleId: ArticleId, user: Option<User>): IO<List<Comment>> = with(ArticleCommentTbl) {
-    val sql = "SELECT * from $table WHERE ${article_id.eq()}"
+    val sql = "SELECT * from $view WHERE ${article_id.eq()}"
     val params = mapOf(article_id to articleId.value)
     IO {
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }.map {
@@ -234,17 +236,18 @@ class ArticleRepository(
     }
 
   private fun insertCommentRow(articleId: ArticleId, comment: String, user: User) = with(ArticleCommentTbl) {
-    val sql = "${table.insert(body, author, article_id)} RETURNING *"
+    val sql = "${table.insert(body, author, article_id)} RETURNING $id"
     val params = mapOf(
       body to comment,
       author to user.id.value,
       article_id to articleId.value
     )
-    jdbcTemplate.queryForObject(sql, params) { rs, _ -> CommentRow.fromRs(rs) }!!
+    val commentId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong(id) }!!
+    fetchCommentRowById(commentId).orNull()!!
   }
 
   private fun fetchCommentRowById(commentId: Long) = with(ArticleCommentTbl) {
-    val sql = "SELECT * FROM $table WHERE ${id.eq()}"
+    val sql = "SELECT * FROM $view WHERE ${id.eq()}"
     val params = mapOf(id to commentId)
     DataAccessUtils.singleResult(
       jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }
