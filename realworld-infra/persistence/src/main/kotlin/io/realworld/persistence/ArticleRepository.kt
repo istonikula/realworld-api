@@ -174,7 +174,25 @@ class ArticleRepository(
   }
 
   fun getComment(articleId: ArticleId, commentId: ArticleScopedCommentId, user: User): IO<Option<Comment>> = IO {
-    fetchCommentRow(articleId, commentId).map {
+    with(ArticleCommentTbl) {
+      val sql =
+        """
+        SELECT *
+        FROM $view
+        WHERE
+          ${article_id.eq()} AND
+          ${article_scoped_id.eq()} AND
+          ${deleted.eq()}
+        """.trimIndent()
+      val params = mapOf(
+        article_id to articleId.value,
+        article_scoped_id to commentId.value,
+        deleted to false
+      )
+      DataAccessUtils.singleResult(
+        jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }
+      ).toOption()
+    }.map {
       Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user.some())))
     }
   }
@@ -188,10 +206,19 @@ class ArticleRepository(
   fun deleteComment(articleId: ArticleId, commentId: ArticleScopedCommentId): IO<Int> = with(ArticleCommentTbl) {
     IO {
       jdbcTemplate.update(
-        "UPDATE $table SET ${deleted.eq()} WHERE ${id.eq()}",
+        """
+        UPDATE $table
+          SET ${deleted.eq()}
+        FROM $view
+        WHERE
+          $table.$id = $view.$id AND
+          $view.${article_id.eq()} AND
+          $view.${article_scoped_id.eq()}
+        """.trimIndent(),
         mapOf(
           deleted to true,
-          id to fetchCommentRow(articleId, commentId).orNull()!!.id
+          article_id to articleId.value,
+          article_scoped_id to commentId.value
         )
       )
     }
@@ -257,26 +284,6 @@ class ArticleRepository(
       "SELECT * FROM $view WHERE ${id.eq()}",
       mapOf(id to commentId)
     ) { rs, _ -> CommentRow.fromRs(rs) }!!
-  }
-
-  private fun fetchCommentRow(articleId: ArticleId, commentId: ArticleScopedCommentId) = with(ArticleCommentTbl) {
-    val sql =
-      """
-      SELECT *
-      FROM $view
-      WHERE
-        ${article_id.eq()} AND
-        ${article_scoped_id.eq()} AND
-        ${deleted.eq()}
-      """.trimIndent()
-    val params = mapOf(
-      article_id to articleId.value,
-      article_scoped_id to commentId.value,
-      deleted to false
-    )
-    DataAccessUtils.singleResult(
-      jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }
-    ).toOption()
   }
 
   private fun updateArticleRow(update: ValidArticleUpdate): ArticleRow = with(ArticleTbl) {
@@ -402,8 +409,8 @@ class ArticleRepository(
   }
 
   private fun fetchAuthor(id: UserId, querier: Option<User>): Profile =
-    userRepo.findById(id).unsafeRunSync().map {
-      it.user.let { author ->
+    userRepo.findById(id).unsafeRunSync().map { userAndPassword ->
+      userAndPassword.user.let { author ->
         Profile(
           username = author.username,
           bio = author.bio.toOption(),

@@ -127,7 +127,7 @@ interface GetArticlesUseCase {
   }
 }
 
-interface GetFeedsUsecase {
+interface GetFeedsUseCase {
   val getFeeds: GetFeeds
   val getFeedsCount: GetFeedsCount
 
