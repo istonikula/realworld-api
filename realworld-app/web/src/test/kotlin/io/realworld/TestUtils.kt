@@ -11,9 +11,21 @@ import io.realworld.domain.users.User
 import io.realworld.domain.users.ValidUserRegistration
 import io.realworld.domain.users.userId
 import io.restassured.RestAssured
+import io.restassured.builder.RequestSpecBuilder
+import io.restassured.filter.log.RequestLoggingFilter
+import io.restassured.filter.log.ResponseLoggingFilter
+import io.restassured.http.ContentType
+import io.restassured.module.jsv.JsonSchemaValidator
 import io.restassured.response.ValidatableResponse
 import io.restassured.specification.RequestSpecification
 import java.util.UUID
+
+fun initSpec(port: Int) = RequestSpecBuilder()
+  .setContentType(ContentType.JSON)
+  .setBaseUri("http://localhost:$port")
+  .addFilter(RequestLoggingFilter())
+  .addFilter(ResponseLoggingFilter())
+
 
 inline fun <reified T> ValidatableResponse.toDto(): T = this.extract().`as`(T::class.java)
 
@@ -71,3 +83,11 @@ class FixtureFactory(val auth: Auth) {
     )
   }
 }
+
+object Schemas {
+  const val user = "json-schemas/resp-user.json"
+}
+
+fun ValidatableResponse.verifyResponse(schema: String, statusCode: Int) =
+  statusCode(statusCode)
+  .body(JsonSchemaValidator.matchesJsonSchemaInClasspath(schema))

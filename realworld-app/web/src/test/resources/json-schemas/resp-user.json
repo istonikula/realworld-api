@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user"],
+  "properties": {
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "email",
+        "token",
+        "username"
+      ],
+      "properties": {
+        "email": { "type":  "string" },
+        "token": { "type":  "string" },
+        "username": { "type":  "string" },
+        "bio": { "type":  [ "string", "null" ] },
+        "image": { "type":  [ "string", "null" ] }
+      }
+    }
+  }
+}
