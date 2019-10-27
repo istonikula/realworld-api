@@ -218,7 +218,7 @@ class FavoriteTests {
       .body("article.favoritesCount", equalTo(1))
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(1))
 

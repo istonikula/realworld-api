@@ -89,6 +89,7 @@ object Schemas {
   const val comment = "json-schemas/resp-comment.json"
   const val comments = "json-schemas/resp-comments.json"
   const val profile = "json-schemas/resp-profile.json"
+  const val tags = "json-schemas/resp-tags.json"
   const val user = "json-schemas/resp-user.json"
 }
 

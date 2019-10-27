@@ -21,7 +21,7 @@
         "title": { "type":  "string" },
         "description": { "type":  "string" },
         "body": { "type":  "string" },
-        "tagList": { "type": "array", "items": { "type":  "string" } },
+        "tagList": { "$ref": "#/definitions/tags" },
         "favorited": { "type":  "boolean" },
         "favoritesCount": { "$ref":  "defs-common.json#/definitions/positiveInteger" },
         "author": { "$ref": "#/definitions/profile" },
@@ -44,7 +44,7 @@
         "createdAt": { "$ref":  "defs-common.json#/definitions/datetime" },
         "updatedAt": { "$ref":  "defs-common.json#/definitions/datetime" },
         "body": { "type":  "string" },
-        "author": { "$ref":  "defs-realworld.json#/definitions/profile" }
+        "author": { "$ref":  "#/definitions/profile" }
       }
     },
     "profile": {
@@ -59,6 +59,10 @@
         "image": { "type":  [ "string", "null" ] },
         "following": { "type":  [ "boolean", "null" ] }
       }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
     }
   }
 }

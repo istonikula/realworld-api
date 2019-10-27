@@ -508,7 +508,9 @@ class ArticleTests {
         articles[3].assert(dragon.expected)
       }
 
-    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
 
     cheeta.api.get("/api/articles")
       .then()
@@ -523,7 +525,9 @@ class ArticleTests {
         articles[3].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get("/api/articles")
       .then()
@@ -615,7 +619,9 @@ class ArticleTests {
         articles[3].assert(dragon.expected)
       }
 
-    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
       .then()
@@ -630,7 +636,9 @@ class ArticleTests {
         articles[3].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
       .then()
@@ -685,7 +693,9 @@ class ArticleTests {
         articles[1].assert(dragon.expected)
       }
 
-    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
 
     cheeta.api.get("/api/articles?tag=dragons")
       .then()
@@ -708,7 +718,9 @@ class ArticleTests {
         articles[1].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get("/api/articles?tag=dragons")
       .then()
@@ -752,7 +764,9 @@ class ArticleTests {
         articles[0].assert(dragon.expected)
       }
 
-    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
       .then()
@@ -764,7 +778,9 @@ class ArticleTests {
         articles[0].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
       .then()
@@ -811,7 +827,9 @@ class ArticleTests {
         articles[0].assert(dragon.expected, favorited = true, favoritesCount = 1L)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get(
       "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
@@ -850,7 +868,9 @@ class ArticleTests {
         assertThat(articles.size).isEqualTo(0)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${tarzan.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${tarzan.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get("/api/articles/feed")
       .then()
@@ -863,7 +883,9 @@ class ArticleTests {
         articles[1].assert(angular.expected, following = true)
       }
 
-    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow").then().statusCode(200)
+    cheeta.api.post<Any>("/api/profiles/${jane.user.username}/follow")
+      .then()
+      .verifyResponse(Schemas.profile, 200)
 
     cheeta.api.get("/api/articles/feed")
       .then()
@@ -878,8 +900,12 @@ class ArticleTests {
         articles[3].assert(dragon.expected, following = true)
       }
 
-    cheeta.api.post<Any>("/api/articles/${angular.slug}/favorite").then().statusCode(200)
-    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite").then().statusCode(200)
+    cheeta.api.post<Any>("/api/articles/${angular.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
+    cheeta.api.post<Any>("/api/articles/${dragon.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
 
     cheeta.api.get("/api/articles/feed")
       .then()
@@ -894,7 +920,9 @@ class ArticleTests {
         articles[3].assert(dragon.expected, following = true, favorited = true, favoritesCount = 1L)
       }
 
-    jane.api.post<Any>("/api/articles/${angular.slug}/favorite").then().statusCode(200)
+    jane.api.post<Any>("/api/articles/${angular.slug}/favorite")
+      .then()
+      .verifyResponse(Schemas.article, 200)
 
     cheeta.api.get("/api/articles/feed?limit=2&offset=1")
       .then()
@@ -914,29 +942,41 @@ class ArticleTests {
     val johnDoe = ApiClient(spec)
 
     JdbcTestUtils.deleteFromTables(jdbcTemplate, TagTbl.table)
-    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
-      assertThat(tags.size).isEqualTo(0)
-    }
+    johnDoe.get("/api/tags")
+      .then()
+      .verifyResponse(Schemas.tags, 200)
+      .toDto<TagsResponse>().apply {
+        assertThat(tags.size).isEqualTo(0)
+      }
 
     createArticle(jane, dragonSpec(jane.user.username))
-    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
-      assertThat(tags).containsExactlyInAnyOrder("angularjs", "dragons", "reactjs")
-    }
+    johnDoe.get("/api/tags")
+      .then()
+      .verifyResponse(Schemas.tags, 200)
+      .toDto<TagsResponse>().apply {
+        assertThat(tags).containsExactlyInAnyOrder("angularjs", "dragons", "reactjs")
+      }
 
     JdbcTestUtils.deleteFromTables(jdbcTemplate, TagTbl.table)
     createArticle(jane, angularSpec(jane.user.username))
-    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
-      assertThat(tags).containsExactlyInAnyOrder("101", "angularjs")
-    }
+    johnDoe.get("/api/tags")
+      .then()
+      .verifyResponse(Schemas.tags, 200)
+      .toDto<TagsResponse>().apply {
+        assertThat(tags).containsExactlyInAnyOrder("101", "angularjs")
+      }
 
     JdbcTestUtils.deleteFromTables(jdbcTemplate, TagTbl.table)
     createArticle(jane, angularSpec(jane.user.username))
     createArticle(jane, dragonSpec(jane.user.username))
     createArticle(jane, elmSpec(jane.user.username))
     createArticle(jane, reactSpec(jane.user.username))
-    johnDoe.get("/api/tags").then().toDto<TagsResponse>().apply {
-      assertThat(tags).containsExactlyInAnyOrder("101", "angularjs", "dragons", "Elm", "NoExceptions", "reactjs")
-    }
+    johnDoe.get("/api/tags")
+      .then()
+      .verifyResponse(Schemas.tags, 200)
+      .toDto<TagsResponse>().apply {
+        assertThat(tags).containsExactlyInAnyOrder("101", "angularjs", "dragons", "Elm", "NoExceptions", "reactjs")
+      }
   }
 
   private fun createUser(user: TestUser) =
@@ -957,7 +997,10 @@ private fun createArticle(
 ) = CreationRequest(articleSpec.req).let {
   ArticleFixture(
     articleSpec.resp,
-    userClient.api.post("/api/articles", it).then().toDto<ArticleResponse>().article.slug
+    userClient.api.post("/api/articles", it)
+      .then()
+      .verifyResponse(Schemas.article, 201)
+      .toDto<ArticleResponse>().article.slug
   )
 }
 

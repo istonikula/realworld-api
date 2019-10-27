@@ -324,7 +324,7 @@ class CommentTests {
 
     tarzanClient.post<Any>("/api/profiles/cheeta/follow")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
 
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
       .then()
