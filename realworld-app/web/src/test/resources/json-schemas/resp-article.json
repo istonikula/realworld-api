@@ -2,8 +2,8 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
   "additionalProperties": false,
-  "required": ["profile"],
+  "required": [ "article" ],
   "properties": {
-    "profile": { "$ref": "defs-realworld.json#/definitions/profile"}
+    "article": { "$ref":  "defs-realworld.json#/definitions/article" }
   }
 }

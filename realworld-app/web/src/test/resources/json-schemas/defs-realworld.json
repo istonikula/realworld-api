@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "definitions": {
+    "article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "title",
+        "description",
+        "body",
+        "tagList",
+        "favorited",
+        "favoritesCount",
+        "author",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "slug": { "type":  "string" },
+        "title": { "type":  "string" },
+        "description": { "type":  "string" },
+        "body": { "type":  "string" },
+        "tagList": { "type": "array", "items": { "type":  "string" } },
+        "favorited": { "type":  "boolean" },
+        "favoritesCount": { "$ref":  "defs-common.json#/definitions/positiveInteger" },
+        "author": { "$ref": "#/definitions/profile" },
+        "createdAt": { "$ref": "defs-common.json#/definitions/datetime" },
+        "updatedAt": { "$ref": "defs-common.json#/definitions/datetime" }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "username"
+      ],
+      "properties": {
+        "username": { "type":  "string" },
+        "bio": { "type":  [ "string", "null" ] },
+        "image": { "type":  [ "string", "null" ] },
+        "following": { "type":  [ "boolean", "null" ] }
+      }
+    }
+  }
+}

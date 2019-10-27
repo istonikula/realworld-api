@@ -5,10 +5,6 @@ import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
-import io.restassured.builder.RequestSpecBuilder
-import io.restassured.filter.log.RequestLoggingFilter
-import io.restassured.filter.log.ResponseLoggingFilter
-import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
@@ -47,16 +43,9 @@ class FavoriteTests {
 
   @BeforeEach
   fun init() {
-    spec = initSpec()
+    spec = initSpec(port).build()
     fixtures = FixtureFactory(auth)
   }
-
-  fun initSpec() = RequestSpecBuilder()
-    .setContentType(ContentType.JSON)
-    .setBaseUri("http://localhost:$port")
-    .addFilter(RequestLoggingFilter())
-    .addFilter(ResponseLoggingFilter())
-    .build()
 
   @AfterEach
   fun deleteUser() {
@@ -74,32 +63,32 @@ class FavoriteTests {
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
 
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
     cheetaClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(2))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(2))
   }
@@ -121,7 +110,7 @@ class FavoriteTests {
 
     janeClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(0))
     janeClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
@@ -129,7 +118,7 @@ class FavoriteTests {
       .statusCode(403)
     janeClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(0))
   }
@@ -144,22 +133,22 @@ class FavoriteTests {
 
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
   }
@@ -174,22 +163,22 @@ class FavoriteTests {
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     tarzanClient.delete("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(0))
     tarzanClient.get("/api/articles/${janesArticle.slug}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(0))
   }
@@ -218,13 +207,13 @@ class FavoriteTests {
 
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(0))
 
     cheetaClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(1))
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
@@ -235,23 +224,23 @@ class FavoriteTests {
 
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(true))
       .body("article.favoritesCount", equalTo(2))
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(2))
 
     cheetaClient.delete("/api/articles/${janesArticle.slug}/favorite")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(1))
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .body("article.favorited", equalTo(false))
       .body("article.favoritesCount", equalTo(1))
   }

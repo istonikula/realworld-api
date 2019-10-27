@@ -12,10 +12,6 @@ import io.realworld.persistence.TagTbl
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.profiles.ProfileResponseDto
-import io.restassured.builder.RequestSpecBuilder
-import io.restassured.filter.log.RequestLoggingFilter
-import io.restassured.filter.log.ResponseLoggingFilter
-import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers
@@ -188,16 +184,9 @@ class ArticleTests {
 
   @BeforeEach
   fun init() {
-    spec = initSpec()
+    spec = initSpec(port).build()
     fixtures = FixtureFactory(auth)
   }
-
-  fun initSpec() = RequestSpecBuilder()
-    .setContentType(ContentType.JSON)
-    .setBaseUri("http://localhost:$port")
-    .addFilter(RequestLoggingFilter())
-    .addFilter(ResponseLoggingFilter())
-    .build()
 
   @AfterEach
   fun deleteArticles() {
@@ -222,7 +211,7 @@ class ArticleTests {
 
     client.get("/api/articles/${expected.title.slugify()}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
       }
@@ -236,7 +225,7 @@ class ArticleTests {
 
     client.post("/api/articles", req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.article, 201)
       .toDto<ArticleResponse>().apply {
         assertThat(article.tagList).isEmpty()
       }
@@ -246,7 +235,7 @@ class ArticleTests {
     }.toString()
     client.post("/api/articles", bodyJson)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.article, 201)
       .toDto<ArticleResponse>().apply {
         assertThat(article.tagList).isEmpty()
       }
@@ -314,6 +303,7 @@ class ArticleTests {
 
     jane.api.get("/api/articles/${dragon.slug}", token = null)
       .then()
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected, following = null)
       }
@@ -321,6 +311,7 @@ class ArticleTests {
     val cheeta = UserClient.from(TestUsers.Cheeta)
     cheeta.api.get("/api/articles/${dragon.slug}")
       .then()
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected, following = false)
       }
@@ -328,6 +319,7 @@ class ArticleTests {
     cheeta.api.post<Any>("/api/profiles/${TestUsers.Jane.username}/follow")
     cheeta.api.get("/api/articles/${dragon.slug}")
       .then()
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected, following = true)
       }
@@ -382,7 +374,7 @@ class ArticleTests {
     val updateReq = UpdateRequest(UpdateDto(title = "updated.${dragon.expected.title}"))
     jane.api.put("/api/articles/${dragon.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected.copy(
           slug = "updated-${dragon.slug}",
@@ -400,7 +392,7 @@ class ArticleTests {
     val updateReq = UpdateRequest(UpdateDto(description = "updated.${dragon.expected.description}"))
     jane.api.put("/api/articles/${dragon.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected.copy(
           description = "updated.${dragon.expected.description}"
@@ -417,7 +409,7 @@ class ArticleTests {
     val updateReq = UpdateRequest(UpdateDto(body = "updated.${dragon.expected.body}"))
     jane.api.put("/api/articles/${dragon.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected.copy(
           body = "updated.${dragon.expected.body}"
@@ -438,7 +430,7 @@ class ArticleTests {
     ))
     jane.api.put("/api/articles/${dragon.slug}", updateReq)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
         article.assert(dragon.expected.copy(
           slug = "updated-${dragon.slug}",
@@ -492,7 +484,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles", null)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -505,7 +497,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -520,7 +512,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -535,7 +527,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -559,7 +551,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?limit=2")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
@@ -570,7 +562,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?limit=2&offset=1")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
@@ -581,7 +573,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?offset=1")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(3)
@@ -604,7 +596,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Cheeta.username}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(0))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(0)
@@ -612,7 +604,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -627,7 +619,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -642,7 +634,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -666,7 +658,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=foo")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(0))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(0)
@@ -674,7 +666,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=dragons")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -684,7 +676,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=reactjs")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(2))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
@@ -697,7 +689,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=dragons")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -707,7 +699,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=reactjs")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(2))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
@@ -720,7 +712,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=dragons")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -730,7 +722,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?tag=reactjs")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(2))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
@@ -752,7 +744,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -764,7 +756,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -776,7 +768,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles?author=${TestUsers.Jane.username}&tag=dragons")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -799,7 +791,7 @@ class ArticleTests {
       "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
     )
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(0))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(0)
@@ -811,7 +803,7 @@ class ArticleTests {
       "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
     )
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -825,7 +817,7 @@ class ArticleTests {
       "/api/articles?author=${TestUsers.Jane.username}&tag=dragons&favorited=${TestUsers.Cheeta.username}"
     )
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(1))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(1)
@@ -852,7 +844,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles/feed")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(0))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(0)
@@ -862,7 +854,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles/feed")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(2))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
@@ -875,7 +867,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles/feed")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -891,7 +883,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles/feed")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(4)
@@ -906,7 +898,7 @@ class ArticleTests {
 
     cheeta.api.get("/api/articles/feed?limit=2&offset=1")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.articles, 200)
       .body("articlesCount", Matchers.equalTo(4))
       .toDto<ArticlesResponse>().apply {
         assertThat(articles.size).isEqualTo(2)
