@@ -26,7 +26,6 @@ fun initSpec(port: Int) = RequestSpecBuilder()
   .addFilter(RequestLoggingFilter())
   .addFilter(ResponseLoggingFilter())
 
-
 inline fun <reified T> ValidatableResponse.toDto(): T = this.extract().`as`(T::class.java)
 
 private val defaultObjectMapper = ObjectMapper()
@@ -85,6 +84,7 @@ class FixtureFactory(val auth: Auth) {
 }
 
 object Schemas {
+  const val profile = "json-schemas/resp-profile.json"
   const val user = "json-schemas/resp-user.json"
 }
 

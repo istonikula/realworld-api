@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile"],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "username"
+      ],
+      "properties": {
+        "username": { "type":  "string" },
+        "bio": { "type":  [ "string", "null" ] },
+        "image": { "type":  [ "string", "null" ] },
+        "following": { "type":  [ "boolean", "null" ] }
+      }
+    }
+  }
+}
