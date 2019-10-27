@@ -29,12 +29,13 @@ object Libs {
   const val jasypt = "org.jasypt:jasypt:${Version.jasypt}"
   const val jaxb = "javax.xml.bind:jaxb-api:${Version.jaxb}"
   const val jjwt = "io.jsonwebtoken:jjwt:${Version.jjwt}"
+  const val jsonSchemaValidator = "io.rest-assured:json-schema-validator:${Version.restAssured}"
   const val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api"
   const val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
   const val kotlinReflect = "org.jetbrains.kotlin:kotlin-reflect:${Version.kotlin}"
   const val kotlinStd = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Version.kotlin}"
   const val postgresql = "org.postgresql:postgresql"
-  const val restassured = "io.rest-assured:rest-assured"
+  const val restassured = "io.rest-assured:rest-assured:${Version.restAssured}"
   const val slugify = "com.github.slugify:slugify:${Version.slugify}"
 }
 

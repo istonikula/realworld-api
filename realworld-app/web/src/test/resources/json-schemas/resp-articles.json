@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "articles",
+    "articlesCount"
+  ],
+  "properties": {
+    "articles": {
+      "type": "array",
+      "items": { "$ref":  "defs-realworld.json#/definitions/article" }
+    },
+    "articlesCount": { "$ref": "defs-common.json#/definitions/positiveInteger" }
+  }
+}

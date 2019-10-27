@@ -9,10 +9,6 @@ import io.realworld.users.RegistrationDto
 import io.realworld.users.UserResponse
 import io.realworld.users.UserResponseDto
 import io.realworld.users.UserUpdateDto
-import io.restassured.builder.RequestSpecBuilder
-import io.restassured.filter.log.RequestLoggingFilter
-import io.restassured.filter.log.ResponseLoggingFilter
-import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.equalTo
@@ -54,16 +50,9 @@ class UserTests {
 
   @BeforeEach
   fun init() {
-    spec = initSpec()
+    spec = initSpec(port).build()
     fixtures = FixtureFactory(auth)
   }
-
-  fun initSpec() = RequestSpecBuilder()
-    .setContentType(ContentType.JSON)
-    .setBaseUri("http://localhost:$port")
-    .addFilter(RequestLoggingFilter())
-    .addFilter(ResponseLoggingFilter())
-    .build()
 
   private object TestUser {
     val email = "foo@bar.com"
@@ -86,18 +75,20 @@ class UserTests {
       password = TestUser.password
     ))
     val expected = UserResponseDto(username = TestUser.username, email = TestUser.email, token = "ignore")
-    var actual: UserResponse = client.post("/api/users", regReq)
+    client.post("/api/users", regReq)
       .then()
-      .statusCode(201)
-      .toDto()
-    assertThat(actual.user).isEqualToIgnoringGivenFields(expected, "token")
+      .verifyResponse(Schemas.user, 201)
+      .toDto<UserResponse>().apply {
+        assertThat(user).isEqualToIgnoringGivenFields(expected, "token")
+      }
 
     val loginReq = LoginRequest(LoginDto(email = regReq.user.email, password = regReq.user.password))
-    actual = client.post("/api/users/login", loginReq)
+    client.post("/api/users/login", loginReq)
       .then()
-      .statusCode(200)
-      .toDto()
-    assertThat(actual.user).isEqualToIgnoringGivenFields(expected, token)
+      .verifyResponse(Schemas.user, 200)
+      .toDto<UserResponse>().apply {
+        assertThat(user).isEqualToIgnoringGivenFields(expected, token)
+      }
   }
 
   @Test
@@ -159,11 +150,12 @@ class UserTests {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
     userRepo.create(registered).unsafeRunSync()
 
-    val actual: UserResponse = ApiClient(spec).get("/api/user", registered.token)
+    ApiClient(spec).get("/api/user", registered.token)
       .then()
-      .statusCode(200)
-      .toDto()
-    assertThat(actual.user.email).isEqualTo("foo@bar.com")
+      .verifyResponse(Schemas.user, 200)
+      .toDto<UserResponse>().apply {
+        assertThat(user.email).isEqualTo("foo@bar.com")
+      }
   }
 
   @Test
@@ -192,11 +184,12 @@ class UserTests {
     userRepo.create(registered).unsafeRunSync()
 
     UserUpdateRequest(UserUpdateDto(email = "updated.${registered.email}")).apply {
-      val actual: UserResponse = ApiClient(spec).put("/api/user", this, registered.token)
+      ApiClient(spec).put("/api/user", this, registered.token)
         .then()
-        .statusCode(200)
-        .toDto()
-      assertThat(actual.user.email).isEqualTo("updated.${registered.email}")
+        .verifyResponse(Schemas.user, 200)
+        .toDto<UserResponse>().apply {
+          assertThat(user.email).isEqualTo("updated.${registered.email}")
+        }
     }
   }
 
@@ -208,10 +201,10 @@ class UserTests {
     val client = ApiClient(spec)
 
     UserUpdateRequest(UserUpdateDto(password = "updated.plain")).apply {
-      client.put("/api/user", this, registered.token).then().statusCode(200)
+      client.put("/api/user", this, registered.token).then().verifyResponse(Schemas.user, 200)
     }
     LoginRequest(LoginDto(email = registered.email, password = "updated.plain")).apply {
-      client.post("/api/users/login", this).then().statusCode(200)
+      client.post("/api/users/login", this).then().verifyResponse(Schemas.user, 200)
     }
   }
 
@@ -221,11 +214,12 @@ class UserTests {
     userRepo.create(registered).unsafeRunSync()
 
     UserUpdateRequest(UserUpdateDto(username = "updated.${registered.username}")).apply {
-      val actual: UserResponse = ApiClient(spec).put("/api/user", this, registered.token)
+      ApiClient(spec).put("/api/user", this, registered.token)
         .then()
-        .statusCode(200)
-        .toDto()
-      assertThat(actual.user.username).isEqualTo("updated.${registered.username}")
+        .verifyResponse(Schemas.user, 200)
+        .toDto<UserResponse>().apply {
+          assertThat(user.username).isEqualTo("updated.${registered.username}")
+        }
     }
   }
 
@@ -239,13 +233,14 @@ class UserTests {
       image = "updated.image",
       bio = "updated.bio"
     )).apply {
-      val actual: UserResponse = ApiClient(spec).put("/api/user", this, registered.token)
+      ApiClient(spec).put("/api/user", this, registered.token)
         .then()
-        .statusCode(200)
-        .toDto()
-      assertThat(actual.user.username).isEqualTo("updated.${registered.username}")
-      assertThat(actual.user.image).isEqualTo("updated.image")
-      assertThat(actual.user.bio).isEqualTo("updated.bio")
+        .verifyResponse(Schemas.user, 200)
+        .toDto<UserResponse>().apply {
+          assertThat(user.username).isEqualTo("updated.${registered.username}")
+          assertThat(user.image).isEqualTo("updated.image")
+          assertThat(user.bio).isEqualTo("updated.bio")
+        }
     }
   }
 }

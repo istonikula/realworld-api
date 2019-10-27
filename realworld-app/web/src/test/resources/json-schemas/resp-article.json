@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "article" ],
+  "properties": {
+    "article": { "$ref":  "defs-realworld.json#/definitions/article" }
+  }
+}

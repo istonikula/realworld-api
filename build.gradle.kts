@@ -132,7 +132,10 @@ project("realworld-app:web") {
 
     runtime(Libs.postgresql)
 
-    testImplementation(Libs.restassured)
+    testImplementation.let {
+      it(Libs.jsonSchemaValidator)
+      it(Libs.restassured)
+    }
   }
 }
 

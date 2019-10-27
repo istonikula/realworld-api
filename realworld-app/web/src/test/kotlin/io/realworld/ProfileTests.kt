@@ -3,10 +3,6 @@ package io.realworld
 import io.realworld.domain.common.Auth
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
-import io.restassured.builder.RequestSpecBuilder
-import io.restassured.filter.log.RequestLoggingFilter
-import io.restassured.filter.log.ResponseLoggingFilter
-import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
@@ -42,16 +38,9 @@ class ProfileTests {
 
   @BeforeEach
   fun init() {
-    spec = initSpec()
+    spec = initSpec(port).build()
     fixtures = FixtureFactory(auth)
   }
-
-  fun initSpec() = RequestSpecBuilder()
-    .setContentType(ContentType.JSON)
-    .setBaseUri("http://localhost:$port")
-    .addFilter(RequestLoggingFilter())
-    .addFilter(ResponseLoggingFilter())
-    .build()
 
   @AfterEach
   fun deleteUser() {
@@ -75,19 +64,19 @@ class ProfileTests {
 
     user1Client.get("/api/profiles/bar")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(true))
 
     user1Client.get("/api/profiles/baz")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("baz"))
       .body("profile.following", equalTo(true))
 
     user2Client.get("/api/profiles/foo")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("foo"))
       .body("profile.following", equalTo(false))
   }
@@ -108,7 +97,7 @@ class ProfileTests {
 
     ApiClient(spec).get("/api/profiles/bar")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(null))
   }
@@ -124,13 +113,13 @@ class ProfileTests {
 
     client.get("/api/profiles/bar")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(false))
 
     client.post<Any>("/api/profiles/bar/follow")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(true))
   }
@@ -155,7 +144,7 @@ class ProfileTests {
 
     ApiClient(spec, user1.token).post<Any>("/api/profiles/bar/follow")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
   }
 
   @Test
@@ -169,13 +158,13 @@ class ProfileTests {
 
     client.post<Any>("/api/profiles/bar/follow")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(true))
 
     client.delete("/api/profiles/bar/follow", user1.token)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
       .body("profile.username", equalTo("bar"))
       .body("profile.following", equalTo(false))
   }
@@ -199,6 +188,6 @@ class ProfileTests {
 
     ApiClient(spec, user1.token).delete("/api/profiles/bar/follow")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.profile, 200)
   }
 }
