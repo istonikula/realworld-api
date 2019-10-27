@@ -29,6 +29,24 @@
         "updatedAt": { "$ref": "defs-common.json#/definitions/datetime" }
       }
     },
+    "comment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "createdAt",
+        "updatedAt",
+        "body",
+        "author"
+      ],
+      "properties": {
+        "id": { "$ref":  "defs-common.json#/definitions/positiveInteger" },
+        "createdAt": { "$ref":  "defs-common.json#/definitions/datetime" },
+        "updatedAt": { "$ref":  "defs-common.json#/definitions/datetime" },
+        "body": { "type":  "string" },
+        "author": { "$ref":  "defs-realworld.json#/definitions/profile" }
+      }
+    },
     "profile": {
       "type": "object",
       "additionalProperties": false,

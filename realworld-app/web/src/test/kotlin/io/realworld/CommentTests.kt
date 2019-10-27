@@ -7,10 +7,6 @@ import io.realworld.domain.common.Auth
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
-import io.restassured.builder.RequestSpecBuilder
-import io.restassured.filter.log.RequestLoggingFilter
-import io.restassured.filter.log.ResponseLoggingFilter
-import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.tuple
@@ -59,16 +55,9 @@ class CommentTests {
 
   @BeforeEach
   fun init() {
-    spec = initSpec()
+    spec = initSpec(port).build()
     fixtures = FixtureFactory(auth)
   }
-
-  fun initSpec() = RequestSpecBuilder()
-    .setContentType(ContentType.JSON)
-    .setBaseUri("http://localhost:$port")
-    .addFilter(RequestLoggingFilter())
-    .addFilter(ResponseLoggingFilter())
-    .build()
 
   @AfterEach
   fun deleteUser() {
@@ -85,7 +74,7 @@ class CommentTests {
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
   }
 
   @Test
@@ -106,7 +95,7 @@ class CommentTests {
     val janeClient = ApiClient(spec, jane.token)
     janeClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(1L)
       }
@@ -123,7 +112,7 @@ class CommentTests {
 
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(1L)
       }
@@ -131,7 +120,7 @@ class CommentTests {
     val req = CommentRequest(CommentDto("... or a chimpanzee"))
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(2L)
       }
@@ -165,7 +154,7 @@ class CommentTests {
       CommentRequest(CommentDto("comment 1"))
     )
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(1L)
       }
@@ -175,7 +164,7 @@ class CommentTests {
       CommentRequest(CommentDto("comment 2"))
     )
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(2L)
       }
@@ -185,7 +174,7 @@ class CommentTests {
       CommentRequest(CommentDto("comment 3"))
     )
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(3L)
       }
@@ -195,13 +184,14 @@ class CommentTests {
       CommentRequest(CommentDto("I'm the author"))
     )
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>().comment.apply {
         assertThat(id).isEqualTo(1L)
       }
 
     cheetaClient.get("/api/articles/${janesArticle.slug}/comments")
       .then()
+      .verifyResponse(Schemas.comments, 200)
       .toDto<CommentsResponse>().apply {
         assertThat(comments)
           .extracting("id", "body")
@@ -214,6 +204,7 @@ class CommentTests {
 
     cheetaClient.get("/api/articles/${cheetasArticle.slug}/comments")
       .then()
+      .verifyResponse(Schemas.comments, 200)
       .toDto<CommentsResponse>().apply {
         assertThat(comments)
           .extracting("id", "body")
@@ -228,6 +219,7 @@ class CommentTests {
 
     cheetaClient.get("/api/articles/${janesArticle.slug}/comments")
       .then()
+      .verifyResponse(Schemas.comments, 200)
       .toDto<CommentsResponse>().apply {
         assertThat(comments)
           .extracting("id", "body")
@@ -239,6 +231,7 @@ class CommentTests {
 
     cheetaClient.get("/api/articles/${cheetasArticle.slug}/comments")
       .then()
+      .verifyResponse(Schemas.comments, 200)
       .toDto<CommentsResponse>().apply {
         assertThat(comments)
           .extracting("id", "body")
@@ -259,7 +252,7 @@ class CommentTests {
 
     val commentId = cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>()
       .comment.id
 
@@ -293,7 +286,7 @@ class CommentTests {
 
     val commentId = cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
       .toDto<CommentResponse>()
       .comment.id
 
@@ -315,17 +308,17 @@ class CommentTests {
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.comments, 200)
       .body("comments.isEmpty()", equalTo(true))
 
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
-      .statusCode(201)
+      .verifyResponse(Schemas.comment, 201)
 
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.comments, 200)
       .body("comments[0].author.username", equalTo("cheeta"))
       .body("comments[0].author.following", equalTo(false))
 
@@ -335,13 +328,13 @@ class CommentTests {
 
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.comments, 200)
       .body("comments[0].author.username", equalTo("cheeta"))
       .body("comments[0].author.following", equalTo(true))
 
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments", null)
       .then()
-      .statusCode(200)
+      .verifyResponse(Schemas.comments, 200)
       .body("comments[0].author.username", equalTo("cheeta"))
       .body("comments[0].author.following", equalTo(null))
 

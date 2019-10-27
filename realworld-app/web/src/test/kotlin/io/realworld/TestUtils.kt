@@ -86,6 +86,8 @@ class FixtureFactory(val auth: Auth) {
 object Schemas {
   const val article = "json-schemas/resp-article.json"
   const val articles = "json-schemas/resp-articles.json"
+  const val comment = "json-schemas/resp-comment.json"
+  const val comments = "json-schemas/resp-comments.json"
   const val profile = "json-schemas/resp-profile.json"
   const val user = "json-schemas/resp-user.json"
 }

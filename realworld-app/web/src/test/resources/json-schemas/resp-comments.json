@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "comments" ],
+  "properties": {
+    "comments": {
+      "type": "array",
+      "items": { "$ref":  "defs-realworld.json#/definitions/comment" }
+    }
+  }
+}
