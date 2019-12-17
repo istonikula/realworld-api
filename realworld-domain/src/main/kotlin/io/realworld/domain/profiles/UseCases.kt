@@ -4,8 +4,8 @@ import arrow.core.Option
 import arrow.core.none
 import arrow.core.some
 import arrow.core.toOption
-import arrow.effects.IO
-import arrow.effects.extensions.io.fx.fx
+import arrow.fx.IO
+import arrow.fx.extensions.fx
 import io.realworld.domain.users.User
 
 data class GetProfileCommand(val username: String, val current: Option<User>)
@@ -18,7 +18,7 @@ interface GetProfileUseCase {
 
   fun GetProfileCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return fx {
+    return IO.fx {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -43,7 +43,7 @@ interface FollowUseCase {
 
   fun FollowCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return fx {
+    return IO.fx {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {
@@ -66,7 +66,7 @@ interface UnfollowUseCase {
 
   fun UnfollowCommand.runUseCase(): IO<Option<Profile>> {
     val cmd = this
-    return fx {
+    return IO.fx {
       getUser(cmd.username).bind().fold(
         { none<Profile>() },
         {

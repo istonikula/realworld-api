@@ -2,7 +2,7 @@ package io.realworld.domain.articles
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.effects.IO
+import arrow.fx.IO
 import io.realworld.domain.users.User
 
 typealias CreateArticle = (ValidArticleCreation, User) -> IO<Article>

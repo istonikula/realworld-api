@@ -1,6 +1,6 @@
 package io.realworld
 
-import arrow.effects.IO
+import arrow.fx.IO
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.support.TransactionTemplate

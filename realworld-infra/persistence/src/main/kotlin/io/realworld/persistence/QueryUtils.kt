@@ -1,6 +1,6 @@
 package io.realworld.persistence
 
-import arrow.effects.IO
+import arrow.fx.IO
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 object Dsl {
@@ -16,9 +16,8 @@ internal fun NamedParameterJdbcTemplate.queryIfExists(
   where: String,
   params: Map<String, Any>
 ): IO<Boolean> = IO {
-  this.queryForObject(
+  queryForObject(
     "SELECT COUNT(*) FROM $table WHERE $where",
-    params,
-    { rs, _ -> rs.getInt("count") > 0 }
-  )!!
+    params
+  ) { rs, _ -> rs.getInt("count") > 0 }!!
 }

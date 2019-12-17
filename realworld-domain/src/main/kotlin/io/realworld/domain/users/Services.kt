@@ -4,8 +4,8 @@ import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
-import arrow.effects.IO
-import arrow.effects.extensions.io.fx.fx
+import arrow.fx.IO
+import arrow.fx.extensions.fx
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import java.util.UUID
@@ -17,7 +17,7 @@ interface ValidateUserService {
 
   fun UserRegistration.validate(): IO<Either<UserRegistrationError, ValidUserRegistration>> {
     val cmd = this
-    return fx {
+    return IO.fx {
       when {
         existsByEmail(cmd.email).bind() ->
           UserRegistrationError.EmailAlreadyTaken.left()
@@ -45,7 +45,7 @@ interface ValidateUserUpdateService {
 
   fun UserUpdate.validate(current: User): IO<Either<UserUpdateError, ValidUserUpdate>> {
     val cmd = this
-    return fx {
+    return IO.fx {
       when {
         cmd.email.fold({ false }, { current.email !== it && existsByEmail(it).bind() }) ->
           UserUpdateError.EmailAlreadyTaken.left()

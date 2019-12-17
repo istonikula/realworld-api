@@ -1,7 +1,7 @@
 package io.realworld.domain.profiles
 
 import arrow.core.Option
-import arrow.effects.IO
+import arrow.fx.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserId
 

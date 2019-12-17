@@ -1,5 +1,5 @@
 object Version {
-  const val arrow = "0.9.0"
+  const val arrow = "0.10.3"
   const val flyway = "6.0.1"
   const val jacksonKotlin =  "2.9.9"
   const val jasypt = "1.9.3"
@@ -16,15 +16,10 @@ object Version {
 }
 
 object Libs {
-  const val arrowCoreData = "io.arrow-kt:arrow-core-data:${Version.arrow}"
-  const val arrowCoreExt = "io.arrow-kt:arrow-core-extensions:${Version.arrow}"
-  const val arrowEffectsData = "io.arrow-kt:arrow-effects-data:${Version.arrow}"
-  const val arrowEffectsExt = "io.arrow-kt:arrow-effects-extensions:${Version.arrow}"
-  const val arrowEffectsExtIO = "io.arrow-kt:arrow-effects-io-extensions:${Version.arrow}"
-  const val arrowExtrasData = "io.arrow-kt:arrow-extras-data:${Version.arrow}"
-  const val arrowExtrasExt = "io.arrow-kt:arrow-extras-extensions:${Version.arrow}"
+  const val arrowFx = "io.arrow-kt:arrow-fx:${Version.arrow}"
+  const val arrowMtl = "io.arrow-kt:arrow-mtl:${Version.arrow}"
   const val arrowSyntax = "io.arrow-kt:arrow-syntax:${Version.arrow}"
-  const val arrowTypeclasses = "io.arrow-kt:arrow-typeclasses:${Version.arrow}"
+
   const val jacksonKotlin = "com.fasterxml.jackson.module:jackson-module-kotlin:${Version.jacksonKotlin}"
   const val jasypt = "org.jasypt:jasypt:${Version.jasypt}"
   const val jaxb = "javax.xml.bind:jaxb-api:${Version.jaxb}"

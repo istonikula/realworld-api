@@ -73,15 +73,10 @@ configure(subprojects.apply {
       project.extra.set("rest-assured.version", Version.restAssured)
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
-      it(Libs.arrowCoreData)
-      it(Libs.arrowCoreExt)
-      it(Libs.arrowTypeclasses)
+      it(Libs.arrowFx)
+      it(Libs.arrowMtl)
       it(Libs.arrowSyntax)
-      it(Libs.arrowEffectsData)
-      it(Libs.arrowEffectsExt)
-      it(Libs.arrowEffectsExtIO)
-      it(Libs.arrowExtrasData)
-      it(Libs.arrowExtrasExt)
+
       it(Libs.kotlinStd)
       it(Libs.kotlinReflect)
     }
