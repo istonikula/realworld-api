@@ -3,12 +3,13 @@ package io.realworld.domain.users
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
-import arrow.data.EitherT
-import arrow.data.extensions.eithert.monad.binding
-import arrow.effects.ForIO
-import arrow.effects.IO
-import arrow.effects.extensions.io.monad.monad
-import arrow.effects.fix
+import arrow.fx.ForIO
+import arrow.fx.IO
+import arrow.fx.extensions.io.monad.monad
+import arrow.fx.fix
+import arrow.mtl.EitherT
+import arrow.mtl.extensions.eithert.monad.monad
+import arrow.mtl.value
 import io.realworld.domain.common.Auth
 
 data class RegisterUserCommand(val data: UserRegistration)
@@ -34,7 +35,7 @@ interface RegisterUserUseCase {
 
   fun RegisterUserCommand.runUseCase(): IO<Either<UserRegistrationError, User>> {
     val cmd = this
-    return binding<ForIO, UserRegistrationError, User>(IO.monad()) {
+    return EitherT.monad<ForIO, UserRegistrationError>(IO.monad()).fx.monad {
       val validRegistration = EitherT(validateUser(cmd.data)).bind()
       EitherT(createUser(validRegistration).map { it.right() }).bind()
     }.value().fix()
@@ -47,7 +48,7 @@ interface LoginUserUseCase {
 
   fun LoginUserCommand.runUseCase(): IO<Either<UserLoginError, User>> {
     val cmd = this
-    return binding<ForIO, UserLoginError, User>(IO.monad()) {
+    return EitherT.monad<ForIO, UserLoginError>(IO.monad()).fx.monad {
       val userAndPassword = EitherT(
         getUser(cmd.email).map {
           it.toEither { UserLoginError.BadCredentials }
@@ -70,7 +71,7 @@ interface UpdateUserUseCase {
 
   fun UpdateUserCommand.runUseCase(): IO<Either<UserUpdateError, User>> {
     val cmd = this
-    return binding<ForIO, UserUpdateError, User>(IO.monad()) {
+    return EitherT.monad<ForIO, UserUpdateError>(IO.monad()).fx.monad {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
       EitherT(updateUser(validUpdate, current).map { it.right() }).bind()
     }.value().fix()

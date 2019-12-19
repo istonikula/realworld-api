@@ -4,7 +4,7 @@ import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.some
 import arrow.core.toOption
-import arrow.effects.IO
+import arrow.fx.IO
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId

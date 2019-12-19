@@ -2,7 +2,7 @@ package io.realworld.persistence
 
 import arrow.core.Option
 import arrow.core.toOption
-import arrow.effects.IO
+import arrow.fx.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserId

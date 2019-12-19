@@ -2,7 +2,7 @@ package io.realworld.domain.users
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.effects.IO
+import arrow.fx.IO
 
 typealias ValidateUserRegistration = (reg: UserRegistration) -> IO<Either<UserRegistrationError, ValidUserRegistration>>
 typealias CreateUser = (user: ValidUserRegistration) -> IO<User>
