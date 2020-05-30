@@ -82,11 +82,10 @@ configure(subprojects.apply {
 
     testImplementation.let {
       it(Starters.test) {
-        exclude(group = "junit", module = "junit")
+        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
       }
 
-      it(Libs.junitJupiterApi)
-      it(Libs.junitJupiterEngine)
+      it(Libs.junitJupiter)
     }
   }
 }
@@ -111,6 +110,7 @@ project("realworld-app:web") {
 
       it(Starters.actuator)
       it(Starters.jdbc)
+      it(Starters.validation)
       it(Starters.web) {
         exclude(
           group = "org.springframework.boot",

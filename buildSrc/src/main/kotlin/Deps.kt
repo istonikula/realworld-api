@@ -11,7 +11,7 @@ object Version {
   const val ktlintPlugin = "9.2.1"
   const val restAssured = "4.1.1"
   const val slugify = "2.4"
-  const val springBoot = "2.1.8.RELEASE"
+  const val springBoot = "2.3.0.RELEASE"
   const val versionsPlugin = "0.28.0"
 }
 
@@ -25,8 +25,7 @@ object Libs {
   const val jaxb = "javax.xml.bind:jaxb-api:${Version.jaxb}"
   const val jjwt = "io.jsonwebtoken:jjwt:${Version.jjwt}"
   const val jsonSchemaValidator = "io.rest-assured:json-schema-validator:${Version.restAssured}"
-  const val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api"
-  const val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
+  const val junitJupiter = "org.junit.jupiter:junit-jupiter"
   const val kotlinReflect = "org.jetbrains.kotlin:kotlin-reflect:${Version.kotlin}"
   const val kotlinStd = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Version.kotlin}"
   const val postgresql = "org.postgresql:postgresql"
@@ -39,6 +38,7 @@ object Starters {
   const val jdbc = "org.springframework.boot:spring-boot-starter-jdbc"
   const val test = "org.springframework.boot:spring-boot-starter-test"
   const val undertow = "org.springframework.boot:spring-boot-starter-undertow"
+  const val validation = "org.springframework.boot:spring-boot-starter-validation"
   const val web = "org.springframework.boot:spring-boot-starter-web"
 }
 
