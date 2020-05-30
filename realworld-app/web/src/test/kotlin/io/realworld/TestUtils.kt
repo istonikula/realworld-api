@@ -18,6 +18,7 @@ import io.restassured.http.ContentType
 import io.restassured.module.jsv.JsonSchemaValidator
 import io.restassured.response.ValidatableResponse
 import io.restassured.specification.RequestSpecification
+import org.hamcrest.Matchers
 import java.util.UUID
 
 fun initSpec(port: Int) = RequestSpecBuilder()
@@ -96,3 +97,10 @@ object Schemas {
 fun ValidatableResponse.verifyResponse(schema: String, statusCode: Int) =
   statusCode(statusCode)
   .body(JsonSchemaValidator.matchesJsonSchemaInClasspath(schema))
+
+fun ValidatableResponse.verifyValidationError(path: String, message: String) =
+  body("errors", Matchers.hasItem(Matchers.equalTo(mapOf(
+    "message" to message,
+    "metadata" to mapOf("path" to path)
+  ))))
+

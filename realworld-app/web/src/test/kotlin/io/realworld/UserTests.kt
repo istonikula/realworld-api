@@ -142,7 +142,7 @@ class UserTests {
       pathToObject("user").remove("password")
     })
       .then()
-      .statusCode(422)
+      .statusCode(400)
   }
 
   @Test

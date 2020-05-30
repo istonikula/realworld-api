@@ -1,7 +1,7 @@
 package io.realworld.users
 
 import arrow.core.Option
-import io.realworld.FieldError
+import io.realworld.MyFieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.CreateUser
@@ -71,9 +71,9 @@ class UserController(
       {
         when (it) {
           is UserRegistrationError.EmailAlreadyTaken ->
-            throw FieldError("email", "already taken")
+            throw MyFieldError("email", "already taken")
           is UserRegistrationError.UsernameAlreadyTaken ->
-            throw FieldError("username", "already taken")
+            throw MyFieldError("username", "already taken")
         }
       },
       { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
@@ -122,9 +122,9 @@ class UserController(
       {
         when (it) {
           is UserUpdateError.EmailAlreadyTaken ->
-            throw FieldError("email", "already taken")
+            throw MyFieldError("email", "already taken")
           is UserUpdateError.UsernameAlreadyTaken ->
-            throw FieldError("username", "already taken")
+            throw MyFieldError("username", "already taken")
         }
       },
       { ResponseEntity.ok(UserResponse.fromDomain(it)) }

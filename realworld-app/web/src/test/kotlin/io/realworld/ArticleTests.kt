@@ -270,9 +270,9 @@ class ArticleTests {
       client.post("/api/articles", it)
         .then()
         .statusCode(422)
-        .body("errors.title.message", Matchers.equalTo("must not be blank"))
-        .body("errors.description.message", Matchers.equalTo("must not be blank"))
-        .body("errors.body.message", Matchers.equalTo("must not be blank"))
+        .verifyValidationError("title", "must not be blank")
+        .verifyValidationError("description", "must not be blank")
+        .verifyValidationError("body", "must not be blank")
     }
 
     listOf("title", "description", "body").map { prop ->
@@ -281,8 +281,8 @@ class ArticleTests {
       }.toString().let {
         client.post("/api/articles", it)
           .then()
-          .statusCode(422)
-          .body("errors.$prop.type", Matchers.equalTo("TypeMismatch"))
+          .statusCode(400)
+          .body("errorCode", Matchers.equalTo("HttpMessageNotReadableException"))
       }
     }
   }
