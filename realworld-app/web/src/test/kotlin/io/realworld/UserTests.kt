@@ -11,7 +11,6 @@ import io.realworld.users.UserResponseDto
 import io.realworld.users.UserUpdateDto
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
-import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -101,8 +100,7 @@ class UserTests {
     ))
     ApiClient(spec).post("/api/users", regReq)
       .then()
-      .statusCode(422)
-      .body("errors.username.message", equalTo("already taken"))
+      .verifyErrorCode("UsernameAlreadyTaken", 409)
   }
 
   @Test
@@ -115,8 +113,7 @@ class UserTests {
     ))
     ApiClient(spec).post("/api/users", regReq)
       .then()
-      .statusCode(422)
-      .body("errors.email.message", equalTo("already taken"))
+      .verifyErrorCode("EmailAlreadyTaken", 409)
   }
 
   @Test

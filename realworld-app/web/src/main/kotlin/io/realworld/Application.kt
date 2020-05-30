@@ -2,9 +2,11 @@ package io.realworld
 
 import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
+import io.realworld.domain.common.DomainError
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
+import io.realworld.errors.RestException
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -39,7 +41,9 @@ class Application : WebMvcConfigurer {
 
     // TODO check token match
     override fun invoke(token: Token): User {
-      return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
+      return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse {
+        throw RestException.Unauthorized(AuthError.BadCredentials)
+      }
     }
   }
 
@@ -76,10 +80,13 @@ inline fun <reified User, reified Token> userArgumentResolver(
     webRequest: NativeWebRequest,
     binderFactory: WebDataBinderFactory?
   ) = resolveToken(webRequest.authHeader()).fold(
-    { throw UnauthorizedException() },
+    { throw RestException.Unauthorized(it) },
     { createUser(it) }
   )
 }
 
-class ForbiddenException : Throwable()
-class UnauthorizedException : Throwable()
+sealed class AuthError(override val msg: String) : DomainError.Single() {
+  object InvalidToken : AuthError("Invalid token")
+  object InvalidAuthorizationHeader : AuthError("Invalid authorization header")
+  object BadCredentials : AuthError("Bad credentials")
+}

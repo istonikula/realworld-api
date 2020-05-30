@@ -104,3 +104,7 @@ fun ValidatableResponse.verifyValidationError(path: String, message: String) =
     "metadata" to mapOf("path" to path)
   ))))
 
+fun ValidatableResponse.verifyErrorCode(errorCode: String, statusCode: Int) = this
+  .statusCode(statusCode)
+  .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("json-schemas/resp-error.json"))
+  .body("errorCode", Matchers.equalTo(errorCode))

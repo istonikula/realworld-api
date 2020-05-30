@@ -1,16 +1,12 @@
 package io.realworld.articles
 
-import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleCommentDeleteError
 import io.realworld.domain.articles.ArticleCommentError
-import io.realworld.domain.articles.ArticleDeleteError
-import io.realworld.domain.articles.ArticleFavoriteError
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleUnfavoriteError
-import io.realworld.domain.articles.ArticleUpdateError
 import io.realworld.domain.articles.Comment
 import io.realworld.domain.articles.CommentArticleCommand
 import io.realworld.domain.articles.CommentUseCase
@@ -43,6 +39,7 @@ import io.realworld.domain.articles.ValidateArticleUpdateService
 import io.realworld.domain.articles.articleScopedCommentId
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.User
+import io.realworld.errors.toRestException
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import io.realworld.runReadTx
@@ -190,12 +187,7 @@ class ArticleController(
     }.run {
       DeleteArticleCommand(slug, user).runUseCase()
     }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleDeleteError.NotAuthor -> throw ForbiddenException()
-          is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
+      { it.toRestException() },
       { ResponseEntity.noContent().build() }
     )
   }
@@ -221,12 +213,7 @@ class ArticleController(
     }.run {
       UpdateArticleCommand(update.toDomain(), slug, user).runUseCase()
     }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleUpdateError.NotAuthor -> throw ForbiddenException()
-          is ArticleUpdateError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
+      { it.toRestException() },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
     )
   }
@@ -243,12 +230,7 @@ class ArticleController(
     }.run {
       FavoriteArticleCommand(slug, user).runUseCase()
     }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleFavoriteError.Author -> throw ForbiddenException()
-          is ArticleFavoriteError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
+      { it.toRestException() },
       { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
     )
   }

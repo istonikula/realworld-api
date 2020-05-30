@@ -1,18 +1,12 @@
 package io.realworld
 
-import com.fasterxml.jackson.databind.JsonMappingException
-import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
+import io.realworld.domain.common.DomainError
 import io.realworld.errors.ErrorResponseDto
+import io.realworld.errors.RestException
 import io.realworld.errors.SingleErrorDto
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.core.NestedExceptionUtils
-import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.FieldError
 import org.springframework.validation.ObjectError
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -22,7 +16,6 @@ import org.springframework.web.context.request.ServletWebRequest
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 import org.springframework.web.util.WebUtils
-import java.lang.Exception
 import javax.servlet.ServletException
 
 @ControllerAdvice
@@ -75,14 +68,8 @@ class RestExceptionHandler : ResponseEntityExceptionHandler() {
     return ResponseEntity(responseBody, headers, status)
   }
 
-  @ExceptionHandler(ForbiddenException::class)
-  fun forbidden() = ResponseEntity<Unit>(HttpStatus.FORBIDDEN)
-
-  @ExceptionHandler(UnauthorizedException::class)
-  fun unauthorized() = ResponseEntity<Unit>(HttpStatus.UNAUTHORIZED)
-
-  @ExceptionHandler(MyFieldError::class)
-  fun fieldError(ex: MyFieldError) = handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(ex.toValidationError()))
+  @ExceptionHandler(RestException::class)
+  fun handleRestException(e: RestException, req: WebRequest) = e.error.toErrorResponse(e.status, req)
 
   // TODO find out why this overrides more specific errors
   // @ExceptionHandler(Throwable::class)
@@ -122,29 +109,38 @@ fun ObjectError.toErrorDto() = SingleErrorDto(
   metadata = mapOf("path" to objectName)
 )
 
-fun handleError(
-  httpStatus: HttpStatus,
-  validationErrors: List<ValidationError> = emptyList()
-) = when (validationErrors.isEmpty()) {
-  true -> ResponseEntity(httpStatus)
-  else -> ResponseEntity(
-    ValidationErrorResponse(validationErrors.associateBy { it.path }),
-    httpStatus)
+fun DomainError.toErrorResponse(
+  status: HttpStatus,
+  request: WebRequest
+): ResponseEntity<ErrorResponseDto> = when (this) {
+  is DomainError.Single -> toErrorResponse(status, request)
+  is DomainError.Multi -> toErrorResponse(status, request)
 }
 
-data class ValidationError(
-  val type: String,
-  val path: String,
-  val message: String,
-  val arguments: Map<String, Any>? = emptyMap()
+fun DomainError.Single.toErrorResponse(
+  status: HttpStatus,
+  request: WebRequest
+): ResponseEntity<ErrorResponseDto> = ResponseEntity(
+  ErrorResponseDto(
+    status = status.value(),
+    errorCode = this::class.simpleName ?: "Undefined",
+    message = msg,
+    path = (request as ServletWebRequest).request.servletPath,
+    errors = listOf()
+  ),
+  status
 )
 
-class MyFieldError(val path: String, message: String) : Throwable(message) {
-  fun toValidationError() = ValidationError(
-    type = "FieldError",
-    path = path,
-    message = this.message ?: ""
-  )
-}
-
-class ValidationErrorResponse(val errors: Map<String, ValidationError>)
+fun DomainError.Multi.toErrorResponse(
+  status: HttpStatus,
+  request: WebRequest
+): ResponseEntity<ErrorResponseDto> = ResponseEntity(
+  ErrorResponseDto(
+    status = status.value(),
+    errorCode = errorCode,
+    message = msg,
+    path = (request as ServletWebRequest).request.servletPath,
+    errors = errors.all.map { SingleErrorDto(it.msg) }
+  ),
+  status
+)

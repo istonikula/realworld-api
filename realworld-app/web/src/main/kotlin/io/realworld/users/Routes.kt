@@ -1,8 +1,6 @@
 package io.realworld.users
 
 import arrow.core.Option
-import io.realworld.MyFieldError
-import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
 import io.realworld.domain.users.CreateUser
 import io.realworld.domain.users.GetUserByEmail
@@ -15,13 +13,12 @@ import io.realworld.domain.users.UpdateUserCommand
 import io.realworld.domain.users.UpdateUserUseCase
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserRegistration
-import io.realworld.domain.users.UserRegistrationError
 import io.realworld.domain.users.UserUpdate
-import io.realworld.domain.users.UserUpdateError
 import io.realworld.domain.users.ValidateUserRegistration
 import io.realworld.domain.users.ValidateUserService
 import io.realworld.domain.users.ValidateUserUpdate
 import io.realworld.domain.users.ValidateUserUpdateService
+import io.realworld.errors.toRestException
 import io.realworld.persistence.UserRepository
 import io.realworld.runWriteTx
 import org.springframework.http.HttpStatus
@@ -68,14 +65,7 @@ class UserController(
         password = registration.password
       )).runUseCase()
     }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is UserRegistrationError.EmailAlreadyTaken ->
-            throw MyFieldError("email", "already taken")
-          is UserRegistrationError.UsernameAlreadyTaken ->
-            throw MyFieldError("username", "already taken")
-        }
-      },
+      { it.toRestException() },
       { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
     )
   }
@@ -91,7 +81,7 @@ class UserController(
         password = login.password
       ).runUseCase()
     }.runWriteTx(txManager).fold(
-      { throw UnauthorizedException() },
+      { it.toRestException() },
       { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
     )
   }
@@ -119,14 +109,7 @@ class UserController(
         current = user
       ).runUseCase()
     }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is UserUpdateError.EmailAlreadyTaken ->
-            throw MyFieldError("email", "already taken")
-          is UserUpdateError.UsernameAlreadyTaken ->
-            throw MyFieldError("username", "already taken")
-        }
-      },
+      { it.toRestException() },
       { ResponseEntity.ok(UserResponse.fromDomain(it)) }
     )
   }

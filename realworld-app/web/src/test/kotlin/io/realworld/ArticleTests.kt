@@ -281,8 +281,7 @@ class ArticleTests {
       }.toString().let {
         client.post("/api/articles", it)
           .then()
-          .statusCode(400)
-          .body("errorCode", Matchers.equalTo("HttpMessageNotReadableException"))
+          .verifyErrorCode("HttpMessageNotReadableException", 400)
       }
     }
   }
