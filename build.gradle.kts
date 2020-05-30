@@ -31,9 +31,6 @@ configure(subprojects.apply {
 
   configurations {
     all {
-      exclude(module = "kotlin-stdlib-jdk7")
-      exclude(module = "kotlin-stdlib-jre7")
-
       resolutionStrategy.eachDependency {
         if (requested.group == "org.jetbrains.kotlin") {
           useVersion(Version.kotlin)
