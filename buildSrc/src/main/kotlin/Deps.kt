@@ -1,18 +1,19 @@
 object Version {
-  const val arrow = "0.10.3"
-  const val flyway = "6.0.1"
-  const val jacksonKotlin =  "2.9.9"
+  const val arrow = "0.10.5"
+  const val flyway = "6.4.3"
+  const val groovy = "3.0.4"
+  const val jacksonKotlin =  "2.11.0"
   const val jasypt = "1.9.3"
   const val java = "1.8"
   const val jaxb = "2.3.1"
   const val jjwt = "0.9.1"
-  const val kotlin = "1.3.50"
-  const val ktlint = "0.34.2"
-  const val ktlintPlugin = "8.2.0"
-  const val restAssured = "4.1.1"
+  const val kotlin = "1.3.72"
+  const val ktlint = "0.36.0"
+  const val ktlintPlugin = "9.2.1"
+  const val restAssured = "4.3.0"
   const val slugify = "2.4"
-  const val springBoot = "2.1.8.RELEASE"
-  const val versionsPlugin = "0.24.0"
+  const val springBoot = "2.3.0.RELEASE"
+  const val versionsPlugin = "0.28.0"
 }
 
 object Libs {
@@ -25,8 +26,7 @@ object Libs {
   const val jaxb = "javax.xml.bind:jaxb-api:${Version.jaxb}"
   const val jjwt = "io.jsonwebtoken:jjwt:${Version.jjwt}"
   const val jsonSchemaValidator = "io.rest-assured:json-schema-validator:${Version.restAssured}"
-  const val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api"
-  const val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine"
+  const val junitJupiter = "org.junit.jupiter:junit-jupiter"
   const val kotlinReflect = "org.jetbrains.kotlin:kotlin-reflect:${Version.kotlin}"
   const val kotlinStd = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Version.kotlin}"
   const val postgresql = "org.postgresql:postgresql"
@@ -39,6 +39,7 @@ object Starters {
   const val jdbc = "org.springframework.boot:spring-boot-starter-jdbc"
   const val test = "org.springframework.boot:spring-boot-starter-test"
   const val undertow = "org.springframework.boot:spring-boot-starter-undertow"
+  const val validation = "org.springframework.boot:spring-boot-starter-validation"
   const val web = "org.springframework.boot:spring-boot-starter-web"
 }
 

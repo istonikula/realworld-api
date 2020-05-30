@@ -151,7 +151,7 @@ interface UpdateArticleUseCase {
 
   fun UpdateArticleCommand.runUseCase(): IO<Either<ArticleUpdateError, Article>> {
     val cmd = this
-    return EitherT.monad<ForIO, ArticleUpdateError>(IO.monad()).fx.monad {
+    return EitherT.monad<ArticleUpdateError, ForIO>(IO.monad()).fx.monad {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.slug, cmd.user)).bind()
       EitherT(updateArticle(validUpdate, cmd.user).map { it.right() }).bind()
     }.value().fix()
@@ -230,7 +230,7 @@ interface DeleteCommentUseCase {
 
   fun DeleteCommentCommand.runUseCase(): IO<Either<ArticleCommentDeleteError, Int>> {
     val cmd = this
-    return EitherT.monad<ForIO, ArticleCommentDeleteError>(IO.monad()).fx.monad {
+    return EitherT.monad<ArticleCommentDeleteError, ForIO>(IO.monad()).fx.monad {
       val article = EitherT(
         getArticleBySlug(cmd.slug, cmd.user.some()).map {
           it.toEither { ArticleCommentDeleteError.ArticleNotFound }

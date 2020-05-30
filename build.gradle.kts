@@ -31,9 +31,6 @@ configure(subprojects.apply {
 
   configurations {
     all {
-      exclude(module = "kotlin-stdlib-jdk7")
-      exclude(module = "kotlin-stdlib-jre7")
-
       resolutionStrategy.eachDependency {
         if (requested.group == "org.jetbrains.kotlin") {
           useVersion(Version.kotlin)
@@ -70,6 +67,7 @@ configure(subprojects.apply {
   dependencies {
     implementation.let {
       // override spring-boot platform versions
+      project.extra.set("groovy.version", Version.groovy)
       project.extra.set("rest-assured.version", Version.restAssured)
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
@@ -85,11 +83,10 @@ configure(subprojects.apply {
 
     testImplementation.let {
       it(Starters.test) {
-        exclude(group = "junit", module = "junit")
+        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
       }
 
-      it(Libs.junitJupiterApi)
-      it(Libs.junitJupiterEngine)
+      it(Libs.junitJupiter)
     }
   }
 }
@@ -114,6 +111,7 @@ project("realworld-app:web") {
 
       it(Starters.actuator)
       it(Starters.jdbc)
+      it(Starters.validation)
       it(Starters.web) {
         exclude(
           group = "org.springframework.boot",

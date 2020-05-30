@@ -35,7 +35,7 @@ interface RegisterUserUseCase {
 
   fun RegisterUserCommand.runUseCase(): IO<Either<UserRegistrationError, User>> {
     val cmd = this
-    return EitherT.monad<ForIO, UserRegistrationError>(IO.monad()).fx.monad {
+    return EitherT.monad<UserRegistrationError, ForIO>(IO.monad()).fx.monad {
       val validRegistration = EitherT(validateUser(cmd.data)).bind()
       EitherT(createUser(validRegistration).map { it.right() }).bind()
     }.value().fix()
@@ -48,7 +48,7 @@ interface LoginUserUseCase {
 
   fun LoginUserCommand.runUseCase(): IO<Either<UserLoginError, User>> {
     val cmd = this
-    return EitherT.monad<ForIO, UserLoginError>(IO.monad()).fx.monad {
+    return EitherT.monad<UserLoginError, ForIO>(IO.monad()).fx.monad {
       val userAndPassword = EitherT(
         getUser(cmd.email).map {
           it.toEither { UserLoginError.BadCredentials }
@@ -71,7 +71,7 @@ interface UpdateUserUseCase {
 
   fun UpdateUserCommand.runUseCase(): IO<Either<UserUpdateError, User>> {
     val cmd = this
-    return EitherT.monad<ForIO, UserUpdateError>(IO.monad()).fx.monad {
+    return EitherT.monad<UserUpdateError, ForIO>(IO.monad()).fx.monad {
       val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
       EitherT(updateUser(validUpdate, current).map { it.right() }).bind()
     }.value().fix()
