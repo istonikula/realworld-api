@@ -1,7 +1,7 @@
 object Version {
   const val arrow = "0.10.5"
-  const val flyway = "6.0.1"
-  const val jacksonKotlin =  "2.9.9"
+  const val flyway = "6.4.3"
+  const val jacksonKotlin =  "2.11.0"
   const val jasypt = "1.9.3"
   const val java = "1.8"
   const val jaxb = "2.3.1"
@@ -12,7 +12,7 @@ object Version {
   const val restAssured = "4.1.1"
   const val slugify = "2.4"
   const val springBoot = "2.1.8.RELEASE"
-  const val versionsPlugin = "0.24.0"
+  const val versionsPlugin = "0.28.0"
 }
 
 object Libs {
