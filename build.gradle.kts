@@ -67,6 +67,7 @@ configure(subprojects.apply {
   dependencies {
     implementation.let {
       // override spring-boot platform versions
+      project.extra.set("groovy.version", Version.groovy)
       project.extra.set("rest-assured.version", Version.restAssured)
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 

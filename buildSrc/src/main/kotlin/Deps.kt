@@ -1,6 +1,7 @@
 object Version {
   const val arrow = "0.10.5"
   const val flyway = "6.4.3"
+  const val groovy = "3.0.4"
   const val jacksonKotlin =  "2.11.0"
   const val jasypt = "1.9.3"
   const val java = "1.8"
@@ -9,7 +10,7 @@ object Version {
   const val kotlin = "1.3.72"
   const val ktlint = "0.36.0"
   const val ktlintPlugin = "9.2.1"
-  const val restAssured = "4.1.1"
+  const val restAssured = "4.3.0"
   const val slugify = "2.4"
   const val springBoot = "2.3.0.RELEASE"
   const val versionsPlugin = "0.28.0"
