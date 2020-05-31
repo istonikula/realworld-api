@@ -2,7 +2,7 @@ package io.realworld
 
 import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
-import io.realworld.domain.common.DomainError
+import io.realworld.domain.common.AuthError
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
@@ -83,10 +83,4 @@ inline fun <reified User, reified Token> userArgumentResolver(
     { throw RestException.Unauthorized(it) },
     { createUser(it) }
   )
-}
-
-sealed class AuthError(override val msg: String) : DomainError.Single() {
-  object InvalidToken : AuthError("Invalid token")
-  object InvalidAuthorizationHeader : AuthError("Invalid authorization header")
-  object BadCredentials : AuthError("Bad credentials")
 }
