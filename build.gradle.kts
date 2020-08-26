@@ -45,7 +45,7 @@ configure(subprojects.apply {
       jvmTarget = Version.java
       freeCompilerArgs = listOf(
         "-Xjsr305=strict",
-        "-XXLanguage:+InlineClasses"
+        "-Xinline-classes"
       )
     }
   }
@@ -74,9 +74,6 @@ configure(subprojects.apply {
       it(Libs.arrowFx)
       it(Libs.arrowMtl)
       it(Libs.arrowSyntax)
-
-      it(Libs.kotlinStd)
-      it(Libs.kotlinReflect)
     }
 
     runtime(Libs.jaxb)

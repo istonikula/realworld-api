@@ -8,4 +8,6 @@ insert_final_newline=true
 # possible values: number (e.g. 120) (package name, imports & comments are ignored), "off"
 # it's automatically set to 100 on `ktlint --android ...` (per Android Kotlin Style Guide)
 max_line_length=120
-disabled_rules = import-ordering
+# https://github.com/pinterest/ktlint/issues/764
+# - when ktlint 0.39.0 comes out, re-enable indent and disable only aggressive indent
+disabled_rules = import-ordering,parameter-list-wrapping,indent
