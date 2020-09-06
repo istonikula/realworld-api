@@ -65,10 +65,11 @@ configure(subprojects.apply {
   }
 
   dependencies {
+    // override spring-boot platform versions
+    project.extra.set("groovy.version", Version.groovy) // keep in sync with rest-assured https://raw.githubusercontent.com/rest-assured/rest-assured/master/changelog.txt
+    project.extra.set("rest-assured.version", Version.restAssured)
+
     implementation.let {
-      // override spring-boot platform versions
-      project.extra.set("groovy.version", Version.groovy)
-      project.extra.set("rest-assured.version", Version.restAssured)
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
       it(Libs.arrowFx)
