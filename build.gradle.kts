@@ -45,7 +45,7 @@ configure(subprojects.apply {
       jvmTarget = Version.java
       freeCompilerArgs = listOf(
         "-Xjsr305=strict",
-        "-XXLanguage:+InlineClasses"
+        "-Xinline-classes"
       )
     }
   }
@@ -65,18 +65,16 @@ configure(subprojects.apply {
   }
 
   dependencies {
+    // override spring-boot platform versions
+    project.extra.set("groovy.version", Version.groovy) // keep in sync with rest-assured https://raw.githubusercontent.com/rest-assured/rest-assured/master/changelog.txt
+    project.extra.set("rest-assured.version", Version.restAssured)
+
     implementation.let {
-      // override spring-boot platform versions
-      project.extra.set("groovy.version", Version.groovy)
-      project.extra.set("rest-assured.version", Version.restAssured)
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
       it(Libs.arrowFx)
       it(Libs.arrowMtl)
       it(Libs.arrowSyntax)
-
-      it(Libs.kotlinStd)
-      it(Libs.kotlinReflect)
     }
 
     runtime(Libs.jaxb)
