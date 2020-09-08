@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "errorCode",
+    "message",
+    "path",
+    "timestamp"
+  ],
+  "properties": {
+    "status": { "type": "number", "minimum": 100, "maximum": 599 },
+    "errorCode": {
+      "type": "string",
+      "enum": [
+        "EmailAlreadyTaken",
+        "HttpMessageNotReadableException",
+        "UsernameAlreadyTaken"
+      ]
+    },
+    "message": { "type": "string" },
+    "path": { "type": "string" },
+    "timestamp": { "$ref": "defs-common.json#/definitions/datetime" },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [ "message", "metadata" ],
+        "properties": {
+          "message": { "type": "string" },
+          "metadata": { "type": [ "object", "null" ] }
+        }
+      }
+    }
+  }
+}

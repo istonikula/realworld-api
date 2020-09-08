@@ -8,4 +8,5 @@
 
 ## Nice to have
 * applicative validator
+* kotlin logging
 * audit logging, check https://github.com/logstash/logstash-logback-encoder

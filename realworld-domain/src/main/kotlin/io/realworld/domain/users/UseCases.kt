@@ -15,19 +15,6 @@ import io.realworld.domain.common.Auth
 data class RegisterUserCommand(val data: UserRegistration)
 data class LoginUserCommand(val email: String, val password: String)
 data class UpdateUserCommand(val data: UserUpdate, val current: User)
-sealed class UserLoginError {
-  object BadCredentials : UserLoginError()
-}
-
-sealed class UserRegistrationError {
-  object EmailAlreadyTaken : UserRegistrationError()
-  object UsernameAlreadyTaken : UserRegistrationError()
-}
-
-sealed class UserUpdateError {
-  object EmailAlreadyTaken : UserUpdateError()
-  object UsernameAlreadyTaken : UserUpdateError()
-}
 
 interface RegisterUserUseCase {
   val createUser: CreateUser

@@ -32,35 +32,6 @@ data class DeleteCommentCommand(val slug: String, val commentId: ArticleScopedCo
 data class GetCommentsCommand(val slug: String, val user: Option<User>)
 object GetTagsCommand
 
-sealed class ArticleUpdateError {
-  object NotAuthor : ArticleUpdateError()
-  object NotFound : ArticleUpdateError()
-}
-
-sealed class ArticleDeleteError {
-  object NotAuthor : ArticleDeleteError()
-  object NotFound : ArticleDeleteError()
-}
-
-sealed class ArticleFavoriteError {
-  object Author : ArticleFavoriteError()
-  object NotFound : ArticleFavoriteError()
-}
-
-sealed class ArticleUnfavoriteError {
-  object NotFound : ArticleUnfavoriteError()
-}
-
-sealed class ArticleCommentError {
-  object NotFound : ArticleCommentError()
-}
-
-sealed class ArticleCommentDeleteError {
-  object ArticleNotFound : ArticleCommentDeleteError()
-  object CommentNotFound : ArticleCommentDeleteError()
-  object NotAuthor : ArticleCommentDeleteError()
-}
-
 interface CreateArticleUseCase {
   val createUniqueSlug: CreateUniqueSlug
   val createArticle: CreateArticle
