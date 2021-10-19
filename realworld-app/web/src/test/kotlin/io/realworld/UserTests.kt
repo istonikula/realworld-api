@@ -10,6 +10,7 @@ import io.realworld.users.UserResponse
 import io.realworld.users.UserResponseDto
 import io.realworld.users.UserUpdateDto
 import io.restassured.specification.RequestSpecification
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
@@ -93,7 +94,7 @@ class UserTests {
 
   @Test
   fun `cannot register already existing username`() {
-    userRepo.create(fixtures.validTestUserRegistration(TestUser.username, TestUser.email)).unsafeRunSync()
+    runBlocking { userRepo.create(fixtures.validTestUserRegistration(TestUser.username, TestUser.email)) }
     val regReq = RegistrationRequest(RegistrationDto(
       username = TestUser.username,
       email = "unique.${TestUser.email}",
@@ -107,7 +108,7 @@ class UserTests {
 
   @Test
   fun `cannot register already existing email`() {
-    userRepo.create(fixtures.validTestUserRegistration(TestUser.username, TestUser.email)).unsafeRunSync()
+    runBlocking { userRepo.create(fixtures.validTestUserRegistration(TestUser.username, TestUser.email)) }
     val regReq = RegistrationRequest(RegistrationDto(
       username = "unique",
       email = TestUser.email,
@@ -127,7 +128,9 @@ class UserTests {
       password = TestUser.password
     ))
 
-    doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(TestUser.email)
+    runBlocking {
+      doThrow(RuntimeException("BOOM!")).`when`(userRepo).existsByEmail(TestUser.email)
+    }
 
     ApiClient(spec).post("/api/users", regReq)
       .then()
@@ -148,7 +151,7 @@ class UserTests {
   @Test
   fun `current user is resolved from token`() {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
-    userRepo.create(registered).unsafeRunSync()
+    runBlocking { userRepo.create(registered) }
 
     ApiClient(spec).get("/api/user", registered.token)
       .then()
@@ -171,7 +174,7 @@ class UserTests {
   @Test
   fun `invalid password is reported as 401`() {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
-    userRepo.create(registered).unsafeRunSync()
+    runBlocking { userRepo.create(registered) }
 
     with(LoginRequest(LoginDto(email = registered.email, password = "invalid"))) {
       ApiClient(spec).post("/api/users/login", this).then().statusCode(401)
@@ -181,7 +184,7 @@ class UserTests {
   @Test
   fun `update user email`() {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
-    userRepo.create(registered).unsafeRunSync()
+    runBlocking { userRepo.create(registered) }
 
     UserUpdateRequest(UserUpdateDto(email = "updated.${registered.email}")).apply {
       ApiClient(spec).put("/api/user", this, registered.token)
@@ -196,7 +199,7 @@ class UserTests {
   @Test
   fun `update user password`() {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
-    userRepo.create(registered).unsafeRunSync()
+    runBlocking { userRepo.create(registered) }
 
     val client = ApiClient(spec)
 
@@ -211,7 +214,7 @@ class UserTests {
   @Test
   fun `update user username`() {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
-    userRepo.create(registered).unsafeRunSync()
+    runBlocking { userRepo.create(registered) }
 
     UserUpdateRequest(UserUpdateDto(username = "updated.${registered.username}")).apply {
       ApiClient(spec).put("/api/user", this, registered.token)
@@ -226,7 +229,7 @@ class UserTests {
   @Test
   fun `update user username, image, bio`() {
     val registered = fixtures.validTestUserRegistration(TestUser.username, TestUser.email)
-    userRepo.create(registered).unsafeRunSync()
+    runBlocking { userRepo.create(registered) }
 
     UserUpdateRequest(UserUpdateDto(
       username = "updated.${registered.username}",

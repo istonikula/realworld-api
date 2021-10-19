@@ -2,7 +2,6 @@ package io.realworld.persistence
 
 import arrow.core.Option
 import arrow.core.toOption
-import arrow.fx.IO
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserId
@@ -33,7 +32,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
     UserAndPassword(User.fromRs(rs), rs.getString(password))
   }
 
-  fun create(user: ValidUserRegistration): IO<User> = with(UserTbl) {
+  suspend fun create(user: ValidUserRegistration): User = with(UserTbl) {
     val sql = "${table.insert(id, email, token, username, password)} RETURNING *"
     val params = mapOf(
       id to user.id.value,
@@ -42,13 +41,11 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
       username to user.username,
       password to user.encryptedPassword
     )
-    return IO {
-      jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
-    }
+    return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
   }
 
   // TODO invalidate token on password change
-  fun update(update: ValidUserUpdate, current: User): IO<User> {
+  suspend fun update(update: ValidUserUpdate, current: User): User {
     val sql = with(UserTbl) {
       StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")
         .also { if (update.encryptedPassword.isDefined()) it.append(", ${password.set()}") }
@@ -66,50 +63,42 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
       )
     }
 
-    return IO {
-      jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
-    }
+    return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
   }
 
-  fun findById(id: UserId): IO<Option<UserAndPassword>> =
-    IO {
-      DataAccessUtils.singleResult(
-        jdbcTemplate.query(
-          "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
-          mapOf(UserTbl.id to id.value)
-        ) { rs, _ -> UserAndPassword.fromRs(rs) }
-      ).toOption()
-    }
+  suspend fun findById(id: UserId): Option<UserAndPassword> =
+    DataAccessUtils.singleResult(
+      jdbcTemplate.query(
+        "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
+        mapOf(UserTbl.id to id.value)
+      ) { rs, _ -> UserAndPassword.fromRs(rs) }
+    ).toOption()
 
-  fun findByEmail(email: String): IO<Option<UserAndPassword>> =
-    IO {
-      DataAccessUtils.singleResult(
-        jdbcTemplate.query(
-          "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
-          mapOf(UserTbl.email to email)
-        ) { rs, _ -> UserAndPassword.fromRs(rs) }
-      ).toOption()
-    }
+  suspend fun findByEmail(email: String): Option<UserAndPassword> =
+    DataAccessUtils.singleResult(
+      jdbcTemplate.query(
+        "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
+        mapOf(UserTbl.email to email)
+      ) { rs, _ -> UserAndPassword.fromRs(rs) }
+    ).toOption()
 
-  fun findByUsername(username: String): IO<Option<User>> =
-    IO {
-      DataAccessUtils.singleResult(
-        jdbcTemplate.query(
-          "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.username.eq()}",
-          mapOf(UserTbl.username to username)
-        ) { rs, _ -> User.fromRs(rs) }
-      ).toOption()
-    }
+  suspend fun findByUsername(username: String): Option<User> =
+    DataAccessUtils.singleResult(
+      jdbcTemplate.query(
+        "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.username.eq()}",
+        mapOf(UserTbl.username to username)
+      ) { rs, _ -> User.fromRs(rs) }
+    ).toOption()
 
-  open fun existsByEmail(email: String): IO<Boolean> = UserTbl.let {
+  open suspend fun existsByEmail(email: String): Boolean = UserTbl.let {
     jdbcTemplate.queryIfExists(it.table, it.email.eq(), mapOf(it.email to email))
   }
 
-  fun existsByUsername(username: String): IO<Boolean> = UserTbl.let {
+  suspend fun existsByUsername(username: String): Boolean = UserTbl.let {
     jdbcTemplate.queryIfExists(it.table, it.username.eq(), mapOf(it.username to username))
   }
 
-  fun hasFollower(followee: UserId, follower: UserId): IO<Boolean> = FollowTbl.let {
+  suspend fun hasFollower(followee: UserId, follower: UserId): Boolean = FollowTbl.let {
     jdbcTemplate.queryIfExists(
       it.table,
       "${it.followee.eq()} AND ${it.follower.eq()}",
@@ -117,19 +106,15 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
     )
   }
 
-  fun addFollower(followee: UserId, follower: UserId): IO<Int> = FollowTbl.let {
+  suspend fun addFollower(followee: UserId, follower: UserId): Int = FollowTbl.let {
     val sql = "${it.table.insert(it.followee, it.follower)} ON CONFLICT (${it.followee}, ${it.follower}) DO NOTHING"
     val params = mapOf(it.followee to followee.value, it.follower to follower.value)
-    IO {
-      jdbcTemplate.update(sql, params)
-    }
+    jdbcTemplate.update(sql, params)
   }
 
-  fun removeFollower(followee: UserId, follower: UserId): IO<Int> = FollowTbl.let {
+  suspend fun removeFollower(followee: UserId, follower: UserId): Int = FollowTbl.let {
     val sql = "DELETE FROM ${it.table} WHERE ${it.followee.eq()} AND ${it.follower.eq()}"
     val params = mapOf(it.followee to followee.value, it.follower to follower.value)
-    IO {
-      jdbcTemplate.update(sql, params)
-    }
+    jdbcTemplate.update(sql, params)
   }
 }

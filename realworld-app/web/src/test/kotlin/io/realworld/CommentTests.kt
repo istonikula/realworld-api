@@ -8,6 +8,7 @@ import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.restassured.specification.RequestSpecification
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.tuple
 import org.hamcrest.Matchers.equalTo
@@ -69,7 +70,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
@@ -90,7 +91,7 @@ class CommentTests {
   fun `comment article, author`() {
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val janeClient = ApiClient(spec, jane.token)
     janeClient.post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
@@ -106,7 +107,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
@@ -129,7 +130,7 @@ class CommentTests {
   @Test
   fun `comment article requires auth`() {
     val jane = createUser("jane")
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     ApiClient(spec).post("/api/articles/${janesArticle.slug}/comments", TestComments.Jacobian.req)
       .then()
@@ -141,11 +142,13 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
-    val cheetasArticle = articleRepo.create(
-      fixtures.validTestArticleCreation().copy(slug = "banana-split", description = "Banana Split"),
-      cheeta
-    ).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
+    val cheetasArticle = runBlocking {
+      articleRepo.create(
+        fixtures.validTestArticleCreation().copy(slug = "banana-split", description = "Banana Split"),
+        cheeta
+      )
+    }
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
@@ -246,7 +249,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val cheetaClient = ApiClient(spec, cheeta.token)
 
@@ -266,7 +269,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val cheetaClient = ApiClient(spec, cheeta.token)
     cheetaClient.delete("/api/articles/${janesArticle.slug}/comments/${Long.MAX_VALUE}")
@@ -279,7 +282,7 @@ class CommentTests {
     val cheeta = createUser("cheeta")
     val jane = createUser("jane")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val janeClient = ApiClient(spec, jane.token)
     val cheetaClient = ApiClient(spec, cheeta.token)
@@ -303,7 +306,7 @@ class CommentTests {
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.get("/api/articles/${janesArticle.slug}/comments")
@@ -344,5 +347,5 @@ class CommentTests {
   }
 
   private fun createUser(username: String) =
-    userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()
+    runBlocking { userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")) }
 }

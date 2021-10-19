@@ -2,32 +2,31 @@ package io.realworld.domain.articles
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.fx.IO
 import io.realworld.domain.users.User
 
-typealias CreateArticle = (ValidArticleCreation, User) -> IO<Article>
+typealias CreateArticle = suspend (ValidArticleCreation, User) -> Article
 
-typealias ValidateArticleUpdate = (ArticleUpdate, slug: String, User) ->
-  IO<Either<ArticleUpdateError, ValidArticleUpdate>>
-typealias UpdateArticle = (ValidArticleUpdate, User) -> IO<Article>
+typealias ValidateArticleUpdate = suspend (ArticleUpdate, slug: String, User) ->
+  Either<ArticleUpdateError, ValidArticleUpdate>
+typealias UpdateArticle = suspend (ValidArticleUpdate, User) -> Article
 
-typealias CreateUniqueSlug = (title: String) -> IO<String>
-typealias ExistsBySlug = (slug: String) -> IO<Boolean>
+typealias CreateUniqueSlug = suspend (title: String) -> String
+typealias ExistsBySlug = suspend (slug: String) -> Boolean
 
-typealias GetArticleBySlug = (slug: String, Option<User>) -> IO<Option<Article>>
-typealias GetArticles = (ArticleFilter, Option<User>) -> IO<List<Article>>
-typealias GetArticlesCount = (ArticleFilter) -> IO<Long>
-typealias GetFeeds = (FeedFilter, User) -> IO<List<Article>>
-typealias GetFeedsCount = (user: User) -> IO<Long>
+typealias GetArticleBySlug = suspend (slug: String, Option<User>) -> Option<Article>
+typealias GetArticles = suspend (ArticleFilter, Option<User>) -> List<Article>
+typealias GetArticlesCount = suspend (ArticleFilter) -> Long
+typealias GetFeeds = suspend (FeedFilter, User) -> List<Article>
+typealias GetFeedsCount = suspend (user: User) -> Long
 
-typealias DeleteArticle = (ArticleId) -> IO<Int>
+typealias DeleteArticle = suspend (ArticleId) -> Int
 
-typealias AddFavorite = (ArticleId, User) -> IO<Int>
-typealias RemoveFavorite = (ArticleId, User) -> IO<Int>
+typealias AddFavorite = suspend (ArticleId, User) -> Int
+typealias RemoveFavorite = suspend (ArticleId, User) -> Int
 
-typealias AddComment = (ArticleId, comment: String, User) -> IO<Comment>
-typealias DeleteComment = (ArticleId, ArticleScopedCommentId) -> IO<Int>
-typealias GetComment = (ArticleId, ArticleScopedCommentId, User) -> IO<Option<Comment>>
-typealias GetComments = (ArticleId, Option<User>) -> IO<List<Comment>>
+typealias AddComment = suspend (ArticleId, comment: String, User) -> Comment
+typealias DeleteComment = suspend (ArticleId, ArticleScopedCommentId) -> Int
+typealias GetComment = suspend (ArticleId, ArticleScopedCommentId, User) -> Option<Comment>
+typealias GetComments = suspend (ArticleId, Option<User>) -> List<Comment>
 
-typealias GetTags = () -> IO<Set<String>>
+typealias GetTags = suspend () -> Set<String>

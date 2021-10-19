@@ -2,6 +2,7 @@ package io.realworld.domain.users
 
 import io.realworld.domain.fixtures.UserFactory
 import io.realworld.domain.fixtures.update
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
@@ -53,6 +54,6 @@ class ValidateUserUpdateServiceTest {
   }
 }
 
-private fun ValidateUserUpdateService.test(update: UserUpdate, current: User) = run {
+private fun ValidateUserUpdateService.test(update: UserUpdate, current: User) = runBlocking {
   update.validate(current)
-}.unsafeRunSync()
+}

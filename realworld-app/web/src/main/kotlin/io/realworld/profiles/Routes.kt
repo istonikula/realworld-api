@@ -1,5 +1,6 @@
 package io.realworld.profiles
 
+import arrow.core.toOption
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.common.Auth
@@ -41,22 +42,24 @@ class ProfileController(
     @PathVariable("username") username: String,
     webRequest: NativeWebRequest
   ): ResponseEntity<ProfileResponse> {
-
-    val user = JwtTokenResolver(auth::parse)(
-      webRequest.authHeader()
-    ).toOption().flatMap {
-      repo.findById(it.id).unsafeRunSync().map { it.user }
+    return runReadTx(txManager) {
+      val user = JwtTokenResolver(auth::parse)(
+        webRequest.authHeader()
+      ).orNull().toOption().flatMap { token ->
+        repo.findById(token.id).map { it.user }
+      }
+      val getUser = repo::findByUsername
+      val hasFollower = repo::hasFollower
+      object : GetProfileUseCase {
+        override val getUser = getUser
+        override val hasFollower = hasFollower
+      }.run {
+        GetProfileCommand(username, user).runUseCase()
+      }.fold(
+        { ResponseEntity.notFound().build() },
+        { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
+      )
     }
-
-    return object : GetProfileUseCase {
-      override val getUser = repo::findByUsername
-      override val hasFollower = repo::hasFollower
-    }.run {
-      GetProfileCommand(username, user).runUseCase()
-    }.runReadTx(txManager).fold(
-      { ResponseEntity.notFound().build() },
-      { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
-    )
   }
 
   @PostMapping("/api/profiles/{username}/follow")
@@ -64,15 +67,19 @@ class ProfileController(
     @PathVariable("username") username: String,
     current: User
   ): ResponseEntity<ProfileResponse> {
-    return object : FollowUseCase {
-      override val addFollower = repo::addFollower
-      override val getUser = repo::findByUsername
-    }.run {
-      FollowCommand(username, current).runUseCase()
-    }.runWriteTx(txManager).fold(
-      { ResponseEntity.notFound().build() },
-      { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
-    )
+    return runWriteTx(txManager) {
+      val addFollower = repo::addFollower
+      val getUser = repo::findByUsername
+      object : FollowUseCase {
+        override val addFollower = addFollower
+        override val getUser = getUser
+      }.run {
+        FollowCommand(username, current).runUseCase()
+      }.fold(
+        { ResponseEntity.notFound().build() },
+        { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
+      )
+    }
   }
 
   @DeleteMapping("/api/profiles/{username}/follow")
@@ -80,14 +87,18 @@ class ProfileController(
     @PathVariable("username") username: String,
     current: User
   ): ResponseEntity<ProfileResponse> {
-    return object : UnfollowUseCase {
-      override val getUser = repo::findByUsername
-      override val removeFollower = repo::removeFollower
-    }.run {
-      UnfollowCommand(username, current).runUseCase()
-    }.runWriteTx(txManager).fold(
-      { ResponseEntity.notFound().build() },
-      { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
-    )
+    return runWriteTx(txManager) {
+      val getUser = repo::findByUsername
+      val removeFollower = repo::removeFollower
+      object : UnfollowUseCase {
+        override val getUser = getUser
+        override val removeFollower = removeFollower
+      }.run {
+        UnfollowCommand(username, current).runUseCase()
+      }.fold(
+        { ResponseEntity.notFound().build() },
+        { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
+      )
+    }
   }
 }
