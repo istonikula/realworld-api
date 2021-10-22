@@ -4,6 +4,7 @@ import io.realworld.domain.common.Auth
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.restassured.specification.RequestSpecification
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -52,12 +53,14 @@ class ProfileTests {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
     val user3 = fixtures.validTestUserRegistration("baz", "baz@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
-    userRepo.create(user2).unsafeRunSync()
-    userRepo.create(user3).unsafeRunSync()
+    runBlocking {
+      userRepo.create(user1)
+      userRepo.create(user2)
+      userRepo.create(user3)
 
-    userRepo.addFollower(user2.id, user1.id).unsafeRunSync()
-    userRepo.addFollower(user3.id, user1.id).unsafeRunSync()
+      userRepo.addFollower(user2.id, user1.id)
+      userRepo.addFollower(user3.id, user1.id)
+    }
 
     val user1Client = ApiClient(spec, user1.token)
     val user2Client = ApiClient(spec, user2.token)
@@ -90,10 +93,12 @@ class ProfileTests {
   fun `get profile without token`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
-    userRepo.create(user2).unsafeRunSync()
+    runBlocking {
+      userRepo.create(user1)
+      userRepo.create(user2)
 
-    userRepo.addFollower(user1.id, user2.id).unsafeRunSync()
+      userRepo.addFollower(user1.id, user2.id)
+    }
 
     ApiClient(spec).get("/api/profiles/bar")
       .then()
@@ -106,8 +111,10 @@ class ProfileTests {
   fun `follow`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
-    userRepo.create(user2).unsafeRunSync()
+    runBlocking {
+      userRepo.create(user1)
+      userRepo.create(user2)
+    }
 
     val client = ApiClient(spec, user1.token)
 
@@ -127,7 +134,7 @@ class ProfileTests {
   @Test
   fun `follow phantom`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
+    runBlocking { userRepo.create(user1) }
 
     ApiClient(spec, user1.token).post<Any>("/api/profiles/bar/follow")
       .then()
@@ -138,9 +145,11 @@ class ProfileTests {
   fun `follow already followed`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
-    userRepo.create(user2).unsafeRunSync()
-    userRepo.addFollower(user2.id, user1.id).unsafeRunSync()
+    runBlocking {
+      userRepo.create(user1)
+      userRepo.create(user2)
+      userRepo.addFollower(user2.id, user1.id)
+    }
 
     ApiClient(spec, user1.token).post<Any>("/api/profiles/bar/follow")
       .then()
@@ -151,8 +160,10 @@ class ProfileTests {
   fun `unfollow`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
-    userRepo.create(user2).unsafeRunSync()
+    runBlocking {
+      userRepo.create(user1)
+      userRepo.create(user2)
+    }
 
     val client = ApiClient(spec, user1.token)
 
@@ -172,7 +183,7 @@ class ProfileTests {
   @Test
   fun `unfollow phantom`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
+    runBlocking { userRepo.create(user1) }
 
     ApiClient(spec, user1.token).delete("/api/profiles/bar/follow")
       .then()
@@ -183,8 +194,10 @@ class ProfileTests {
   fun `unfollow not followed`() {
     val user1 = fixtures.validTestUserRegistration("foo", "foo@realworld.io")
     val user2 = fixtures.validTestUserRegistration("bar", "bar@realworld.io")
-    userRepo.create(user1).unsafeRunSync()
-    userRepo.create(user2).unsafeRunSync()
+    runBlocking {
+      userRepo.create(user1)
+      userRepo.create(user2)
+    }
 
     ApiClient(spec, user1.token).delete("/api/profiles/bar/follow")
       .then()

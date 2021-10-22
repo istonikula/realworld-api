@@ -13,6 +13,7 @@ import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.realworld.profiles.ProfileResponseDto
 import io.restassured.specification.RequestSpecification
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers
 import org.junit.jupiter.api.AfterEach
@@ -980,7 +981,7 @@ class ArticleTests {
   }
 
   private fun createUser(user: TestUser) =
-    userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)).unsafeRunSync()
+    runBlocking { userRepo.create(fixtures.validTestUserRegistration(user.username, user.email)) }
 
   private fun UserClient.Companion.from(user: TestUser) =
     createUser(user).let { UserClient(it, ApiClient(spec, it.token)) }
@@ -994,15 +995,13 @@ private data class ArticleFixture(
 private fun createArticle(
   userClient: UserClient,
   articleSpec: ArticleSpec
-) = CreationRequest(articleSpec.req).let {
-  ArticleFixture(
-    articleSpec.resp,
-    userClient.api.post("/api/articles", it)
-      .then()
-      .verifyResponse(Schemas.article, 201)
-      .toDto<ArticleResponse>().article.slug
-  )
-}
+) = ArticleFixture(
+  articleSpec.resp,
+  userClient.api.post("/api/articles", CreationRequest(articleSpec.req))
+    .then()
+    .verifyResponse(Schemas.article, 201)
+    .toDto<ArticleResponse>().article.slug
+)
 
 fun ArticleResponseDto.assert(
   expected: ArticleResponseDto,

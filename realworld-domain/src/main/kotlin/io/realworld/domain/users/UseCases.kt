@@ -1,15 +1,9 @@
 package io.realworld.domain.users
 
 import arrow.core.Either
+import arrow.core.computations.either
 import arrow.core.left
 import arrow.core.right
-import arrow.fx.ForIO
-import arrow.fx.IO
-import arrow.fx.extensions.io.monad.monad
-import arrow.fx.fix
-import arrow.mtl.EitherT
-import arrow.mtl.extensions.eithert.monad.monad
-import arrow.mtl.value
 import io.realworld.domain.common.Auth
 
 data class RegisterUserCommand(val data: UserRegistration)
@@ -33,12 +27,12 @@ interface RegisterUserUseCase {
   val createUser: CreateUser
   val validateUser: ValidateUserRegistration
 
-  fun RegisterUserCommand.runUseCase(): IO<Either<UserRegistrationError, User>> {
+  suspend fun RegisterUserCommand.runUseCase(): Either<UserRegistrationError, User> {
     val cmd = this
-    return EitherT.monad<UserRegistrationError, ForIO>(IO.monad()).fx.monad {
-      val validRegistration = EitherT(validateUser(cmd.data)).bind()
-      EitherT(createUser(validRegistration).map { it.right() }).bind()
-    }.value().fix()
+    return either {
+      val validRegistration = validateUser(cmd.data).bind()
+      createUser(validRegistration)
+    }
   }
 }
 
@@ -46,22 +40,16 @@ interface LoginUserUseCase {
   val auth: Auth
   val getUser: GetUserByEmail
 
-  fun LoginUserCommand.runUseCase(): IO<Either<UserLoginError, User>> {
+  suspend fun LoginUserCommand.runUseCase(): Either<UserLoginError, User> {
     val cmd = this
-    return EitherT.monad<UserLoginError, ForIO>(IO.monad()).fx.monad {
-      val userAndPassword = EitherT(
-        getUser(cmd.email).map {
-          it.toEither { UserLoginError.BadCredentials }
-        }
-      ).bind()
-      EitherT(IO.just(
-        when (auth.checkPassword(cmd.password, userAndPassword.encryptedPassword)) {
-          true -> userAndPassword.right()
-          false -> UserLoginError.BadCredentials.left()
-        }
-      )).bind()
+    return either {
+      val userAndPassword = getUser(cmd.email).toEither { UserLoginError.BadCredentials }.bind()
+      (when {
+        auth.checkPassword(cmd.password, userAndPassword.encryptedPassword) -> userAndPassword.right()
+        else -> UserLoginError.BadCredentials.left()
+      }).bind()
       userAndPassword.user
-    }.value().fix()
+    }
   }
 }
 
@@ -69,11 +57,11 @@ interface UpdateUserUseCase {
   val validateUpdate: ValidateUserUpdate
   val updateUser: UpdateUser
 
-  fun UpdateUserCommand.runUseCase(): IO<Either<UserUpdateError, User>> {
+  suspend fun UpdateUserCommand.runUseCase(): Either<UserUpdateError, User> {
     val cmd = this
-    return EitherT.monad<UserUpdateError, ForIO>(IO.monad()).fx.monad {
-      val validUpdate = EitherT(validateUpdate(cmd.data, cmd.current)).bind()
-      EitherT(updateUser(validUpdate, current).map { it.right() }).bind()
-    }.value().fix()
+    return either {
+      val validUpdate = validateUpdate(cmd.data, cmd.current).bind()
+      updateUser(validUpdate, current)
+    }
   }
 }

@@ -4,13 +4,10 @@ import arrow.core.Option
 import io.realworld.FieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
-import io.realworld.domain.users.CreateUser
-import io.realworld.domain.users.GetUserByEmail
 import io.realworld.domain.users.LoginUserCommand
 import io.realworld.domain.users.LoginUserUseCase
 import io.realworld.domain.users.RegisterUserCommand
 import io.realworld.domain.users.RegisterUserUseCase
-import io.realworld.domain.users.UpdateUser
 import io.realworld.domain.users.UpdateUserCommand
 import io.realworld.domain.users.UpdateUserUseCase
 import io.realworld.domain.users.User
@@ -52,82 +49,95 @@ class UserController(
 
   @PostMapping("/api/users")
   fun register(@Valid @RequestBody registration: RegistrationDto): ResponseEntity<UserResponse> {
-    val validateUserSrv = object : ValidateUserService {
-      override val auth = auth0
-      override val existsByEmail = repo::existsByEmail
-      override val existsByUsername = repo::existsByUsername
-    }
+    return runWriteTx(txManager) {
+      val existsByEmail = repo::existsByEmail
+      val existsByUsername = repo::existsByUsername
+      val validateUserSrv = object : ValidateUserService {
+        override val auth = auth0
+        override val existsByEmail = existsByEmail
+        override val existsByUsername = existsByUsername
+      }
 
-    return object : RegisterUserUseCase {
-      override val createUser: CreateUser = repo::create
-      override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
-    }.run {
-      RegisterUserCommand(UserRegistration(
-        username = registration.username,
-        email = registration.email,
-        password = registration.password
-      )).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is UserRegistrationError.EmailAlreadyTaken ->
-            throw FieldError("email", "already taken")
-          is UserRegistrationError.UsernameAlreadyTaken ->
-            throw FieldError("username", "already taken")
-        }
-      },
-      { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
-    )
+      val createUser = repo::create
+      object : RegisterUserUseCase {
+        override val createUser = createUser
+        override val validateUser: ValidateUserRegistration = { x -> validateUserSrv.run { x.validate() } }
+      }.run {
+        RegisterUserCommand(UserRegistration(
+          username = registration.username,
+          email = registration.email,
+          password = registration.password
+        )).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is UserRegistrationError.EmailAlreadyTaken ->
+              throw FieldError("email", "already taken")
+            is UserRegistrationError.UsernameAlreadyTaken ->
+              throw FieldError("username", "already taken")
+          }
+        },
+        { ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromDomain(it)) }
+      )
+    }
   }
 
   @PostMapping("/api/users/login")
   fun login(@Valid @RequestBody login: LoginDto): ResponseEntity<UserResponse> {
-    return object : LoginUserUseCase {
-      override val auth = auth0
-      override val getUser: GetUserByEmail = repo::findByEmail
-    }.run {
-      LoginUserCommand(
-        email = login.email,
-        password = login.password
-      ).runUseCase()
-    }.runWriteTx(txManager).fold(
-      { throw UnauthorizedException() },
-      { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
-    )
+    return runWriteTx(txManager) {
+      val getUser = repo::findByEmail
+      object : LoginUserUseCase {
+        override val auth = auth0
+        override val getUser = getUser
+      }.run {
+        LoginUserCommand(
+          email = login.email,
+          password = login.password
+        ).runUseCase()
+      }.fold(
+        { throw UnauthorizedException() },
+        { ResponseEntity.ok().body(UserResponse.fromDomain(it)) }
+      )
+    }
   }
 
   @PutMapping("/api/user")
   fun update(@Valid @RequestBody update: UserUpdateDto, user: User): ResponseEntity<UserResponse> {
-    val validateUpdateSrv = object : ValidateUserUpdateService {
-      override val auth = auth0
-      override val existsByEmail = repo::existsByEmail
-      override val existsByUsername = repo::existsByUsername
-    }
+    return runWriteTx(txManager) {
+      val existsByEmail = repo::existsByEmail
+      val existsByUsername = repo::existsByUsername
+      val validateUpdateSrv = object : ValidateUserUpdateService {
+        override val auth = auth0
+        override val existsByEmail = existsByEmail
+        override val existsByUsername = existsByUsername
+      }
 
-    return object : UpdateUserUseCase {
-      override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
-      override val updateUser: UpdateUser = repo::update
-    }.run {
-      UpdateUserCommand(
-        data = UserUpdate(
-          username = Option.fromNullable(update.username),
-          email = Option.fromNullable(update.email),
-          password = Option.fromNullable(update.password),
-          bio = Option.fromNullable(update.bio),
-          image = Option.fromNullable(update.image)
-        ),
-        current = user
-      ).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is UserUpdateError.EmailAlreadyTaken ->
-            throw FieldError("email", "already taken")
-          is UserUpdateError.UsernameAlreadyTaken ->
-            throw FieldError("username", "already taken")
-        }
-      },
-      { ResponseEntity.ok(UserResponse.fromDomain(it)) }
-    )
+      val updateUser = repo::update
+      object : UpdateUserUseCase {
+        override val validateUpdate: ValidateUserUpdate = { x, y -> validateUpdateSrv.run { x.validate(y) } }
+        override val updateUser = updateUser
+      }.run {
+        UpdateUserCommand(
+          data = UserUpdate(
+            username = Option.fromNullable(update.username),
+            email = Option.fromNullable(update.email),
+            password = Option.fromNullable(update.password),
+            bio = Option.fromNullable(update.bio),
+            image = Option.fromNullable(update.image)
+          ),
+          current = user
+        ).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is UserUpdateError.EmailAlreadyTaken ->
+              throw FieldError("email", "already taken")
+            is UserUpdateError.UsernameAlreadyTaken ->
+              throw FieldError("username", "already taken")
+          }
+        },
+        { ResponseEntity.ok(UserResponse.fromDomain(it)) }
+      )
+    }
   }
 }

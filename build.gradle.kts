@@ -72,9 +72,8 @@ configure(subprojects.apply {
     implementation.let {
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
-      it(Libs.arrowFx)
-      it(Libs.arrowMtl)
-      it(Libs.arrowSyntax)
+      it(Libs.kotlinCoroutines)
+      it(Libs.arrowCore)
     }
 
     runtime(Libs.jaxb)

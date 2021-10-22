@@ -7,6 +7,7 @@ import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
 import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
+import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -39,7 +40,7 @@ class Application : WebMvcConfigurer {
 
     // TODO check token match
     override fun invoke(token: Token): User {
-      return repo.findById(token.id).unsafeRunSync().map { it.user }.getOrElse { throw UnauthorizedException() }
+      return runBlocking { repo.findById(token.id).map { it.user }.getOrElse { throw UnauthorizedException() } }
     }
   }
 

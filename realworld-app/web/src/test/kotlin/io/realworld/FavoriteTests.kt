@@ -6,6 +6,7 @@ import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import io.realworld.persistence.UserTbl
 import io.restassured.specification.RequestSpecification
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -58,7 +59,7 @@ class FavoriteTests {
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.get("/api/articles/${janesArticle.slug}")
@@ -105,7 +106,7 @@ class FavoriteTests {
   @Test
   fun `favorite article, author`() {
     val jane = createUser("jane")
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
     val janeClient = ApiClient(spec, jane.token)
 
     janeClient.get("/api/articles/${janesArticle.slug}")
@@ -126,7 +127,7 @@ class FavoriteTests {
   @Test
   fun `favoriting already favorited acticle has no effect`() {
     val jane = createUser("jane")
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val tarzan = createUser("tarzan")
     val tarzanClient = ApiClient(spec, tarzan.token)
@@ -158,7 +159,7 @@ class FavoriteTests {
     val jane = createUser("jane")
     val tarzan = createUser("tarzan")
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
 
     val tarzanClient = ApiClient(spec, tarzan.token)
     tarzanClient.post<Any>("/api/articles/${janesArticle.slug}/favorite")
@@ -202,7 +203,7 @@ class FavoriteTests {
     val janeClient = ApiClient(spec, jane.token)
     val tarzanClient = ApiClient(spec, tarzan.token)
 
-    val janesArticle = articleRepo.create(fixtures.validTestArticleCreation(), jane).unsafeRunSync()
+    val janesArticle = runBlocking { articleRepo.create(fixtures.validTestArticleCreation(), jane) }
     val updateReq = UpdateRequest(UpdateDto(description = "updated.${janesArticle.description}"))
 
     janeClient.put("/api/articles/${janesArticle.slug}", updateReq)
@@ -246,5 +247,5 @@ class FavoriteTests {
   }
 
   private fun createUser(username: String) =
-    userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")).unsafeRunSync()
+    runBlocking { userRepo.create(fixtures.validTestUserRegistration(username, "$username@realworld.io")) }
 }

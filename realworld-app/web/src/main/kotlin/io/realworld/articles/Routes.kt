@@ -1,5 +1,6 @@
 package io.realworld.articles
 
+import arrow.core.toOption
 import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
@@ -103,20 +104,22 @@ class ArticleController(
 ) {
   @PostMapping("/api/articles")
   fun create(@Valid @RequestBody dto: CreationDto, user: User): ResponseEntity<ArticleResponse> {
-    val createUniqueSlugSrv = object : CreateUniqueSlugService {
-      override val existsBySlug = articleRepo::existsBySlug
-    }
-
-    return object : CreateArticleUseCase {
-      override val createUniqueSlug = createUniqueSlugSrv::slugify
-      override val createArticle = articleRepo::create
-    }.run {
-      CreateArticleCommand(
-        data = dto.toDomain(),
-        user = user
-      ).runUseCase()
-    }.runWriteTx(txManager).let {
-      ResponseEntity.status(HttpStatus.CREATED).body(ArticleResponse.fromDomain(it))
+    return runWriteTx(txManager) {
+      val existsBySlug = articleRepo::existsBySlug
+      val createUniqueSlugSrv = object : CreateUniqueSlugService { override val existsBySlug = existsBySlug }
+      val createUniqueSlug = createUniqueSlugSrv::slugify
+      val createArticle = articleRepo::create
+      object : CreateArticleUseCase {
+        override val createUniqueSlug = createUniqueSlug
+        override val createArticle = createArticle
+      }.run {
+        CreateArticleCommand(
+          data = dto.toDomain(),
+          user = user
+        ).runUseCase()
+      }.let {
+        ResponseEntity.status(HttpStatus.CREATED).body(ArticleResponse.fromDomain(it))
+      }
     }
   }
 
@@ -125,20 +128,20 @@ class ArticleController(
     filter: ArticleFilter,
     webRequest: NativeWebRequest
   ): ResponseEntity<ArticlesResponse> {
-
-    val user = JwtTokenResolver(auth::parse)(
-      webRequest.authHeader()
-    ).toOption().flatMap {
-      userRepo.findById(it.id).unsafeRunSync().map { it.user }
-    }
-
-    return object : GetArticlesUseCase {
-      override val getArticles = articleRepo::getArticles
-      override val getArticlesCount = articleRepo::getArticlesCount
-    }.run {
-      GetArticlesCommand(filter, user).runUseCase()
-    }.runReadTx(txManager).let {
-      ResponseEntity.ok(ArticlesResponse.fromDomain(it))
+    return runReadTx(txManager) {
+      val user = JwtTokenResolver(auth::parse)(webRequest.authHeader()).orNull().toOption().flatMap { token ->
+        userRepo.findById(token.id).map { it.user }
+      }
+      val getArticles = articleRepo::getArticles
+      val getArticlesCount = articleRepo::getArticlesCount
+      object : GetArticlesUseCase {
+        override val getArticles = getArticles
+        override val getArticlesCount = getArticlesCount
+      }.run {
+        GetArticlesCommand(filter, user).runUseCase()
+      }.let {
+        ResponseEntity.ok(ArticlesResponse.fromDomain(it))
+      }
     }
   }
 
@@ -147,13 +150,17 @@ class ArticleController(
     filter: FeedFilter,
     user: User
   ): ResponseEntity<ArticlesResponse> {
-    return object : GetFeedsUseCase {
-      override val getFeeds = articleRepo::getFeeds
-      override val getFeedsCount = articleRepo::getFeedsCount
-    }.run {
-      GetFeedsCommand(filter, user).runUseCase()
-    }.runReadTx(txManager).let {
-      ResponseEntity.ok(ArticlesResponse.fromDomain(it))
+    return runReadTx(txManager) {
+      val getFeeds = articleRepo::getFeeds
+      val getFeedsCount = articleRepo::getFeedsCount
+      object : GetFeedsUseCase {
+        override val getFeeds = getFeeds
+        override val getFeedsCount = getFeedsCount
+      }.run {
+        GetFeedsCommand(filter, user).runUseCase()
+      }.let {
+        ResponseEntity.ok(ArticlesResponse.fromDomain(it))
+      }
     }
   }
 
@@ -162,21 +169,22 @@ class ArticleController(
     @PathVariable("slug") slug: String,
     webRequest: NativeWebRequest
   ): ResponseEntity<ArticleResponse> {
-
-    val user = JwtTokenResolver(auth::parse)(
-      webRequest.authHeader()
-    ).toOption().flatMap {
-      userRepo.findById(it.id).unsafeRunSync().map { it.user }
+    return runReadTx(txManager) {
+      val user = JwtTokenResolver(auth::parse)(
+        webRequest.authHeader()
+      ).orNull().toOption().flatMap { token ->
+        userRepo.findById(token.id).map { it.user }
+      }
+      val getArticleBySlug = articleRepo::getBySlug
+      object : GetArticleUseCase {
+        override val getArticleBySlug = getArticleBySlug
+      }.run {
+        GetArticleCommand(slug, user).runUseCase()
+      }.fold(
+        { ResponseEntity.notFound().build() },
+        { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+      )
     }
-
-    return object : GetArticleUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-    }.run {
-      GetArticleCommand(slug, user).runUseCase()
-    }.runReadTx(txManager).fold(
-      { ResponseEntity.notFound().build() },
-      { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
-    )
   }
 
   @DeleteMapping("/api/articles/{slug}")
@@ -184,20 +192,24 @@ class ArticleController(
     @PathVariable("slug") slug: String,
     user: User
   ): ResponseEntity<Unit> {
-    return object : DeleteArticleUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-      override val deleteArticle = articleRepo::deleteArticle
-    }.run {
-      DeleteArticleCommand(slug, user).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleDeleteError.NotAuthor -> throw ForbiddenException()
-          is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
-      { ResponseEntity.noContent().build() }
-    )
+    return runWriteTx(txManager) {
+      val getArticleBySlug = articleRepo::getBySlug
+      val deleteArticle = articleRepo::deleteArticle
+      object : DeleteArticleUseCase {
+        override val getArticleBySlug = getArticleBySlug
+        override val deleteArticle = deleteArticle
+      }.run {
+        DeleteArticleCommand(slug, user).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is ArticleDeleteError.NotAuthor -> throw ForbiddenException()
+            is ArticleDeleteError.NotFound -> ResponseEntity.notFound().build()
+          }
+        },
+        { ResponseEntity.noContent().build() }
+      )
+    }
   }
 
   @PutMapping("/api/articles/{slug}")
@@ -206,29 +218,31 @@ class ArticleController(
     @Valid @RequestBody update: UpdateDto,
     user: User
   ): ResponseEntity<ArticleResponse> {
-    val createUniqueSlugSrv = object : CreateUniqueSlugService {
-      override val existsBySlug = articleRepo::existsBySlug
+    return runWriteTx(txManager) {
+      val existsBySlug = articleRepo::existsBySlug
+      val createUniqueSlugSrv = object : CreateUniqueSlugService { override val existsBySlug = existsBySlug }
+      val createUniqueSlug = createUniqueSlugSrv::slugify
+      val getArticleBySlug = articleRepo::getBySlug
+      val validateUpdateSrv = object : ValidateArticleUpdateService {
+        override val createUniqueSlug = createUniqueSlug
+        override val getArticleBySlug = getArticleBySlug
+      }
+      val updateArticle = articleRepo::updateArticle
+      object : UpdateArticleUseCase {
+        override val validateUpdate: ValidateArticleUpdate = { x, y, z -> validateUpdateSrv.run { x.validate(y, z) } }
+        override val updateArticle = updateArticle
+      }.run {
+        UpdateArticleCommand(update.toDomain(), slug, user).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is ArticleUpdateError.NotAuthor -> throw ForbiddenException()
+            is ArticleUpdateError.NotFound -> ResponseEntity.notFound().build()
+          }
+        },
+        { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+      )
     }
-
-    val validateUpdateSrv = object : ValidateArticleUpdateService {
-      override val createUniqueSlug = createUniqueSlugSrv::slugify
-      override val getArticleBySlug = articleRepo::getBySlug
-    }
-
-    return object : UpdateArticleUseCase {
-      override val validateUpdate: ValidateArticleUpdate = { x, y, z -> validateUpdateSrv.run { x.validate(y, z) } }
-      override val updateArticle = articleRepo::updateArticle
-    }.run {
-      UpdateArticleCommand(update.toDomain(), slug, user).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleUpdateError.NotAuthor -> throw ForbiddenException()
-          is ArticleUpdateError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
-      { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
-    )
   }
 
   @PostMapping("/api/articles/{slug}/favorite")
@@ -236,21 +250,24 @@ class ArticleController(
     @PathVariable("slug") slug: String,
     user: User
   ): ResponseEntity<ArticleResponse> {
-
-    return object : FavoriteUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-      override val addFavorite = articleRepo::addFavorite
-    }.run {
-      FavoriteArticleCommand(slug, user).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleFavoriteError.Author -> throw ForbiddenException()
-          is ArticleFavoriteError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
-      { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
-    )
+    return runWriteTx(txManager) {
+      val getArticleBySlug = articleRepo::getBySlug
+      val addFavorite = articleRepo::addFavorite
+      object : FavoriteUseCase {
+        override val getArticleBySlug = getArticleBySlug
+        override val addFavorite = addFavorite
+      }.run {
+        FavoriteArticleCommand(slug, user).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is ArticleFavoriteError.Author -> throw ForbiddenException()
+            is ArticleFavoriteError.NotFound -> ResponseEntity.notFound().build()
+          }
+        },
+        { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+      )
+    }
   }
 
   @DeleteMapping("/api/articles/{slug}/favorite")
@@ -258,19 +275,23 @@ class ArticleController(
     @PathVariable("slug") slug: String,
     user: User
   ): ResponseEntity<ArticleResponse> {
-    return object : UnfavoriteUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-      override val removeFavorite = articleRepo::removeFavorite
-    }.run {
-      UnfavoriteArticleCommand(slug, user).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleUnfavoriteError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
-      { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
-    )
+    return runWriteTx(txManager) {
+      val getArticleBySlug = articleRepo::getBySlug
+      val removeFavorite = articleRepo::removeFavorite
+      object : UnfavoriteUseCase {
+        override val getArticleBySlug = getArticleBySlug
+        override val removeFavorite = removeFavorite
+      }.run {
+        UnfavoriteArticleCommand(slug, user).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is ArticleUnfavoriteError.NotFound -> ResponseEntity.notFound().build()
+          }
+        },
+        { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
+      )
+    }
   }
 
   @GetMapping("/api/articles/{slug}/comments")
@@ -278,22 +299,24 @@ class ArticleController(
     @PathVariable("slug") slug: String,
     webRequest: NativeWebRequest
   ): ResponseEntity<CommentsResponse> {
-
-    val user = JwtTokenResolver(auth::parse)(
-      webRequest.authHeader()
-    ).toOption().flatMap {
-      userRepo.findById(it.id).unsafeRunSync().map { it.user }
+    return runReadTx(txManager) {
+      val user = JwtTokenResolver(auth::parse)(
+        webRequest.authHeader()
+      ).orNull().toOption().flatMap {
+        userRepo.findById(it.id).map { it.user }
+      }
+      val getArticleBySlug = articleRepo::getBySlug
+      val getComments = articleRepo::getComments
+      object : GetCommentsUseCase {
+        override val getArticleBySlug = getArticleBySlug
+        override val getComments = getComments
+      }.run {
+        GetCommentsCommand(slug, user).runUseCase()
+      }.fold(
+        { ResponseEntity.notFound().build() },
+        { ResponseEntity.ok(CommentsResponse.fromDomain(it)) }
+      )
     }
-
-    return object : GetCommentsUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-      override val getComments = articleRepo::getComments
-    }.run {
-      GetCommentsCommand(slug, user).runUseCase()
-    }.runReadTx(txManager).fold(
-      { ResponseEntity.notFound().build() },
-      { ResponseEntity.ok(CommentsResponse.fromDomain(it)) }
-    )
   }
 
   @PostMapping("/api/articles/{slug}/comments")
@@ -302,19 +325,23 @@ class ArticleController(
     @Valid @RequestBody comment: CommentDto,
     user: User
   ): ResponseEntity<CommentResponse> {
-    return object : CommentUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-      override val addComment = articleRepo::addComment
-    }.run {
-      CommentArticleCommand(slug, comment.body, user).runUsecase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleCommentError.NotFound -> ResponseEntity.notFound().build()
-        }
-      },
-      { ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.fromDomain(it)) }
-    )
+    return runWriteTx(txManager) {
+      val getArticleBySlug = articleRepo::getBySlug
+      val addComment = articleRepo::addComment
+      object : CommentUseCase {
+        override val getArticleBySlug = getArticleBySlug
+        override val addComment = addComment
+      }.run {
+        CommentArticleCommand(slug, comment.body, user).runUsecase()
+      }.fold(
+        {
+          when (it) {
+            is ArticleCommentError.NotFound -> ResponseEntity.notFound().build()
+          }
+        },
+        { ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.fromDomain(it)) }
+      )
+    }
   }
 
   @DeleteMapping("/api/articles/{slug}/comments/{id}")
@@ -323,32 +350,40 @@ class ArticleController(
     @PathVariable("id") commentId: Long,
     user: User
   ): ResponseEntity<Void> {
-    return object : DeleteCommentUseCase {
-      override val getArticleBySlug = articleRepo::getBySlug
-      override val deleteComment = articleRepo::deleteComment
-      override val getComment = articleRepo::getComment
-    }.run {
-      DeleteCommentCommand(slug, commentId.articleScopedCommentId(), user).runUseCase()
-    }.runWriteTx(txManager).fold(
-      {
-        when (it) {
-          is ArticleCommentDeleteError.ArticleNotFound -> ResponseEntity.notFound().build()
-          is ArticleCommentDeleteError.CommentNotFound -> ResponseEntity.notFound().build()
-          is ArticleCommentDeleteError.NotAuthor -> ResponseEntity.status(403).build()
-        }
-      },
-      { ResponseEntity.noContent().build() }
-    )
+    return runWriteTx(txManager) {
+      val getArticleBySlug = articleRepo::getBySlug
+      val deleteComment = articleRepo::deleteComment
+      val getComment = articleRepo::getComment
+      object : DeleteCommentUseCase {
+        override val getArticleBySlug = getArticleBySlug
+        override val deleteComment = deleteComment
+        override val getComment = getComment
+      }.run {
+        DeleteCommentCommand(slug, commentId.articleScopedCommentId(), user).runUseCase()
+      }.fold(
+        {
+          when (it) {
+            is ArticleCommentDeleteError.ArticleNotFound -> ResponseEntity.notFound().build()
+            is ArticleCommentDeleteError.CommentNotFound -> ResponseEntity.notFound().build()
+            is ArticleCommentDeleteError.NotAuthor -> ResponseEntity.status(403).build()
+          }
+        },
+        { ResponseEntity.noContent().build() }
+      )
+    }
   }
 
   @GetMapping("/api/tags")
   fun getTags(): ResponseEntity<TagsResponse> {
-    return object : GetTagsUseCase {
-      override val getTags = articleRepo::getTags
-    }.run {
-      GetTagsCommand.runUseCase()
-    }.runReadTx(txManager).let {
-      ResponseEntity.ok(TagsResponse(it))
+    return runReadTx(txManager) {
+      val getTags = articleRepo::getTags
+      object : GetTagsUseCase {
+        override val getTags = getTags
+      }.run {
+        GetTagsCommand.runUseCase()
+      }.let {
+        ResponseEntity.ok(TagsResponse(it))
+      }
     }
   }
 }

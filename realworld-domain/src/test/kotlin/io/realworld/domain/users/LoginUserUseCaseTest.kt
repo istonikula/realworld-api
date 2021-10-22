@@ -5,6 +5,7 @@ import arrow.core.some
 import io.realworld.domain.fixtures.UserFactory
 import io.realworld.domain.fixtures.registration
 import io.realworld.domain.fixtures.userAndPassword
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
@@ -52,6 +53,6 @@ class LoginUserUseCaseTest {
   }
 }
 
-private fun LoginUserUseCase.test(email: String, password: String) = run {
+private fun LoginUserUseCase.test(email: String, password: String) = runBlocking {
   LoginUserCommand(email, password).runUseCase()
-}.unsafeRunSync()
+}
