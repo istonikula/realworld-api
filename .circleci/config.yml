@@ -15,7 +15,7 @@ aliases:
     <<: *defaults
     docker:
       - image: circleci/openjdk:11-jdk
-      - image: postgres:10.8-alpine
+      - image: postgres:14-alpine
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: secret

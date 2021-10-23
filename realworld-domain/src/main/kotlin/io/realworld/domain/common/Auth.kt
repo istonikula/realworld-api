@@ -8,7 +8,7 @@ import org.jasypt.util.password.PasswordEncryptor
 import org.jasypt.util.password.StrongPasswordEncryptor
 import java.util.UUID
 
-inline class Token(val id: UserId)
+@JvmInline value class Token(val id: UserId)
 
 class Auth(val settings: Settings.Security) {
   private val encryptor: PasswordEncryptor = StrongPasswordEncryptor()

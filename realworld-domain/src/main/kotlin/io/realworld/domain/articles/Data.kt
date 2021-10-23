@@ -5,7 +5,7 @@ import io.realworld.domain.profiles.Profile
 import java.time.Instant
 import java.util.UUID
 
-inline class ArticleId(val value: UUID)
+@JvmInline value class ArticleId(val value: UUID)
 fun UUID.articleId() = ArticleId(this)
 
 data class ArticleCreation(
@@ -52,7 +52,7 @@ data class Article(
   val updatedAt: Instant
 ) { companion object }
 
-inline class ArticleScopedCommentId(val value: Long)
+@JvmInline value class ArticleScopedCommentId(val value: Long)
 fun Long.articleScopedCommentId() = ArticleScopedCommentId(this)
 data class Comment(
   val id: ArticleScopedCommentId,
