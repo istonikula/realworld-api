@@ -25,7 +25,6 @@ configure(subprojects.apply {
   version = "0.0.1-SNAPSHOT"
 
   repositories {
-    jcenter()
     mavenCentral()
   }
 
@@ -40,9 +39,12 @@ configure(subprojects.apply {
     }
   }
 
+  val javaLauncher = project.extensions.getByType<JavaToolchainService>().launcherFor {
+    languageVersion.set(JavaLanguageVersion.of(Version.java))
+  }
   tasks.withType<KotlinCompile> {
+    kotlinJavaToolchain.toolchain.use(javaLauncher)
     kotlinOptions {
-      jvmTarget = Version.java
       freeCompilerArgs = listOf(
         "-Xjsr305=strict",
         "-Xinline-classes"

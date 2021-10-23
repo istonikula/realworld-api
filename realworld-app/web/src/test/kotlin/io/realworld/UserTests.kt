@@ -80,7 +80,7 @@ class UserTests {
       .then()
       .verifyResponse(Schemas.user, 201)
       .toDto<UserResponse>().apply {
-        assertThat(user).isEqualToIgnoringGivenFields(expected, "token")
+        assertThat(user).usingRecursiveComparison().ignoringFields(token).isEqualTo(expected)
       }
 
     val loginReq = LoginRequest(LoginDto(email = regReq.user.email, password = regReq.user.password))
@@ -88,7 +88,7 @@ class UserTests {
       .then()
       .verifyResponse(Schemas.user, 200)
       .toDto<UserResponse>().apply {
-        assertThat(user).isEqualToIgnoringGivenFields(expected, token)
+        assertThat(user).usingRecursiveComparison().ignoringFields(token).isEqualTo(expected)
       }
   }
 

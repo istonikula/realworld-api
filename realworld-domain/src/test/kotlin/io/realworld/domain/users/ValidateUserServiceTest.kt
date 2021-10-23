@@ -23,9 +23,8 @@ class ValidateUserServiceTest {
     }.test(registration).fold(
       { fail<Nothing>("right expected $it") },
       {
-        assertThat(it).isEqualToIgnoringGivenFields(
+        assertThat(it).usingRecursiveComparison().ignoringFields("encryptedPassword").isEqualTo(
           userFactory.run { registration.valid(it.id) },
-          "encryptedPassword"
         )
         assertThat(Stubs.auth.checkPassword(registration.password, it.encryptedPassword)).isTrue()
       }
