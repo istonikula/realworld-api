@@ -3,7 +3,7 @@ package io.realworld.domain.users
 import arrow.core.Option
 import java.util.UUID
 
-inline class UserId(val value: UUID)
+@JvmInline value class UserId(val value: UUID)
 fun UUID.userId() = UserId(this)
 
 data class User(
