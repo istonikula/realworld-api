@@ -1,20 +1,20 @@
 object Version {
   const val arrow = "1.0.0"
-  const val flyway = "6.5.5"
-  const val groovy = "3.0.4"
-  const val jacksonKotlin =  "2.11.2"
+  const val flyway = "8.0.2"
+  const val groovy = "3.0.8"
+  const val jacksonKotlin =  "2.13.0"
   const val jasypt = "1.9.3"
   const val java = "11"
   const val jaxb = "2.3.1"
   const val jjwt = "0.9.1"
   const val kotlin = "1.5.31"
   const val kotlinCoroutines = "1.5.2"
-  const val ktlint = "0.38.1"
-  const val ktlintPlugin = "9.3.0"
-  const val restAssured = "4.3.1"
-  const val slugify = "2.4"
-  const val springBoot = "2.3.3.RELEASE"
-  const val versionsPlugin = "0.30.0"
+  const val ktlint = "0.42.1"
+  const val ktlintPlugin = "10.2.0"
+  const val restAssured = "4.4.0"
+  const val slugify = "2.5"
+  const val springBoot = "2.5.6"
+  const val versionsPlugin = "0.39.0"
 }
 
 object Libs {
@@ -43,4 +43,4 @@ object Starters {
 
 const val implementation = "implementation"
 const val testImplementation = "testImplementation"
-const val runtime = "runtime"
+const val runtimeOnly = "runtimeOnly"

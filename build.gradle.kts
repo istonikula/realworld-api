@@ -76,7 +76,7 @@ configure(subprojects.apply {
       it(Libs.arrowCore)
     }
 
-    runtime(Libs.jaxb)
+    runtimeOnly(Libs.jaxb)
 
     testImplementation.let {
       it(Starters.test) {
@@ -120,7 +120,7 @@ project("realworld-app:web") {
       it(Libs.jacksonKotlin)
     }
 
-    runtime(Libs.postgresql)
+    runtimeOnly(Libs.postgresql)
 
     testImplementation.let {
       it(Libs.jsonSchemaValidator)
