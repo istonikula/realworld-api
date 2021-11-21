@@ -205,7 +205,7 @@ class ArticleTests {
       .then()
       .statusCode(201)
       .toDto<ArticleResponse>().apply {
-        assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
+        assertThat(article).usingRecursiveComparison().ignoringFields("createdAt", "updatedAt").isEqualTo(expected)
         assertThat(article.createdAt).isNotNull()
         assertThat(article.createdAt).isEqualTo(article.updatedAt)
       }
@@ -214,7 +214,7 @@ class ArticleTests {
       .then()
       .verifyResponse(Schemas.article, 200)
       .toDto<ArticleResponse>().apply {
-        assertThat(article).isEqualToIgnoringGivenFields(expected, "createdAt", "updatedAt")
+        assertThat(article).usingRecursiveComparison().ignoringFields("createdAt", "updatedAt").isEqualTo(expected)
       }
   }
 
@@ -1009,8 +1009,8 @@ fun ArticleResponseDto.assert(
   favorited: Boolean = false,
   favoritesCount: Long = 0L
 ) {
-  assertThat(this).isEqualToIgnoringGivenFields(expected.copy(favorited = favorited, favoritesCount = favoritesCount),
-    "author", "tagList", "createdAt", "updatedAt")
+  assertThat(this).usingRecursiveComparison().ignoringFields("author", "tagList", "createdAt", "updatedAt")
+    .isEqualTo(expected.copy(favorited = favorited, favoritesCount = favoritesCount))
   assertThat(this.author).isEqualTo(expected.author.copy(following = following))
   assertThat(this.tagList).containsExactlyInAnyOrder(*expected.tagList.toTypedArray())
 }
