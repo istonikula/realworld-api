@@ -1,7 +1,6 @@
 package io.realworld
 
 import com.fasterxml.jackson.databind.JsonMappingException
-import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.NestedExceptionUtils
@@ -71,12 +70,6 @@ fun JsonMappingException.toValidationErrorPath(): String =
   })
 
 fun JsonMappingException.toValidationError() = ValidationError(
-  type = "TypeMismatch",
-  path = toValidationErrorPath(),
-  message = message ?: ""
-)
-
-fun MissingKotlinParameterException.toValidationError() = ValidationError(
   type = "TypeMismatch",
   path = toValidationErrorPath(),
   message = message ?: ""

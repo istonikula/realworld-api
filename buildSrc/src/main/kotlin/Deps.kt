@@ -2,7 +2,7 @@ object Version {
   const val arrow = "1.2.1"
   const val flyway = "9.22.3"
   const val groovy = "4.0.16"
-  const val jacksonKotlin =  "2.13.0"
+  const val jacksonKotlin =  "2.16.1"
   const val jasypt = "1.9.3"
   const val java = "17"
   const val jaxb = "2.3.1"
