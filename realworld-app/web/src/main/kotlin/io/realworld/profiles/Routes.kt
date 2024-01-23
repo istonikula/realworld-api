@@ -1,6 +1,5 @@
 package io.realworld.profiles
 
-import arrow.core.toOption
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
 import io.realworld.domain.common.Auth
@@ -45,7 +44,7 @@ class ProfileController(
     return runReadTx(txManager) {
       val user = JwtTokenResolver(auth::parse)(
         webRequest.authHeader()
-      ).orNull().toOption().flatMap { token ->
+      ).getOrNone().flatMap { token ->
         repo.findById(token.id).map { it.user }
       }
       val getUser = repo::findByUsername

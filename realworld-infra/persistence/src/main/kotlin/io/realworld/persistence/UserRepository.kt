@@ -48,7 +48,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
   suspend fun update(update: ValidUserUpdate, current: User): User {
     val sql = with(UserTbl) {
       StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")
-        .also { if (update.encryptedPassword.isDefined()) it.append(", ${password.set()}") }
+        .also { if (update.encryptedPassword.isSome()) it.append(", ${password.set()}") }
         .also { it.append(" WHERE $email = :currentEmail RETURNING *") }
         .toString()
     }
@@ -58,7 +58,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
         email to update.email,
         bio to update.bio,
         image to update.image,
-        password to update.encryptedPassword.orNull(),
+        password to update.encryptedPassword.getOrNull(),
         "currentEmail" to current.email
       )
     }

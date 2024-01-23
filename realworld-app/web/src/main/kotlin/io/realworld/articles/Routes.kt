@@ -1,6 +1,5 @@
 package io.realworld.articles
 
-import arrow.core.toOption
 import io.realworld.ForbiddenException
 import io.realworld.JwtTokenResolver
 import io.realworld.authHeader
@@ -129,7 +128,7 @@ class ArticleController(
     webRequest: NativeWebRequest
   ): ResponseEntity<ArticlesResponse> {
     return runReadTx(txManager) {
-      val user = JwtTokenResolver(auth::parse)(webRequest.authHeader()).orNull().toOption().flatMap { token ->
+      val user = JwtTokenResolver(auth::parse)(webRequest.authHeader()).getOrNone().flatMap { token ->
         userRepo.findById(token.id).map { it.user }
       }
       val getArticles = articleRepo::getArticles
@@ -172,7 +171,7 @@ class ArticleController(
     return runReadTx(txManager) {
       val user = JwtTokenResolver(auth::parse)(
         webRequest.authHeader()
-      ).orNull().toOption().flatMap { token ->
+      ).getOrNone().flatMap { token ->
         userRepo.findById(token.id).map { it.user }
       }
       val getArticleBySlug = articleRepo::getBySlug
@@ -302,7 +301,7 @@ class ArticleController(
     return runReadTx(txManager) {
       val user = JwtTokenResolver(auth::parse)(
         webRequest.authHeader()
-      ).orNull().toOption().flatMap {
+      ).getOrNone().flatMap {
         userRepo.findById(it.id).map { it.user }
       }
       val getArticleBySlug = articleRepo::getBySlug
@@ -332,7 +331,7 @@ class ArticleController(
         override val getArticleBySlug = getArticleBySlug
         override val addComment = addComment
       }.run {
-        CommentArticleCommand(slug, comment.body, user).runUsecase()
+        CommentArticleCommand(slug, comment.body, user).runUseCase()
       }.fold(
         {
           when (it) {

@@ -2,12 +2,10 @@ package io.realworld.domain.articles
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.core.computations.either
+import arrow.core.raise.either
 import arrow.core.getOrElse
-import arrow.core.left
-import arrow.core.right
+import arrow.core.raise.ensure
 import arrow.core.some
-import io.realworld.domain.common.toEither
 import io.realworld.domain.users.User
 import java.util.UUID
 
@@ -89,15 +87,11 @@ interface DeleteArticleUseCase {
   suspend fun DeleteArticleCommand.runUseCase(): Either<ArticleDeleteError, Int> {
     val cmd = this
 
-    return getArticleBySlug(cmd.slug, cmd.user.some()).fold(
-      { ArticleDeleteError.NotFound.left() },
-      {
-        when {
-          it.author.username != cmd.user.username -> ArticleDeleteError.NotAuthor.left()
-          else -> deleteArticle(it.id).right()
-        }
-      }
-    )
+    return either {
+      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleDeleteError.NotFound }.bind()
+      ensure(article.author.username == cmd.user.username) { ArticleDeleteError.NotAuthor }
+      deleteArticle(article.id)
+    }
   }
 }
 
@@ -156,21 +150,19 @@ interface FavoriteUseCase {
   suspend fun FavoriteArticleCommand.runUseCase(): Either<ArticleFavoriteError, Article> {
     val cmd = this
 
-    return getArticleBySlug(cmd.slug, cmd.user.some()).fold(
-      { ArticleFavoriteError.NotFound.left() },
-      {
-        when {
-          it.author.username == cmd.user.username ->
-            ArticleFavoriteError.Author.left()
-          it.favorited ->
-            it.right()
-          else -> {
-            addFavorite(it.id, cmd.user)
-            getArticleBySlug(cmd.slug, cmd.user.some()).getOrSystemError(cmd.slug).right()
-          }
+    return either {
+      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleFavoriteError.NotFound }.bind()
+      when {
+        article.author.username == cmd.user.username ->
+          raise(ArticleFavoriteError.Author)
+        article.favorited ->
+          article
+        else -> {
+          addFavorite(article.id, cmd.user)
+          getArticleBySlug(cmd.slug, cmd.user.some()).getOrSystemError(cmd.slug)
         }
       }
-    )
+    }
   }
 }
 
@@ -181,19 +173,17 @@ interface UnfavoriteUseCase {
   suspend fun UnfavoriteArticleCommand.runUseCase(): Either<ArticleUnfavoriteError, Article> {
     val cmd = this
 
-    return getArticleBySlug(cmd.slug, cmd.user.some()).fold(
-      { ArticleUnfavoriteError.NotFound.left() },
-      {
-        when {
-          !it.favorited ->
-            it.right()
-          else -> {
-            removeFavorite(it.id, cmd.user)
-            getArticleBySlug(cmd.slug, cmd.user.some()).getOrSystemError(cmd.slug).right()
-          }
+    return either {
+      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleUnfavoriteError.NotFound }.bind()
+      when {
+        !article.favorited ->
+          article
+        else -> {
+          removeFavorite(article.id, cmd.user)
+          getArticleBySlug(cmd.slug, cmd.user.some()).getOrSystemError(cmd.slug)
         }
       }
-    )
+    }
   }
 }
 
@@ -201,13 +191,13 @@ interface CommentUseCase {
   val getArticleBySlug: GetArticleBySlug
   val addComment: AddComment
 
-  suspend fun CommentArticleCommand.runUsecase(): Either<ArticleCommentError, Comment> {
+  suspend fun CommentArticleCommand.runUseCase(): Either<ArticleCommentError, Comment> {
     val cmd = this
 
-    return getArticleBySlug(cmd.slug, cmd.user.some()).fold(
-      { ArticleCommentError.NotFound.left() },
-      { addComment(it.id, cmd.comment, cmd.user).right() }
-    )
+    return either {
+      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleCommentError.NotFound }.bind()
+      addComment(article.id, cmd.comment, cmd.user)
+    }
   }
 }
 
@@ -226,7 +216,7 @@ interface DeleteCommentUseCase {
       val comment = getComment(article.id, cmd.commentId, cmd.user)
         .toEither { ArticleCommentDeleteError.CommentNotFound }.bind()
 
-      (comment.author.username == cmd.user.username).toEither { ArticleCommentDeleteError.NotAuthor }.bind()
+      ensure(comment.author.username == cmd.user.username) { ArticleCommentDeleteError.NotAuthor }
 
       deleteComment(article.id, cmd.commentId)
     }
@@ -250,6 +240,6 @@ interface GetTagsUseCase {
   suspend fun GetTagsCommand.runUseCase(): Set<String> = getTags()
 }
 
-private fun Option<Article>.getOrSystemError(slug: String) = this.getOrElse {
+private fun Option<Article>.getOrSystemError(slug: String) = getOrElse {
   throw RuntimeException("System error: article '$slug' should have been found")
 }

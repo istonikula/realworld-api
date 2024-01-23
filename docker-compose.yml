@@ -2,7 +2,7 @@ version: '3'
 
 services:
   realworld-db:
-    image: postgres:14-alpine
+    image: postgres:16-alpine
     ports:
       - "5432:5432"
     volumes:
