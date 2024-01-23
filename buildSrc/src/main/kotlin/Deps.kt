@@ -12,7 +12,7 @@ object Version {
   const val restAssured = "4.4.0"
   const val slugify = "3.0.6"
   const val springBoot = "2.5.6"
-  const val versionsPlugin = "0.39.0"
+  const val versionsPlugin = "0.51.0"
 }
 
 object Libs {
