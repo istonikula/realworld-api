@@ -47,6 +47,7 @@ import io.realworld.persistence.ArticleRepository
 import io.realworld.persistence.UserRepository
 import io.realworld.runReadTx
 import io.realworld.runWriteTx
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.PlatformTransactionManager
@@ -58,7 +59,6 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.context.request.NativeWebRequest
-import javax.validation.Valid
 
 data class ArticlesResponse(
   val articles: List<ArticleResponseDto>,

@@ -22,7 +22,7 @@ class Auth(val settings: Settings.Security) {
 
   fun parse(token: String): Token {
     val claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token)
-    return Token(UUID.fromString(claims.body.subject).userId())
+    return Token(UUID.fromString(claims.payload.subject).userId())
   }
 
   fun encryptPassword(plain: String) = encryptor.encryptPassword(plain)
