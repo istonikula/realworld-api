@@ -10,7 +10,7 @@ object Version {
   const val kotlin = "1.9.22"
   const val kotlinCoroutines = "1.7.3"
   const val restAssured = "4.4.0"
-  const val slugify = "2.5"
+  const val slugify = "3.0.6"
   const val springBoot = "2.5.6"
   const val versionsPlugin = "0.39.0"
 }
