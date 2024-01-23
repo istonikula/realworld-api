@@ -1,7 +1,7 @@
 package io.realworld.domain.common
 
 import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
+import io.jsonwebtoken.security.Keys
 import io.realworld.domain.users.UserId
 import io.realworld.domain.users.userId
 import org.jasypt.util.password.PasswordEncryptor
@@ -12,16 +12,17 @@ import java.util.UUID
 
 class Auth(val settings: Settings.Security) {
   private val encryptor: PasswordEncryptor = StrongPasswordEncryptor()
+  private val key = Keys.hmacShaKeyFor(settings.tokenSecret.toByteArray())
 
   // TODO set expiration
   fun createToken(proto: Token) = Jwts.builder()
-    .setSubject(proto.id.value.toString())
-    .signWith(SignatureAlgorithm.HS512, settings.tokenSecret.toByteArray())
+    .subject(proto.id.value.toString())
+    .signWith(key, Jwts.SIG.HS512)
     .compact()
 
   fun parse(token: String): Token {
-    val claims = Jwts.parser().setSigningKey(settings.tokenSecret.toByteArray()).parseClaimsJws(token)
-    return Token(UUID.fromString(claims.body.subject).userId())
+    val claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token)
+    return Token(UUID.fromString(claims.payload.subject).userId())
   }
 
   fun encryptPassword(plain: String) = encryptor.encryptPassword(plain)

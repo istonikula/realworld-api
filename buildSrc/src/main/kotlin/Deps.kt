@@ -1,20 +1,18 @@
 object Version {
   const val arrow = "1.2.1"
-  const val flyway = "8.0.2"
-  const val groovy = "3.0.8"
-  const val jacksonKotlin =  "2.13.0"
+  const val flyway = "9.22.3"
+  const val groovy = "4.0.16"
+  const val jacksonKotlin =  "2.16.1"
   const val jasypt = "1.9.3"
   const val java = "17"
   const val jaxb = "2.3.1"
-  const val jjwt = "0.9.1"
+  const val jjwt = "0.12.3"
   const val kotlin = "1.9.22"
   const val kotlinCoroutines = "1.7.3"
-  const val ktlint = "0.43.0"
-  const val ktlintPlugin = "10.2.0"
-  const val restAssured = "4.4.0"
-  const val slugify = "2.5"
-  const val springBoot = "2.5.6"
-  const val versionsPlugin = "0.39.0"
+  const val restAssured = "5.4.0"
+  const val slugify = "3.0.6"
+  const val springBoot = "3.2.2"
+  const val versionsPlugin = "0.51.0"
 }
 
 object Libs {

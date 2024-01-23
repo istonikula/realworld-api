@@ -1,7 +1,7 @@
 ---
 realworld:
   security:
-    token-secret: secret
+    token-secret: secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecret
 spring:
   datasource:
     driverClassName: org.postgresql.Driver

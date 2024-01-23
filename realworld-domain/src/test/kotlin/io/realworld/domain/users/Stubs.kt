@@ -13,7 +13,7 @@ object Stubs {
   // -- AUTH
 
   val auth = Auth(Settings().apply {
-    security.tokenSecret = "secret"
+    security.tokenSecret = "secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecret"
   }.security)
 
   // -- CREATE USER

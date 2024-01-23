@@ -2,14 +2,12 @@ import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.flywaydb.gradle.FlywayExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
   id("com.github.ben-manes.versions") version Version.versionsPlugin
   id("org.flywaydb.flyway") version Version.flyway apply false
   id("org.jetbrains.kotlin.jvm") version Version.kotlin apply false
   id("org.jetbrains.kotlin.plugin.spring") version Version.kotlin apply false
-  id("org.jlleitschuh.gradle.ktlint") version Version.ktlintPlugin apply false
   id("org.springframework.boot") version Version.springBoot apply false
 }
 
@@ -20,7 +18,6 @@ configure(subprojects.apply {
   apply(plugin = "io.spring.dependency-management")
   apply(plugin = "org.jetbrains.kotlin.jvm")
   apply(plugin = "org.jetbrains.kotlin.plugin.spring")
-  apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
   version = "0.0.1-SNAPSHOT"
 
@@ -60,10 +57,6 @@ configure(subprojects.apply {
       events("passed", "failed", "skipped")
       exceptionFormat = TestExceptionFormat.FULL
     }
-  }
-
-  configure<KtlintExtension> {
-    version.set(Version.ktlint)
   }
 
   dependencies {

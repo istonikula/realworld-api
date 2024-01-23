@@ -7,8 +7,8 @@ import io.realworld.domain.articles.ArticleCreation
 import io.realworld.domain.articles.ArticleUpdate
 import io.realworld.domain.articles.Comment
 import io.realworld.profiles.ProfileResponseDto
+import jakarta.validation.constraints.NotBlank
 import java.time.Instant
-import javax.validation.constraints.NotBlank
 
 @JsonRootName("article")
 data class CreationDto(

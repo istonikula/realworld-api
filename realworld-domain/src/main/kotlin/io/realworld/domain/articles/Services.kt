@@ -3,14 +3,16 @@ package io.realworld.domain.articles
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.core.some
 import com.github.slugify.Slugify
 import io.realworld.domain.users.User
 import java.util.UUID
 
-private val slugifier = Slugify()
-fun String.slugify() = slugifier.slugify(this)
+private val slugifier = Slugify.builder().build()
+fun String.slugify(): String = slugifier.slugify(this)
 
 interface CreateUniqueSlugService {
   val existsBySlug: ExistsBySlug
@@ -32,22 +34,17 @@ interface ValidateArticleUpdateService {
   suspend fun ArticleUpdate.validate(slug: String, user: User): Either<ArticleUpdateError, ValidArticleUpdate> {
     val cmd = this
 
-    return getArticleBySlug(slug, user.some()).fold(
-      { ArticleUpdateError.NotFound.left() },
-      {
-        when {
-          it.author.username != user.username ->
-            ArticleUpdateError.NotAuthor.left()
-          else ->
-            ValidArticleUpdate(
-              id = it.id,
-              slug = cmd.title.fold({ it.slug }, { createUniqueSlug(it) }),
-              title = cmd.title.getOrElse { it.title },
-              body = cmd.body.getOrElse { it.body },
-              description = cmd.description.getOrElse { it.description }
-            ).right()
-        }
-      }
-    )
+    return either {
+      val article = getArticleBySlug(slug, user.some()).toEither { ArticleUpdateError.NotFound }.bind()
+      ensure( article.author.username == user.username) { ArticleUpdateError.NotAuthor }
+      ValidArticleUpdate(
+        id = article.id,
+        slug = cmd.title.fold({ article.slug }, { createUniqueSlug(it) }),
+        title = cmd.title.getOrElse { article.title },
+        body = cmd.body.getOrElse { article.body },
+        description = cmd.description.getOrElse { article.description }
+      )
+
+    }
   }
 }

@@ -2,8 +2,8 @@ package io.realworld.users
 
 import com.fasterxml.jackson.annotation.JsonRootName
 import io.realworld.domain.users.User
-import javax.validation.constraints.Email
-import javax.validation.constraints.NotBlank
+import jakarta.validation.constraints.Email
+import jakarta.validation.constraints.NotBlank
 
 @JsonRootName("user")
 data class LoginDto(
