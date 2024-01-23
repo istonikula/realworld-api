@@ -1,7 +1,6 @@
 package io.realworld.domain.profiles
 
 import arrow.core.Option
-import arrow.core.none
 import arrow.core.some
 import arrow.core.toOption
 import io.realworld.domain.users.User
@@ -22,10 +21,7 @@ interface GetProfileUseCase {
         username = it.username,
         bio = it.bio.toOption(),
         image = it.image.toOption(),
-        following = current.fold(
-          { none() },
-          { follower -> hasFollower(it.id, follower.id).some() }
-        )
+        following = cmd.current.map { follower -> hasFollower(it.id, follower.id) }
       )
     }
   }

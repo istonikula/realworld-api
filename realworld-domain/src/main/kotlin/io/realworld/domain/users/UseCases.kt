@@ -1,9 +1,8 @@
 package io.realworld.domain.users
 
 import arrow.core.Either
-import arrow.core.computations.either
-import arrow.core.left
-import arrow.core.right
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import io.realworld.domain.common.Auth
 
 data class RegisterUserCommand(val data: UserRegistration)
@@ -44,10 +43,7 @@ interface LoginUserUseCase {
     val cmd = this
     return either {
       val userAndPassword = getUser(cmd.email).toEither { UserLoginError.BadCredentials }.bind()
-      (when {
-        auth.checkPassword(cmd.password, userAndPassword.encryptedPassword) -> userAndPassword.right()
-        else -> UserLoginError.BadCredentials.left()
-      }).bind()
+      ensure(auth.checkPassword(cmd.password, userAndPassword.encryptedPassword)) { UserLoginError.BadCredentials }
       userAndPassword.user
     }
   }

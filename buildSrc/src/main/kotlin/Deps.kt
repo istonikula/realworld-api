@@ -1,5 +1,5 @@
 object Version {
-  const val arrow = "1.0.0"
+  const val arrow = "1.2.1"
   const val flyway = "8.0.2"
   const val groovy = "3.0.8"
   const val jacksonKotlin =  "2.13.0"
@@ -7,8 +7,8 @@ object Version {
   const val java = "17"
   const val jaxb = "2.3.1"
   const val jjwt = "0.9.1"
-  const val kotlin = "1.6.0"
-  const val kotlinCoroutines = "1.5.2"
+  const val kotlin = "1.9.22"
+  const val kotlinCoroutines = "1.7.3"
   const val ktlint = "0.43.0"
   const val ktlintPlugin = "10.2.0"
   const val restAssured = "4.4.0"

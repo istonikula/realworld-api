@@ -13,9 +13,9 @@ data class ProfileResponseDto(
     fun fromDomain(domain: Profile) = with(domain) {
       ProfileResponseDto(
         username = username,
-        bio = bio.orNull(),
-        image = image.orNull(),
-        following = following.orNull()
+        bio = bio.getOrNull(),
+        image = image.getOrNull(),
+        following = following.getOrNull()
       )
     }
   }
