@@ -6,7 +6,7 @@ object Version {
   const val jasypt = "1.9.3"
   const val java = "17"
   const val jaxb = "2.3.1"
-  const val jjwt = "0.9.1"
+  const val jjwt = "0.12.3"
   const val kotlin = "1.9.22"
   const val kotlinCoroutines = "1.7.3"
   const val restAssured = "4.4.0"
