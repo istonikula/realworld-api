@@ -20,7 +20,6 @@ object Libs {
 
   // Jackson 3 modules for App and Tests (assuming RestAssured 6 supports Jackson 3)
   const val jacksonKotlin = "tools.jackson.module:jackson-module-kotlin:${Version.jacksonKotlin}"
-  // JSR-310 support might be included or needed. I'll add if tests fail.
 
   const val jasypt = "org.jasypt:jasypt:${Version.jasypt}"
   const val jaxb = "jakarta.xml.bind:jakarta.xml.bind-api:${Version.jaxb}"
@@ -35,11 +34,22 @@ object Libs {
 
 object Starters {
   const val actuator = "org.springframework.boot:spring-boot-starter-actuator"
+  const val actuatorTest = "org.springframework.boot:spring-boot-starter-actuator-test"
+
   const val jdbc = "org.springframework.boot:spring-boot-starter-jdbc"
-  const val test = "org.springframework.boot:spring-boot-starter-test"
+  const val jdbcTest = "org.springframework.boot:spring-boot-starter-jdbc-test"
+
+  // Deprecated: const val test = "org.springframework.boot:spring-boot-starter-test"
+  const val test = "org.springframework.boot:spring-boot-starter-test" // Keep for backward compatibility or pure junit?
+
   const val undertow = "org.springframework.boot:spring-boot-starter-undertow"
+
   const val validation = "org.springframework.boot:spring-boot-starter-validation"
-  const val web = "org.springframework.boot:spring-boot-starter-web"
+  const val validationTest = "org.springframework.boot:spring-boot-starter-validation-test"
+
+  // Replaced spring-boot-starter-web with spring-boot-starter-webmvc
+  const val webmvc = "org.springframework.boot:spring-boot-starter-webmvc"
+  const val webmvcTest = "org.springframework.boot:spring-boot-starter-webmvc-test"
 }
 
 const val implementation = "implementation"

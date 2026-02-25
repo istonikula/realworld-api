@@ -102,7 +102,7 @@ project("realworld-app:web") {
       it(Starters.actuator)
       it(Starters.jdbc)
       it(Starters.validation)
-      it(Starters.web)
+      it(Starters.webmvc) // Replaced web with webmvc
 
       it(Libs.jacksonKotlin)
       it("org.jetbrains.kotlin:kotlin-reflect")
@@ -113,7 +113,12 @@ project("realworld-app:web") {
     testImplementation.let {
       it(Libs.jsonSchemaValidator)
       it(Libs.restassured)
-      // Removed explicit Jackson 2 modules for tests to see if RestAssured 6.0 handles Jackson 3 or uses its own
+
+      // New modular test starters
+      it(Starters.webmvcTest)
+      it(Starters.jdbcTest)
+      it(Starters.validationTest)
+      it(Starters.actuatorTest)
     }
   }
 }
@@ -136,6 +141,10 @@ project("realworld-infra:persistence") {
       it(Starters.jdbc)
 
       it(Libs.postgresql)
+    }
+
+    testImplementation.let {
+      it(Starters.jdbcTest)
     }
   }
 }
