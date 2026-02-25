@@ -1,7 +1,6 @@
 object Version {
   const val arrow = "1.2.1"
   const val flyway = "9.22.3"
-  const val groovy = "4.0.16"
   const val jacksonKotlin =  "3.0.3"
   const val jasypt = "1.9.3"
   const val java = "21"
@@ -9,7 +8,7 @@ object Version {
   const val jjwt = "0.12.3"
   const val kotlin = "2.3.10"
   const val kotlinCoroutines = "1.10.2"
-  const val restAssured = "6.0.0"
+  const val restAssured = "6.0.0" // Explicit version needed
   const val slugify = "3.0.6"
   const val springBoot = "4.0.3"
   const val versionsPlugin = "0.51.0"
@@ -18,7 +17,7 @@ object Version {
 object Libs {
   const val arrowCore = "io.arrow-kt:arrow-core:${Version.arrow}"
 
-  // Jackson 3 modules for App and Tests (assuming RestAssured 6 supports Jackson 3)
+  // Jackson 3 modules for App and Tests
   const val jacksonKotlin = "tools.jackson.module:jackson-module-kotlin:${Version.jacksonKotlin}"
 
   const val jasypt = "org.jasypt:jasypt:${Version.jasypt}"
@@ -39,15 +38,13 @@ object Starters {
   const val jdbc = "org.springframework.boot:spring-boot-starter-jdbc"
   const val jdbcTest = "org.springframework.boot:spring-boot-starter-jdbc-test"
 
-  // Deprecated: const val test = "org.springframework.boot:spring-boot-starter-test"
-  const val test = "org.springframework.boot:spring-boot-starter-test" // Keep for backward compatibility or pure junit?
+  const val test = "org.springframework.boot:spring-boot-starter-test"
 
   const val undertow = "org.springframework.boot:spring-boot-starter-undertow"
 
   const val validation = "org.springframework.boot:spring-boot-starter-validation"
   const val validationTest = "org.springframework.boot:spring-boot-starter-validation-test"
 
-  // Replaced spring-boot-starter-web with spring-boot-starter-webmvc
   const val webmvc = "org.springframework.boot:spring-boot-starter-webmvc"
   const val webmvcTest = "org.springframework.boot:spring-boot-starter-webmvc-test"
 }

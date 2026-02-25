@@ -58,10 +58,6 @@ configure(subprojects.apply {
   }
 
   dependencies {
-    // override spring-boot platform versions
-    project.extra.set("groovy.version", Version.groovy) // keep in sync with rest-assured https://raw.githubusercontent.com/rest-assured/rest-assured/master/changelog.txt
-    project.extra.set("rest-assured.version", Version.restAssured)
-
     implementation.let {
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
@@ -102,7 +98,7 @@ project("realworld-app:web") {
       it(Starters.actuator)
       it(Starters.jdbc)
       it(Starters.validation)
-      it(Starters.webmvc) // Replaced web with webmvc
+      it(Starters.webmvc)
 
       it(Libs.jacksonKotlin)
       it("org.jetbrains.kotlin:kotlin-reflect")
@@ -114,7 +110,6 @@ project("realworld-app:web") {
       it(Libs.jsonSchemaValidator)
       it(Libs.restassured)
 
-      // New modular test starters
       it(Starters.webmvcTest)
       it(Starters.jdbcTest)
       it(Starters.validationTest)
