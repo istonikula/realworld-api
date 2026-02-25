@@ -32,6 +32,11 @@ configure(subprojects.apply {
           useVersion(Version.kotlin)
           because("use single kotlin version")
         }
+        // Force coroutines version to be compatible with Kotlin
+        if (requested.group == "org.jetbrains.kotlinx" && requested.name.startsWith("kotlinx-coroutines")) {
+          useVersion(Version.kotlinCoroutines)
+          because("use compatible coroutines version")
+        }
       }
     }
   }
@@ -41,11 +46,9 @@ configure(subprojects.apply {
   }
   tasks.withType<KotlinCompile> {
     kotlinJavaToolchain.toolchain.use(javaLauncher)
-    kotlinOptions {
-      freeCompilerArgs = listOf(
-        "-Xjsr305=strict",
-        "-Xinline-classes"
-      )
+    compilerOptions {
+      freeCompilerArgs.add("-Xjsr305=strict")
+      freeCompilerArgs.add("-Xinline-classes")
     }
   }
 
@@ -77,8 +80,8 @@ configure(subprojects.apply {
       it(Starters.test) {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
       }
-
-      it(Libs.junitJupiter)
+      // Add junit-platform-launcher to ensure Gradle can run tests
+      it("org.junit.platform:junit-platform-launcher")
     }
   }
 }
@@ -104,15 +107,12 @@ project("realworld-app:web") {
       it(Starters.actuator)
       it(Starters.jdbc)
       it(Starters.validation)
-      it(Starters.web) {
-        exclude(
-          group = "org.springframework.boot",
-          module = "spring-boot-starter-tomcat"
-        )
-      }
-      it(Starters.undertow)
+      it(Starters.web)
+      // Removed undertow exclusion and starter to fallback to default (Tomcat)
+      // it(Starters.undertow)
 
       it(Libs.jacksonKotlin)
+      it("org.jetbrains.kotlin:kotlin-reflect")
     }
 
     runtimeOnly(Libs.postgresql)
@@ -120,6 +120,9 @@ project("realworld-app:web") {
     testImplementation.let {
       it(Libs.jsonSchemaValidator)
       it(Libs.restassured)
+      // Enable Jackson 2 modules for Test deserialization (RestAssured)
+      it(Libs.jackson2Kotlin)
+      it(Libs.jackson2Jsr310)
     }
   }
 }

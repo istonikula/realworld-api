@@ -23,7 +23,7 @@ import org.mockito.Mockito.doThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
-import org.springframework.boot.test.mock.mockito.SpyBean
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.junit.jupiter.SpringExtension
@@ -44,7 +44,7 @@ class UserTests {
 
   @Autowired lateinit var auth: Auth
 
-  @SpyBean lateinit var userRepo: UserRepository
+  @MockitoSpyBean lateinit var userRepo: UserRepository
 
   lateinit var spec: RequestSpecification
   lateinit var fixtures: FixtureFactory
