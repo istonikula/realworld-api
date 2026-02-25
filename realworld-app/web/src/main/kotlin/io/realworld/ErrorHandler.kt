@@ -66,11 +66,15 @@ data class ValidationError(
 fun DatabindException.toValidationErrorPath(): String =
   path.joinToString(separator = ".", transform = { ref ->
     val i = if (ref.index >= 0) "${ref.index}" else ""
-    // Fallback: use toString() or empty string if fieldName is not available directly
-    // This is a workaround for Jackson 3 migration where fieldName seems inaccessible
-    val name = ref.toString()
-    // Usually toString returns "fieldName" or "index" representation
-    name
+    val fieldName = try {
+      // Use reflection to access fieldName as property access failed during compilation
+      ref.javaClass.getMethod("getFieldName").invoke(ref) as? String
+    } catch (e: Exception) {
+      null
+    }
+    // Fallback to toString if fieldName is null (e.g. if reflection failed or returned null)
+    val name = fieldName ?: ref.toString()
+    "${name}$i"
   })
 
 fun DatabindException.toValidationError() = ValidationError(

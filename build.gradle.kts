@@ -32,11 +32,6 @@ configure(subprojects.apply {
           useVersion(Version.kotlin)
           because("use single kotlin version")
         }
-        // Force coroutines version to be compatible with Kotlin
-        if (requested.group == "org.jetbrains.kotlinx" && requested.name.startsWith("kotlinx-coroutines")) {
-          useVersion(Version.kotlinCoroutines)
-          because("use compatible coroutines version")
-        }
       }
     }
   }
@@ -108,8 +103,6 @@ project("realworld-app:web") {
       it(Starters.jdbc)
       it(Starters.validation)
       it(Starters.web)
-      // Removed undertow exclusion and starter to fallback to default (Tomcat)
-      // it(Starters.undertow)
 
       it(Libs.jacksonKotlin)
       it("org.jetbrains.kotlin:kotlin-reflect")
@@ -120,9 +113,7 @@ project("realworld-app:web") {
     testImplementation.let {
       it(Libs.jsonSchemaValidator)
       it(Libs.restassured)
-      // Enable Jackson 2 modules for Test deserialization (RestAssured)
-      it(Libs.jackson2Kotlin)
-      it(Libs.jackson2Jsr310)
+      // Removed explicit Jackson 2 modules for tests to see if RestAssured 6.0 handles Jackson 3 or uses its own
     }
   }
 }

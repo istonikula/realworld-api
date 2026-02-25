@@ -231,8 +231,6 @@ class ArticleTests {
         assertThat(article.tagList).isEmpty()
       }
 
-    // TODO: Verify why removing tagList causes validation error in Spring Boot 4 / Jackson 2.16
-    /*
     val bodyJson = req.toObjectNode().apply {
       pathToObject("article").remove("tagList")
     }.toString()
@@ -242,7 +240,6 @@ class ArticleTests {
       .toDto<ArticleResponse>().apply {
         assertThat(article.tagList).isEmpty()
       }
-    */
   }
 
   @Test
@@ -280,6 +277,7 @@ class ArticleTests {
     }
 
     // TODO: Verify error format for missing required fields in Spring Boot 4
+    // Jackson 3 behavior or error path construction is different, causing mismatch in expected error structure
     /*
     listOf("title", "description", "body").map { prop ->
       req.toObjectNode().apply {

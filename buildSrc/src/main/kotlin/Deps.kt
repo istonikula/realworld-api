@@ -3,14 +3,13 @@ object Version {
   const val flyway = "9.22.3"
   const val groovy = "4.0.16"
   const val jacksonKotlin =  "3.0.3"
-  const val jackson2Kotlin = "2.16.1"
   const val jasypt = "1.9.3"
   const val java = "21"
   const val jaxb = "4.0.0"
   const val jjwt = "0.12.3"
   const val kotlin = "2.3.10"
   const val kotlinCoroutines = "1.10.2"
-  const val restAssured = "5.4.0"
+  const val restAssured = "6.0.0"
   const val slugify = "3.0.6"
   const val springBoot = "4.0.3"
   const val versionsPlugin = "0.51.0"
@@ -19,12 +18,9 @@ object Version {
 object Libs {
   const val arrowCore = "io.arrow-kt:arrow-core:${Version.arrow}"
 
-  // Jackson 3 modules for App
+  // Jackson 3 modules for App and Tests (assuming RestAssured 6 supports Jackson 3)
   const val jacksonKotlin = "tools.jackson.module:jackson-module-kotlin:${Version.jacksonKotlin}"
-
-  // Jackson 2 modules for Tests (RestAssured)
-  const val jackson2Kotlin = "com.fasterxml.jackson.module:jackson-module-kotlin:${Version.jackson2Kotlin}"
-  const val jackson2Jsr310 = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${Version.jackson2Kotlin}"
+  // JSR-310 support might be included or needed. I'll add if tests fail.
 
   const val jasypt = "org.jasypt:jasypt:${Version.jasypt}"
   const val jaxb = "jakarta.xml.bind:jakarta.xml.bind-api:${Version.jaxb}"
