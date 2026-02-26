@@ -1,7 +1,14 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import com.github.benmanes.gradle.versions.updates.resolutionstrategy.ComponentSelectionWithCurrent
 import org.flywaydb.gradle.FlywayExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+buildscript {
+  dependencies {
+    classpath(Libs.flywayPostgresql)
+  }
+}
 
 plugins {
   id("com.github.ben-manes.versions") version Version.versionsPlugin
@@ -67,13 +74,8 @@ configure(subprojects.apply {
 
     runtimeOnly(Libs.jaxb)
 
-    testImplementation.let {
-      it(Starters.test) {
-        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
-      }
-      // Add junit-platform-launcher to ensure Gradle can run tests
-      it("org.junit.platform:junit-platform-launcher")
-    }
+    testImplementation(Starters.test)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
   }
 }
 
@@ -101,7 +103,6 @@ project("realworld-app:web") {
       it(Starters.webmvc)
 
       it(Libs.jacksonKotlin)
-      it("org.jetbrains.kotlin:kotlin-reflect")
     }
 
     runtimeOnly(Libs.postgresql)
@@ -109,11 +110,6 @@ project("realworld-app:web") {
     testImplementation.let {
       it(Libs.jsonSchemaValidator)
       it(Libs.restassured)
-
-      it(Starters.webmvcTest)
-      it(Starters.jdbcTest)
-      it(Starters.validationTest)
-      it(Starters.actuatorTest)
     }
   }
 }
@@ -137,24 +133,20 @@ project("realworld-infra:persistence") {
 
       it(Libs.postgresql)
     }
-
-    testImplementation.let {
-      it(Starters.jdbcTest)
-    }
   }
 }
 
 tasks.named<DependencyUpdatesTask>("dependencyUpdates") {
   resolutionStrategy {
     componentSelection {
-      all {
+      all(Action<ComponentSelectionWithCurrent> {
         val rejected = listOf("alpha", "b", "beta", "build-snapshot", "rc", "cr", "m", "preview")
           .map { qualifier -> Regex("(?i).*[.-]$qualifier[.\\d-]*") }
           .any { it.matches(candidate.version) }
         if (rejected) {
           reject("Release candidate")
         }
-      }
+      })
     }
   }
   checkForGradleUpdate = true
