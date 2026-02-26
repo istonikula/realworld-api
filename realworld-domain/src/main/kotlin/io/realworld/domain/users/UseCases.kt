@@ -42,7 +42,7 @@ interface LoginUserUseCase {
   suspend fun LoginUserCommand.runUseCase(): Either<UserLoginError, User> {
     val cmd = this
     return either {
-      val userAndPassword = getUser(cmd.email).toEither { UserLoginError.BadCredentials }.bind()
+      val userAndPassword = getUser(cmd.email) ?: raise(UserLoginError.BadCredentials)
       ensure(auth.checkPassword(cmd.password, userAndPassword.encryptedPassword)) { UserLoginError.BadCredentials }
       userAndPassword.user
     }

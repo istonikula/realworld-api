@@ -44,8 +44,8 @@ class ProfileController(
     return runReadTx(txManager) {
       val user = JwtTokenResolver(auth::parse)(
         webRequest.authHeader()
-      ).getOrNone().flatMap { token ->
-        repo.findById(token.id).map { it.user }
+      ).getOrNull()?.let { token ->
+        repo.findById(token.id)?.user
       }
       val getUser = repo::findByUsername
       val hasFollower = repo::hasFollower
@@ -54,10 +54,9 @@ class ProfileController(
         override val hasFollower = hasFollower
       }.run {
         GetProfileCommand(username, user).runUseCase()
-      }.fold(
-        { ResponseEntity.notFound().build() },
-        { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
-      )
+      }?.let {
+        ResponseEntity.ok(ProfileResponse.fromDomain(it))
+      } ?: ResponseEntity.notFound().build()
     }
   }
 
@@ -74,10 +73,9 @@ class ProfileController(
         override val getUser = getUser
       }.run {
         FollowCommand(username, current).runUseCase()
-      }.fold(
-        { ResponseEntity.notFound().build() },
-        { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
-      )
+      }?.let {
+        ResponseEntity.ok(ProfileResponse.fromDomain(it))
+      } ?: ResponseEntity.notFound().build()
     }
   }
 
@@ -94,10 +92,9 @@ class ProfileController(
         override val removeFollower = removeFollower
       }.run {
         UnfollowCommand(username, current).runUseCase()
-      }.fold(
-        { ResponseEntity.notFound().build() },
-        { ResponseEntity.ok(ProfileResponse.fromDomain(it)) }
-      )
+      }?.let {
+        ResponseEntity.ok(ProfileResponse.fromDomain(it))
+      } ?: ResponseEntity.notFound().build()
     }
   }
 }

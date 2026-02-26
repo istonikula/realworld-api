@@ -30,6 +30,5 @@ private fun <A> TransactionTemplate.execBlocking(fn: suspend () -> A): A {
   //
   // fn supports implicit nullability as it's defined to return A (<A> is implicitly <A : Any?>), leaving the final
   // decision on to the calling code that provides the fn implementation and typing.
-  @Suppress("UNCHECKED_CAST")
-  return execute { runBlocking { fn() } } as A
+  return execute { runBlocking { fn() } }
 }

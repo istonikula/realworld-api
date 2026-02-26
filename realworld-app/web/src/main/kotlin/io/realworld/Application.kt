@@ -1,6 +1,5 @@
 package io.realworld
 
-import arrow.core.getOrElse
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Settings
 import io.realworld.domain.common.Token
@@ -40,7 +39,7 @@ class Application : WebMvcConfigurer {
 
     // TODO check token match
     override fun invoke(token: Token): User {
-      return runBlocking { repo.findById(token.id).map { it.user }.getOrElse { throw UnauthorizedException() } }
+      return runBlocking { repo.findById(token.id)?.user ?: throw UnauthorizedException() }
     }
   }
 

@@ -1,6 +1,5 @@
 package io.realworld.domain.users
 
-import arrow.core.Option
 import arrow.core.left
 import arrow.core.right
 import io.realworld.domain.common.Auth
@@ -53,7 +52,7 @@ object Stubs {
 
   // -- USER MISC
 
-  fun getUserByEmail(resultL: () -> Option<UserAndPassword>): GetUserByEmail =
+  fun getUserByEmail(resultL: () -> UserAndPassword?): GetUserByEmail =
     { _ -> resultL() }
 
   fun existsByEmail(exists: Boolean): ExistsByEmail =

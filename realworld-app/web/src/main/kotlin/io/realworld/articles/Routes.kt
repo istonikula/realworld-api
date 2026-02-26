@@ -128,8 +128,8 @@ class ArticleController(
     webRequest: NativeWebRequest
   ): ResponseEntity<ArticlesResponse> {
     return runReadTx(txManager) {
-      val user = JwtTokenResolver(auth::parse)(webRequest.authHeader()).getOrNone().flatMap { token ->
-        userRepo.findById(token.id).map { it.user }
+      val user = JwtTokenResolver(auth::parse)(webRequest.authHeader()).getOrNull()?.let { token ->
+        userRepo.findById(token.id)?.user
       }
       val getArticles = articleRepo::getArticles
       val getArticlesCount = articleRepo::getArticlesCount
@@ -171,18 +171,17 @@ class ArticleController(
     return runReadTx(txManager) {
       val user = JwtTokenResolver(auth::parse)(
         webRequest.authHeader()
-      ).getOrNone().flatMap { token ->
-        userRepo.findById(token.id).map { it.user }
+      ).getOrNull()?.let { token ->
+        userRepo.findById(token.id)?.user
       }
       val getArticleBySlug = articleRepo::getBySlug
       object : GetArticleUseCase {
         override val getArticleBySlug = getArticleBySlug
       }.run {
         GetArticleCommand(slug, user).runUseCase()
-      }.fold(
-        { ResponseEntity.notFound().build() },
-        { ResponseEntity.ok(ArticleResponse.fromDomain(it)) }
-      )
+      }?.let {
+        ResponseEntity.ok(ArticleResponse.fromDomain(it))
+      } ?: ResponseEntity.notFound().build()
     }
   }
 
@@ -301,8 +300,8 @@ class ArticleController(
     return runReadTx(txManager) {
       val user = JwtTokenResolver(auth::parse)(
         webRequest.authHeader()
-      ).getOrNone().flatMap {
-        userRepo.findById(it.id).map { it.user }
+      ).getOrNull()?.let { token ->
+        userRepo.findById(token.id)?.user
       }
       val getArticleBySlug = articleRepo::getBySlug
       val getComments = articleRepo::getComments
@@ -311,10 +310,9 @@ class ArticleController(
         override val getComments = getComments
       }.run {
         GetCommentsCommand(slug, user).runUseCase()
-      }.fold(
-        { ResponseEntity.notFound().build() },
-        { ResponseEntity.ok(CommentsResponse.fromDomain(it)) }
-      )
+      }?.let {
+        ResponseEntity.ok(CommentsResponse.fromDomain(it))
+      } ?: ResponseEntity.notFound().build()
     }
   }
 

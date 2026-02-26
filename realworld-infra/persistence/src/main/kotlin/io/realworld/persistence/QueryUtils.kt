@@ -14,4 +14,4 @@ internal suspend fun NamedParameterJdbcTemplate.queryIfExists(
   table: String,
   where: String,
   params: Map<String, Any>
-): Boolean = queryForObject("SELECT COUNT(*) FROM $table WHERE $where", params) { rs, _ -> rs.getInt("count") > 0 }!!
+): Boolean = queryForObject("SELECT COUNT(*) FROM $table WHERE $where", params) { rs, _ -> rs.getInt("count") > 0 }

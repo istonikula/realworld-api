@@ -1,6 +1,5 @@
 package io.realworld.domain.articles
 
-import arrow.core.Option
 import io.realworld.domain.profiles.Profile
 import java.time.Instant
 import java.util.UUID
@@ -25,9 +24,9 @@ data class ValidArticleCreation(
 )
 
 data class ArticleUpdate(
-  val title: Option<String>,
-  val description: Option<String>,
-  val body: Option<String>
+  val title: String?,
+  val description: String?,
+  val body: String?
 )
 
 data class ValidArticleUpdate(

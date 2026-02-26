@@ -21,8 +21,8 @@ class UpdateUserUseCaseTest {
     }.test(janeUpdated, jane).fold(
       { fail<Nothing>("right expected $it") },
       {
-        assertThat(it.email).isEqualTo(janeUpdated.email.getOrNull()!!)
-        assertThat(it.username).isEqualTo(janeUpdated.username.getOrNull()!!)
+        assertThat(it.email).isEqualTo(janeUpdated.email!!)
+        assertThat(it.username).isEqualTo(janeUpdated.username!!)
       }
     )
   }

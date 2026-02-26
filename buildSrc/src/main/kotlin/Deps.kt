@@ -1,5 +1,5 @@
 object Version {
-  const val arrow = "1.2.1"
+  const val arrow = "2.2.1.1"
   const val flyway = "12.0.2"
   const val jasypt = "1.9.3"
   const val java = "25"
