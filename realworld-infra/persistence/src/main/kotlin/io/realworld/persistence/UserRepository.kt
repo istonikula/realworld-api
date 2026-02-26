@@ -39,7 +39,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
       username to user.username,
       password to user.encryptedPassword
     )
-    return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
+    return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }
   }
 
   // TODO invalidate token on password change
@@ -61,7 +61,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
       )
     }
 
-    return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
+    return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }
   }
 
   suspend fun findById(id: UserId): UserAndPassword? =

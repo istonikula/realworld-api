@@ -264,9 +264,9 @@ class ArticleTests {
     val req = CreationRequest(TestArticles.Dragon.creation)
 
     req.toObjectNode().apply {
-      pathToObject("article").replace("title", textNode(""))
-      pathToObject("article").replace("description", textNode(" "))
-      pathToObject("article").replace("body", textNode("  "))
+      pathToObject("article").replace("title", stringNode(""))
+      pathToObject("article").replace("description", stringNode(" "))
+      pathToObject("article").replace("body", stringNode("  "))
     }.toString().let {
       client.post("/api/articles", it)
         .then()

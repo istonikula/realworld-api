@@ -257,12 +257,12 @@ class ArticleRepository(
       author to user.id.value,
       article_id to articleId.value
     )
-    val commentId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong(id) }!!
+    val commentId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong(id) }
 
     jdbcTemplate.queryForObject(
       "SELECT * FROM $view WHERE ${id.eq()}",
       mapOf(id to commentId)
-    ) { rs, _ -> CommentRow.fromRs(rs) }!!
+    ) { rs, _ -> CommentRow.fromRs(rs) }
   }
 
   private suspend fun updateArticleRow(update: ValidArticleUpdate): ArticleRow = with(ArticleTbl) {
@@ -286,7 +286,7 @@ class ArticleRepository(
       body to update.body,
       id to update.id.value
     )
-    jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }!!
+    jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }
   }
 
   private suspend fun fetchArticleTags(articleId: ArticleId): List<String> = with(ArticleTagTbl) {
@@ -323,7 +323,7 @@ class ArticleRepository(
 
   private suspend fun fetchArticleRowCount(queryParts: ArticlesQueryParts): Long = with(ArticleTbl) {
     val sql = "SELECT COUNT(a.*) FROM $table a ${queryParts.joinsSql} ${queryParts.wheresSql}"
-    jdbcTemplate.queryForObject(sql, queryParts.params) { rs, _ -> rs.getLong("count") }!!
+    jdbcTemplate.queryForObject(sql, queryParts.params) { rs, _ -> rs.getLong("count") }
   }
 
   private data class ArticlesQueryParts(
@@ -402,7 +402,7 @@ class ArticleRepository(
   private suspend fun fetchFavoritesCount(articleId: ArticleId): Long = with(ArticleFavoriteTbl) {
     val sql = "SELECT COUNT(*) FROM $table WHERE ${article_id.eq()}"
     val params = mapOf(article_id to articleId.value)
-    jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong("count") }!!
+    jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getLong("count") }
   }
 
   private suspend fun isFavorited(articleId: ArticleId, user: User): Boolean = with(ArticleFavoriteTbl) {
@@ -423,7 +423,7 @@ class ArticleRepository(
       body to article.body,
       author to user.id.value
     )
-    jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }!!
+    jdbcTemplate.queryForObject(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }
   }
 
   private suspend fun insertTags(tags: List<String>) = with(TagTbl) {
