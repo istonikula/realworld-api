@@ -1,6 +1,6 @@
 package io.realworld
 
-import com.fasterxml.jackson.databind.JsonMappingException
+import tools.jackson.databind.DatabindException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.NestedExceptionUtils
@@ -19,7 +19,7 @@ class ErrorHandler {
   fun httpMessageNotReadable(ex: HttpMessageNotReadableException): ResponseEntity<ValidationErrorResponse> {
     val t = NestedExceptionUtils.getMostSpecificCause(ex)
     return when (t) {
-      is JsonMappingException -> {
+      is DatabindException -> {
         handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(t.toValidationError()))
       }
       else -> handleError(HttpStatus.UNPROCESSABLE_ENTITY, listOf(ValidationError(
@@ -63,13 +63,13 @@ data class ValidationError(
   val arguments: Map<String, Any>? = emptyMap()
 )
 
-fun JsonMappingException.toValidationErrorPath(): String =
+fun DatabindException.toValidationErrorPath(): String =
   path.joinToString(separator = ".", transform = { it ->
     val i = if (it.index >= 0) "${it.index}" else ""
-    "${it.fieldName ?: ""}$i"
+    "${it.propertyName ?: ""}$i"
   })
 
-fun JsonMappingException.toValidationError() = ValidationError(
+fun DatabindException.toValidationError() = ValidationError(
   type = "TypeMismatch",
   path = toValidationErrorPath(),
   message = message ?: ""

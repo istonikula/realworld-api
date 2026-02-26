@@ -280,6 +280,7 @@ class ArticleTests {
       req.toObjectNode().apply {
         pathToObject("article").remove(prop)
       }.toString().let {
+
         client.post("/api/articles", it)
           .then()
           .statusCode(422)

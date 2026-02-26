@@ -14,8 +14,8 @@ aliases:
   - &container_config
     <<: *defaults
     docker:
-      - image: cimg/openjdk:17.0
-      - image: postgres:16-alpine
+      - image: cimg/openjdk:25.0
+      - image: postgres:18-alpine
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: secret

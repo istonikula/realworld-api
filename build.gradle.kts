@@ -1,7 +1,14 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import com.github.benmanes.gradle.versions.updates.resolutionstrategy.ComponentSelectionWithCurrent
 import org.flywaydb.gradle.FlywayExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+buildscript {
+  dependencies {
+    classpath(Libs.flywayPostgresql)
+  }
+}
 
 plugins {
   id("com.github.ben-manes.versions") version Version.versionsPlugin
@@ -41,11 +48,8 @@ configure(subprojects.apply {
   }
   tasks.withType<KotlinCompile> {
     kotlinJavaToolchain.toolchain.use(javaLauncher)
-    kotlinOptions {
-      freeCompilerArgs = listOf(
-        "-Xjsr305=strict",
-        "-Xinline-classes"
-      )
+    compilerOptions {
+      freeCompilerArgs.add("-Xjsr305=strict")
     }
   }
 
@@ -60,10 +64,6 @@ configure(subprojects.apply {
   }
 
   dependencies {
-    // override spring-boot platform versions
-    project.extra.set("groovy.version", Version.groovy) // keep in sync with rest-assured https://raw.githubusercontent.com/rest-assured/rest-assured/master/changelog.txt
-    project.extra.set("rest-assured.version", Version.restAssured)
-
     implementation.let {
       it(platform("org.springframework.boot:spring-boot-dependencies:${Version.springBoot}"))
 
@@ -73,13 +73,8 @@ configure(subprojects.apply {
 
     runtimeOnly(Libs.jaxb)
 
-    testImplementation.let {
-      it(Starters.test) {
-        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
-      }
-
-      it(Libs.junitJupiter)
-    }
+    testImplementation(Starters.test)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
   }
 }
 
@@ -104,13 +99,7 @@ project("realworld-app:web") {
       it(Starters.actuator)
       it(Starters.jdbc)
       it(Starters.validation)
-      it(Starters.web) {
-        exclude(
-          group = "org.springframework.boot",
-          module = "spring-boot-starter-tomcat"
-        )
-      }
-      it(Starters.undertow)
+      it(Starters.webmvc)
 
       it(Libs.jacksonKotlin)
     }
@@ -149,14 +138,14 @@ project("realworld-infra:persistence") {
 tasks.named<DependencyUpdatesTask>("dependencyUpdates") {
   resolutionStrategy {
     componentSelection {
-      all {
+      all(Action<ComponentSelectionWithCurrent> {
         val rejected = listOf("alpha", "b", "beta", "build-snapshot", "rc", "cr", "m", "preview")
           .map { qualifier -> Regex("(?i).*[.-]$qualifier[.\\d-]*") }
           .any { it.matches(candidate.version) }
         if (rejected) {
           reject("Release candidate")
         }
-      }
+      })
     }
   }
   checkForGradleUpdate = true
