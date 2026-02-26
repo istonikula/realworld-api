@@ -276,20 +276,17 @@ class ArticleTests {
         .body("errors.body.message", Matchers.equalTo("must not be blank"))
     }
 
-    // TODO: Verify error format for missing required fields in Spring Boot 4
-    // Jackson 3 behavior or error path construction is different, causing mismatch in expected error structure
-    /*
     listOf("title", "description", "body").map { prop ->
       req.toObjectNode().apply {
         pathToObject("article").remove(prop)
       }.toString().let {
+
         client.post("/api/articles", it)
           .then()
           .statusCode(422)
           .body("errors.$prop.type", Matchers.equalTo("TypeMismatch"))
       }
     }
-    */
   }
 
   @Test

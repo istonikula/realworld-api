@@ -64,17 +64,9 @@ data class ValidationError(
 )
 
 fun DatabindException.toValidationErrorPath(): String =
-  path.joinToString(separator = ".", transform = { ref ->
-    val i = if (ref.index >= 0) "${ref.index}" else ""
-    val fieldName = try {
-      // Use reflection to access fieldName as property access failed during compilation
-      ref.javaClass.getMethod("getFieldName").invoke(ref) as? String
-    } catch (e: Exception) {
-      null
-    }
-    // Fallback to toString if fieldName is null (e.g. if reflection failed or returned null)
-    val name = fieldName ?: ref.toString()
-    "${name}$i"
+  path.joinToString(separator = ".", transform = { it ->
+    val i = if (it.index >= 0) "${it.index}" else ""
+    "${it.propertyName ?: ""}$i"
   })
 
 fun DatabindException.toValidationError() = ValidationError(
