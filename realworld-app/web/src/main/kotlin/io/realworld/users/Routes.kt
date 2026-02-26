@@ -1,6 +1,5 @@
 package io.realworld.users
 
-import arrow.core.Option
 import io.realworld.FieldError
 import io.realworld.UnauthorizedException
 import io.realworld.domain.common.Auth
@@ -119,11 +118,11 @@ class UserController(
       }.run {
         UpdateUserCommand(
           data = UserUpdate(
-            username = Option.fromNullable(update.username),
-            email = Option.fromNullable(update.email),
-            password = Option.fromNullable(update.password),
-            bio = Option.fromNullable(update.bio),
-            image = Option.fromNullable(update.image)
+            username = update.username,
+            email = update.email,
+            password = update.password,
+            bio = update.bio,
+            image = update.image
           ),
           current = user
         ).runUseCase()

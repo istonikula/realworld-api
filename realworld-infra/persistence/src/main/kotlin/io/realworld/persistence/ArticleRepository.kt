@@ -1,9 +1,5 @@
 package io.realworld.persistence
 
-import arrow.core.Option
-import arrow.core.getOrElse
-import arrow.core.some
-import arrow.core.toOption
 import io.realworld.domain.articles.Article
 import io.realworld.domain.articles.ArticleFilter
 import io.realworld.domain.articles.ArticleId
@@ -121,9 +117,9 @@ class ArticleRepository(
     val deps = ArticleDeps()
     deps.author = Profile(
       username = user.username,
-      bio = user.bio.toOption(),
-      image = user.image.toOption(),
-      following = false.toOption()
+      bio = user.bio,
+      image = user.image,
+      following = false
     )
 
     if (article.tagList.isNotEmpty()) {
@@ -139,8 +135,8 @@ class ArticleRepository(
     jdbcTemplate.queryIfExists(it.table, it.slug.eq(), mapOf(it.slug to slug))
   }
 
-  suspend fun getBySlug(slug: String, user: Option<User>): Option<Article> =
-    fetchRowBySlug(slug).map { Article.from(it, loadArticleDeps(it, user)) }
+  suspend fun getBySlug(slug: String, user: User?): Article? =
+    fetchRowBySlug(slug)?.let { Article.from(it, loadArticleDeps(it, user)) }
 
   suspend fun deleteArticle(articleId: ArticleId): Int = with(ArticleTbl) {
     val sql = "DELETE FROM $table WHERE ${id.eq()}"
@@ -150,7 +146,7 @@ class ArticleRepository(
 
   suspend fun updateArticle(update: ValidArticleUpdate, user: User): Article {
     val row = updateArticleRow(update)
-    return Article.from(row, loadArticleDeps(row, user.some()))
+    return Article.from(row, loadArticleDeps(row, user))
   }
 
   suspend fun addFavorite(articleId: ArticleId, user: User): Int = with(ArticleFavoriteTbl) {
@@ -165,7 +161,7 @@ class ArticleRepository(
     jdbcTemplate.update(sql, params)
   }
 
-  suspend fun getComment(articleId: ArticleId, commentId: ArticleScopedCommentId, user: User): Option<Comment> =
+  suspend fun getComment(articleId: ArticleId, commentId: ArticleScopedCommentId, user: User): Comment? =
     with(ArticleCommentTbl) {
       val sql =
         """
@@ -183,14 +179,14 @@ class ArticleRepository(
       )
       DataAccessUtils.singleResult(
         jdbcTemplate.query(sql, params) { rs, _ -> CommentRow.fromRs(rs) }
-      ).toOption()
-    }.map {
-      Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user.some())))
+      )
+    }?.let {
+      Comment.from(it, CommentDeps(fetchAuthor(it.authorId, user)))
     }
 
   suspend fun addComment(articleId: ArticleId, comment: String, user: User): Comment {
     val row = insertCommentRow(articleId, comment, user)
-    val deps = CommentDeps(fetchAuthor(row.authorId, user.some()))
+    val deps = CommentDeps(fetchAuthor(row.authorId, user))
     return Comment.from(row, deps)
   }
 
@@ -213,7 +209,7 @@ class ArticleRepository(
     )
   }
 
-  suspend fun getComments(articleId: ArticleId, user: Option<User>): List<Comment> = with(ArticleCommentTbl) {
+  suspend fun getComments(articleId: ArticleId, user: User?): List<Comment> = with(ArticleCommentTbl) {
     val sql = "SELECT * from $view WHERE ${article_id.eq()} AND ${deleted.eq()}"
     val params = mapOf(
       article_id to articleId.value,
@@ -224,7 +220,7 @@ class ArticleRepository(
     }
   }
 
-  suspend fun getArticles(filter: ArticleFilter, user: Option<User>): List<Article> {
+  suspend fun getArticles(filter: ArticleFilter, user: User?): List<Article> {
     val rows = fetchArticleRows(filter.toQueryParts(), filter.limit, filter.offset)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
     return rows.map { row -> Article.from(row, loadArticleDeps(row, user)) }
@@ -236,7 +232,7 @@ class ArticleRepository(
   suspend fun getFeeds(filter: FeedFilter, user: User): List<Article> {
     val rows = fetchArticleRows(user.toFeedsQueryParts(), filter.limit, filter.offset)
     // NOTE: opt for simplicity (query limit defaults to 20), thus let's loop
-    return rows.map { row -> Article.from(row, loadArticleDeps(row, user.some())) }
+    return rows.map { row -> Article.from(row, loadArticleDeps(row, user)) }
   }
 
   suspend fun getFeedsCount(user: User): Long =
@@ -246,9 +242,9 @@ class ArticleRepository(
     jdbcTemplate.query("SELECT $name FROM $table") { rs, _ -> rs.getString(name) }.toSet()
   }
 
-  private suspend fun loadArticleDeps(row: ArticleRow, user: Option<User>): ArticleDeps =
+  private suspend fun loadArticleDeps(row: ArticleRow, user: User?): ArticleDeps =
     ArticleDeps().apply {
-      favorited = user.map { isFavorited(row.id, it) }.getOrElse { false }
+      favorited = user?.let { isFavorited(row.id, it) } ?: false
       favoritesCount = fetchFavoritesCount(row.id)
       tagList.addAll(fetchArticleTags(row.id))
       author = fetchAuthor(row.authorId, user)
@@ -299,12 +295,12 @@ class ArticleRepository(
     jdbcTemplate.query(sql, params) { rs, _ -> rs.getString(tag) }
   }
 
-  private suspend fun fetchRowBySlug(slug: String): Option<ArticleRow> = ArticleTbl.let {
+  private suspend fun fetchRowBySlug(slug: String): ArticleRow? = ArticleTbl.let {
     val sql = "SELECT * FROM ${it.table} WHERE ${it.slug.eq()}"
     val params = mapOf(it.slug to slug)
     DataAccessUtils.singleResult(
       jdbcTemplate.query(sql, params) { rs, _ -> ArticleRow.fromRs(rs) }
-    ).toOption()
+    )
   }
 
   private suspend fun fetchArticleRows(
@@ -391,17 +387,17 @@ class ArticleRepository(
     )
   }
 
-  private suspend fun fetchAuthor(id: UserId, querier: Option<User>): Profile =
-    userRepo.findById(id).map { userAndPassword ->
+  private suspend fun fetchAuthor(id: UserId, querier: User?): Profile =
+    userRepo.findById(id)?.let { userAndPassword ->
       userAndPassword.user.let { author ->
         Profile(
           username = author.username,
-          bio = author.bio.toOption(),
-          image = author.image.toOption(),
-          following = querier.map { userRepo.hasFollower(author.id, it.id) }
+          bio = author.bio,
+          image = author.image,
+          following = querier?.let { userRepo.hasFollower(author.id, it.id) }
         )
       }
-    }.getOrElse { throw RuntimeException("Corrupt DB: article author $id not found") }
+    } ?: throw RuntimeException("Corrupt DB: article author $id not found")
 
   private suspend fun fetchFavoritesCount(articleId: ArticleId): Long = with(ArticleFavoriteTbl) {
     val sql = "SELECT COUNT(*) FROM $table WHERE ${article_id.eq()}"

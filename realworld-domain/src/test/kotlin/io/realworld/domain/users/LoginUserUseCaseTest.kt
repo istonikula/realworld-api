@@ -1,7 +1,5 @@
 package io.realworld.domain.users
 
-import arrow.core.none
-import arrow.core.some
 import io.realworld.domain.fixtures.UserFactory
 import io.realworld.domain.fixtures.registration
 import io.realworld.domain.fixtures.userAndPassword
@@ -21,7 +19,7 @@ class LoginUserUseCaseTest {
 
     object : LoginUserUseCase {
       override val auth = Stubs.auth
-      override val getUser = Stubs.getUserByEmail { expected.some() }
+      override val getUser = Stubs.getUserByEmail { expected }
     }.test(jane.email, jane.password).fold(
       { fail<Nothing>("right expected $it") },
       { assertThat(it).isEqualTo(expected.user) }
@@ -32,7 +30,7 @@ class LoginUserUseCaseTest {
   fun `not found`() {
     object : LoginUserUseCase {
       override val auth = Stubs.auth
-      override val getUser = Stubs.getUserByEmail { none() }
+      override val getUser = Stubs.getUserByEmail { null }
     }.test(jane.email, jane.password).fold(
       { assertThat(it).isEqualTo(UserLoginError.BadCredentials) },
       { fail("left expected") }
@@ -44,7 +42,7 @@ class LoginUserUseCaseTest {
     object : LoginUserUseCase {
       override val auth = Stubs.auth
       override val getUser = Stubs.getUserByEmail {
-        userFactory.run { jane.valid().userAndPassword().some() }
+        userFactory.run { jane.valid().userAndPassword() }
       }
     }.test(jane.email, "invalid password").fold(
       { assertThat(it).isEqualTo(UserLoginError.BadCredentials) },

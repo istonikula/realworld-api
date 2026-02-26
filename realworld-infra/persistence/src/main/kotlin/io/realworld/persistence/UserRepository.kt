@@ -1,7 +1,5 @@
 package io.realworld.persistence
 
-import arrow.core.Option
-import arrow.core.toOption
 import io.realworld.domain.users.User
 import io.realworld.domain.users.UserAndPassword
 import io.realworld.domain.users.UserId
@@ -48,7 +46,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
   suspend fun update(update: ValidUserUpdate, current: User): User {
     val sql = with(UserTbl) {
       StringBuilder("UPDATE $table SET ${username.set()}, ${email.set()}, ${bio.set()}, ${image.set()}")
-        .also { if (update.encryptedPassword.isSome()) it.append(", ${password.set()}") }
+        .also { if (update.encryptedPassword != null) it.append(", ${password.set()}") }
         .also { it.append(" WHERE $email = :currentEmail RETURNING *") }
         .toString()
     }
@@ -58,7 +56,7 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
         email to update.email,
         bio to update.bio,
         image to update.image,
-        password to update.encryptedPassword.getOrNull(),
+        password to update.encryptedPassword,
         "currentEmail" to current.email
       )
     }
@@ -66,29 +64,29 @@ open class UserRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) 
     return jdbcTemplate.queryForObject(sql, params) { rs, _ -> User.fromRs(rs) }!!
   }
 
-  suspend fun findById(id: UserId): Option<UserAndPassword> =
+  suspend fun findById(id: UserId): UserAndPassword? =
     DataAccessUtils.singleResult(
       jdbcTemplate.query(
         "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.id.eq()}",
         mapOf(UserTbl.id to id.value)
       ) { rs, _ -> UserAndPassword.fromRs(rs) }
-    ).toOption()
+    )
 
-  suspend fun findByEmail(email: String): Option<UserAndPassword> =
+  suspend fun findByEmail(email: String): UserAndPassword? =
     DataAccessUtils.singleResult(
       jdbcTemplate.query(
         "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.email.eq()}",
         mapOf(UserTbl.email to email)
       ) { rs, _ -> UserAndPassword.fromRs(rs) }
-    ).toOption()
+    )
 
-  suspend fun findByUsername(username: String): Option<User> =
+  suspend fun findByUsername(username: String): User? =
     DataAccessUtils.singleResult(
       jdbcTemplate.query(
         "SELECT * FROM ${UserTbl.table} WHERE ${UserTbl.username.eq()}",
         mapOf(UserTbl.username to username)
       ) { rs, _ -> User.fromRs(rs) }
-    ).toOption()
+    )
 
   open suspend fun existsByEmail(email: String): Boolean = UserTbl.let {
     jdbcTemplate.queryIfExists(it.table, it.email.eq(), mapOf(it.email to email))

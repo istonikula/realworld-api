@@ -1,7 +1,6 @@
 package io.realworld.domain.users
 
 import arrow.core.Either
-import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import io.realworld.domain.common.Auth
@@ -42,16 +41,16 @@ interface ValidateUserUpdateService {
     val cmd = this
 
     return when {
-      cmd.email.fold({ false }, { current.email !== it && existsByEmail(it) }) ->
+      cmd.email?.let { current.email != it && existsByEmail(it) } ?: false ->
         UserUpdateError.EmailAlreadyTaken.left()
-      cmd.username.fold({ false }, { current.username !== it && existsByUsername(it) }) ->
+      cmd.username?.let { current.username != it && existsByUsername(it) } ?: false ->
         UserUpdateError.UsernameAlreadyTaken.left()
       else -> ValidUserUpdate(
-        email = email.getOrElse { current.email },
-        username = username.getOrElse { current.username },
-        encryptedPassword = password.map { auth.encryptPassword(it) },
-        bio = bio.getOrElse { current.bio },
-        image = image.getOrElse { current.image }
+        email = email ?: current.email,
+        username = username ?: current.username,
+        encryptedPassword = password?.let { auth.encryptPassword(it) },
+        bio = bio ?: current.bio,
+        image = image ?: current.image
       ).right()
     }
   }

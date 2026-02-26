@@ -1,11 +1,9 @@
 // ktlint-disable filename
 package io.realworld.domain.profiles
 
-import arrow.core.Option
-
 data class Profile(
   val username: String,
-  val bio: Option<String>,
-  val image: Option<String>,
-  val following: Option<Boolean>
+  val bio: String?,
+  val image: String?,
+  val following: Boolean?
 ) { companion object }

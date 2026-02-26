@@ -1,25 +1,22 @@
 package io.realworld.domain.articles
 
 import arrow.core.Either
-import arrow.core.Option
 import arrow.core.raise.either
-import arrow.core.getOrElse
 import arrow.core.raise.ensure
-import arrow.core.some
 import io.realworld.domain.users.User
 import java.util.UUID
 
 data class CreateArticleCommand(val data: ArticleCreation, val user: User)
 data class DeleteArticleCommand(val slug: String, val user: User)
-data class GetArticleCommand(val slug: String, val user: Option<User>)
-data class GetArticlesCommand(val filter: ArticleFilter, val user: Option<User>)
+data class GetArticleCommand(val slug: String, val user: User?)
+data class GetArticlesCommand(val filter: ArticleFilter, val user: User?)
 data class GetFeedsCommand(val filter: FeedFilter, val user: User)
 data class UpdateArticleCommand(val data: ArticleUpdate, val slug: String, val user: User)
 data class FavoriteArticleCommand(val slug: String, val user: User)
 data class UnfavoriteArticleCommand(val slug: String, val user: User)
 data class CommentArticleCommand(val slug: String, val comment: String, val user: User)
 data class DeleteCommentCommand(val slug: String, val commentId: ArticleScopedCommentId, val user: User)
-data class GetCommentsCommand(val slug: String, val user: Option<User>)
+data class GetCommentsCommand(val slug: String, val user: User?)
 object GetTagsCommand
 
 sealed class ArticleUpdateError {
@@ -76,7 +73,7 @@ interface CreateArticleUseCase {
 interface GetArticleUseCase {
   val getArticleBySlug: GetArticleBySlug
 
-  suspend fun GetArticleCommand.runUseCase(): Option<Article> =
+  suspend fun GetArticleCommand.runUseCase(): Article? =
     getArticleBySlug(slug, user)
 }
 
@@ -88,7 +85,7 @@ interface DeleteArticleUseCase {
     val cmd = this
 
     return either {
-      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleDeleteError.NotFound }.bind()
+      val article = getArticleBySlug(cmd.slug, cmd.user) ?: raise(ArticleDeleteError.NotFound)
       ensure(article.author.username == cmd.user.username) { ArticleDeleteError.NotAuthor }
       deleteArticle(article.id)
     }
@@ -151,7 +148,7 @@ interface FavoriteUseCase {
     val cmd = this
 
     return either {
-      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleFavoriteError.NotFound }.bind()
+      val article = getArticleBySlug(cmd.slug, cmd.user) ?: raise(ArticleFavoriteError.NotFound)
       when {
         article.author.username == cmd.user.username ->
           raise(ArticleFavoriteError.Author)
@@ -159,7 +156,7 @@ interface FavoriteUseCase {
           article
         else -> {
           addFavorite(article.id, cmd.user)
-          getArticleBySlug(cmd.slug, cmd.user.some()).getOrSystemError(cmd.slug)
+          getArticleBySlug(cmd.slug, cmd.user).getOrSystemError(cmd.slug)
         }
       }
     }
@@ -174,13 +171,13 @@ interface UnfavoriteUseCase {
     val cmd = this
 
     return either {
-      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleUnfavoriteError.NotFound }.bind()
+      val article = getArticleBySlug(cmd.slug, cmd.user) ?: raise(ArticleUnfavoriteError.NotFound)
       when {
         !article.favorited ->
           article
         else -> {
           removeFavorite(article.id, cmd.user)
-          getArticleBySlug(cmd.slug, cmd.user.some()).getOrSystemError(cmd.slug)
+          getArticleBySlug(cmd.slug, cmd.user).getOrSystemError(cmd.slug)
         }
       }
     }
@@ -195,7 +192,7 @@ interface CommentUseCase {
     val cmd = this
 
     return either {
-      val article = getArticleBySlug(cmd.slug, cmd.user.some()).toEither { ArticleCommentError.NotFound }.bind()
+      val article = getArticleBySlug(cmd.slug, cmd.user) ?: raise(ArticleCommentError.NotFound)
       addComment(article.id, cmd.comment, cmd.user)
     }
   }
@@ -210,11 +207,9 @@ interface DeleteCommentUseCase {
     val cmd = this
 
     return either {
-      val article = getArticleBySlug(cmd.slug, cmd.user.some())
-        .toEither { ArticleCommentDeleteError.ArticleNotFound }.bind()
+      val article = getArticleBySlug(cmd.slug, cmd.user) ?: raise(ArticleCommentDeleteError.ArticleNotFound)
 
-      val comment = getComment(article.id, cmd.commentId, cmd.user)
-        .toEither { ArticleCommentDeleteError.CommentNotFound }.bind()
+      val comment = getComment(article.id, cmd.commentId, cmd.user) ?: raise(ArticleCommentDeleteError.CommentNotFound)
 
       ensure(comment.author.username == cmd.user.username) { ArticleCommentDeleteError.NotAuthor }
 
@@ -227,10 +222,10 @@ interface GetCommentsUseCase {
   val getArticleBySlug: GetArticleBySlug
   val getComments: GetComments
 
-  suspend fun GetCommentsCommand.runUseCase(): Option<List<Comment>> {
+  suspend fun GetCommentsCommand.runUseCase(): List<Comment>? {
     val cmd = this
 
-    return getArticleBySlug(cmd.slug, cmd.user).map { getComments(it.id, cmd.user) }
+    return getArticleBySlug(cmd.slug, cmd.user)?.let { getComments(it.id, cmd.user) }
   }
 }
 
@@ -240,6 +235,5 @@ interface GetTagsUseCase {
   suspend fun GetTagsCommand.runUseCase(): Set<String> = getTags()
 }
 
-private fun Option<Article>.getOrSystemError(slug: String) = getOrElse {
+private fun Article?.getOrSystemError(slug: String) = this ?:
   throw RuntimeException("System error: article '$slug' should have been found")
-}

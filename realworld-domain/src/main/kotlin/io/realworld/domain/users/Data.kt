@@ -1,6 +1,5 @@
 package io.realworld.domain.users
 
-import arrow.core.Option
 import java.util.UUID
 
 @JvmInline value class UserId(val value: UUID)
@@ -28,17 +27,17 @@ data class ValidUserRegistration(
 data class UserAndPassword(val user: User, val encryptedPassword: String) { companion object }
 
 data class UserUpdate(
-  val username: Option<String>,
-  val email: Option<String>,
-  val password: Option<String>,
-  val bio: Option<String>,
-  val image: Option<String>
+  val username: String?,
+  val email: String?,
+  val password: String?,
+  val bio: String?,
+  val image: String?
 )
 
 data class ValidUserUpdate(
   val username: String,
   val email: String,
-  val encryptedPassword: Option<String>,
+  val encryptedPassword: String?,
   val bio: String?,
   val image: String?
 )

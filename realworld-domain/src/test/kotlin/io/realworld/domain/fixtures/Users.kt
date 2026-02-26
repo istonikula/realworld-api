@@ -1,10 +1,5 @@
 package io.realworld.domain.fixtures
 
-import arrow.core.Option
-import arrow.core.getOrElse
-import arrow.core.none
-import arrow.core.some
-import arrow.core.toOption
 import io.realworld.domain.common.Auth
 import io.realworld.domain.common.Token
 import io.realworld.domain.users.User
@@ -39,11 +34,11 @@ class UserFactory(val auth: Auth) {
     { x: UserRegistration -> x.valid() }
 
   fun UserUpdate.valid(current: User) = ValidUserUpdate(
-    username = username.getOrElse { current.username },
-    email = email.getOrElse { current.email },
-    encryptedPassword = password.map { auth.encryptPassword(it) },
-    bio = bio.getOrElse { current.bio },
-    image = image.getOrElse { current.image }
+    username = username ?: current.username,
+    email = email ?: current.email,
+    encryptedPassword = password?.let { auth.encryptPassword(it) },
+    bio = bio ?: current.bio,
+    image = image ?: current.image
   )
 
   val validUpdate =
@@ -56,12 +51,12 @@ fun User.registration() = UserRegistration(
   password = "plain"
 )
 
-fun User.update(password: Option<String> = none()) = UserUpdate(
-  username = "$username.updated".some(),
-  email = "$username.updated@realworld.io".some(),
+fun User.update(password: String? = null) = UserUpdate(
+  username = "$username.updated",
+  email = "$username.updated@realworld.io",
   password = password,
-  bio = bio.toOption(),
-  image = image.toOption()
+  bio = bio,
+  image = image
 )
 
 fun ValidUserRegistration.user() = User(
