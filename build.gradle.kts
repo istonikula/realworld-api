@@ -50,7 +50,6 @@ configure(subprojects.apply {
     kotlinJavaToolchain.toolchain.use(javaLauncher)
     compilerOptions {
       freeCompilerArgs.add("-Xjsr305=strict")
-      freeCompilerArgs.add("-Xinline-classes")
     }
   }
 
